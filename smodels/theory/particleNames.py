@@ -164,9 +164,9 @@ def vertInStr(instring):
 
     return vertices
 
-def simParticles(plist1, plist2, useDict=True):
+def simParticles(particles1, particles2, useDict=True):
     """
-    Compares two lists of particle names. Allows for dictionary
+    Compares two lists of particles. Allows for inclusive
     labels (Ex: L = l, l+ = l, l = l-,...). Ignores particle ordering inside
     the list
  
@@ -176,6 +176,9 @@ def simParticles(plist1, plist2, useDict=True):
                     e+ or e-, l+ to stand for e+ or mu+, etc 
     :returns: True/False if the particles list match (ignoring order)    
     """
+    
+    plist1 = [str(p) for p in particles1]
+    plist2 = [str(p) for p in particles2]
 
     if not isinstance(plist1,list) or type(plist1) != type(plist2):
         logger.error("Input must be a list")
