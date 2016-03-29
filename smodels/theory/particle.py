@@ -10,7 +10,7 @@
 
 import unum
 import logging
-
+from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 logger = logging.getLogger(__name__)
 
 
@@ -35,31 +35,38 @@ class Particle(object):
         """
         
         if not isinstance(name,str):
-            logger.warning("Particle name must be a string and not %s" %str(type(name)))
+            logger.error("Particle name must be a string and not %s" %str(type(name)))
+            raise SModelSError
         else:
             self.name = name
         if not isinstance(pid,int):
-            logger.warning("Particle PID must be an integer and not %s" %str(type(pid)))
+            logger.error("Particle PID must be an integer and not %s" %str(type(pid)))
+            raise SModelSError
         else:
             self.pid = pid
         if not isinstance(mass,unum.Unum):
-            logger.warning("Particle mass must be a Unum object (e.g. 100*GeV) and not %s" %str(type(mass)))
+            logger.error("Particle mass must be a Unum object (e.g. 100*GeV) and not %s" %str(type(mass)))
+            raise SModelSError
         else:          
             self.mass = mass
         if not isinstance(spin,float) and not isinstance(spin,int):
-            logger.warning("Particle spin must be an integer or float and not %s" %str(type(spin)))
+            logger.error("Particle spin must be an integer or float and not %s" %str(type(spin)))
+            raise SModelSError
         else:            
             self.spin = float(spin)
         if not isinstance(eCharge,float) and not isinstance(eCharge,int):
-            logger.warning("Particle eCharge must be an integer or float and not %s" %str(type(eCharge)))
+            logger.error("Particle eCharge must be an integer or float and not %s" %str(type(eCharge)))
+            raise SModelSError
         else:            
             self.eCharge = float(eCharge)            
         if not isinstance(qColor,int):
-            logger.warning("Particle qColor must be an integer and not %s" %str(type(qColor)))
+            logger.error("Particle qColor must be an integer and not %s" %str(type(qColor)))
+            raise SModelSError
         else:            
             self.qColor = qColor             
         if zParity != 1 and zParity != -1:
-            logger.warning("Particle zParity must be +1 or -1")
+            logger.error("Particle zParity must be +1 or -1")
+            raise SModelSError
         else:            
             self.zParity = zParity
         

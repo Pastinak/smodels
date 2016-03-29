@@ -170,8 +170,8 @@ def simParticles(particles1, particles2, useDict=True):
     labels (Ex: L = l, l+ = l, l = l-,...). Ignores particle ordering inside
     the list
  
-    :param plist1: first list of particle names, e.g. ['l','jet']
-    :param plist2: second list of particle names 
+    :param particles1: first list of particles (Particle objects)
+    :param particles2: second list of particles (Particle objects) 
     :param useDict: use the translation dictionary, i.e. allow e to stand for
                     e+ or e-, l+ to stand for e+ or mu+, etc 
     :returns: True/False if the particles list match (ignoring order)    
