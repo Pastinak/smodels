@@ -8,7 +8,6 @@
 
 """
 
-import unum
 import logging
 from smodels.theory.particle import Particle
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
@@ -20,49 +19,87 @@ class Vertex(object):
     An instance of this class represents a vertex (belonging to a branch/element).    
 
     """
-    def __init__(self, particles=[]):
+    def __init__(self, inParticle=None, outParticles=[]):
         """
         Initializes the vertex.
         
-        :parameter particles: List of particles (Particle objects)
+        :parameter inParticle: incoming particle (Particle object)
+        :parameter outParticles: List of outgoing particles (Particle objects)
         """
-                
-        if not isinstance(particles,list):
-            logger.error("Particles must be a list and not %s" %str(type(particles)))
+          
+        if (not inParticle is None) and (not isinstance(inParticle, Particle)):
+            logger.error("inParticle must be a Particle object and not %s" %str(type(inParticle)))
+            raise SModelSError
+        self.inParticle = inParticle
+        
+        if not isinstance(outParticles,list):
+            logger.error("outParticles must be a list and not %s" %str(type(outParticles)))
             raise SModelSError
         else:
-            for p in particles:
+            for p in outParticles:
                 if not isinstance(p,Particle):
                     logger.error("Particle must be a Particle object and not %s" %str(type(p)))
                     raise SModelSError
-        self.particles = particles
-        
-    def __eq__(self,other):
-        """
-        Checks if the vertices are equal. Compares the particles in each vertex
-        """
-        
-        return self.particles == other.particles         
+        self.outParticles = outParticles
+        self.sortParticles()
+
+        #Split outgoing particles into even and odd
+        self.outEven = []
+        self.outOdd = []
+        for p in self.outParticles:
+            if p.zParity == +1:
+                self.outEven.append(p)
+            elif p.zParity == -1:
+                self.outOdd.append(p)
+                
+        if not self.sanityCheck():
+            logger.error("Wrong vertex structure.")
+            raise SModelSError
         
     def __str__(self):
         """
-        String represantion (particle name)
+        Default string representation (particle names for the outgoing even particles)
+        :return: list of outgoing even particle names
         """
         
-        return [str(p) for p in self.particles]
+        return str([str(p) for p in self.outEven])
     
-    def copy(self):
+    def stringRep(self):
         """
-        Generates a copy of the particle  
+        Extended string representation.
+        :return: string represantion in the format inParticle --> oddParticle + [evenParticles]
         """
         
-        newP = Particle()
-        newP.name = self.name
-        newP.mass = self.mass
-        newP.pid = self.pid
-        newP.spin = self.spin
-        newP.eCharge = self.eCharge
-        newP.qColor = self.qColor
-        newP.zParity = self.zParity
+        strR = self.inParticle.name + ' --> ' + self.outOdd[0].name 
+        strR += ' + ' + str(self)
         
-        return newP
+        return strR
+    
+    def sortParticles(self):
+        """
+        Sorts the vertex particles according to their names
+        """
+        
+        self.outParticles = sorted(self.outParticles, key=lambda p: p.name)
+        
+    def sanityCheck(self):
+        """
+        Makes sure the vertex has the correct structure: 1 incoming Z2-odd particle,
+        1 outgoing Z2-odd particle and N-2 Z2-even outgoing particles
+        
+        :return: True if the structure is correct, False otherwise
+        """
+        
+        if not self.inParticle.zParity == -1:
+            logger.error("Vertex does not have one incoming Z2-odd particle")
+            return False
+        
+        if len(self.outOdd) != 1:
+            logger.error("Vertex does not have one outgoing Z2-odd particle")
+            return False
+        
+        if len(self.outEven) + len(self.outOdd) != len(self.outParticles):
+            logger.error("Number of odd and even parities is not equal to the total number of particles")
+            return False         
+        
+        return True
