@@ -62,7 +62,7 @@ class Vertex(object):
         :return: list of outgoing even particle names
         """
         
-        return str([str(p) for p in self.outEven])
+        return str([str(p) for p in self.outEven]).replace("'","")
     
     def stringRep(self):
         """

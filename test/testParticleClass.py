@@ -42,9 +42,8 @@ class ParticleTest(unittest.TestCase):
     def testVertex(self):
         
         v1 = Vertex(inParticle=g, outParticles=[sq,u,d])
-
-        self.assertEqual( str(v1) == str(sorted(['d','u'])), True)
-        self.assertEqual( v1.stringRep().replace(' ','') == "gluino-->squark+['d','u']", True)
+        self.assertEqual( str(v1).replace(' ','') == '[d,u]', True)
+        self.assertEqual( v1.stringRep().replace(' ','') == "gluino-->squark+[d,u]", True)
         
 if __name__ == "__main__":
     unittest.main()
