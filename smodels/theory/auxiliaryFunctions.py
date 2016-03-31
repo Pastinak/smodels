@@ -270,3 +270,38 @@ def index_bisect(inlist, el):
         if inlist[mid] < el: lo = mid+1
         else: hi = mid
     return lo
+
+def stringToList(instring):
+    """
+    Converts a string in bracket notation (e.g. [[[e+,jet],[mu]],[[g],[g],[L]]] or [[e+,jet],[mu]])
+    to a nested list containing strings.
+    :parameter instring: string in bracket notation
+    :return: nested list of strings (particle names)        
+    """
+    
+    if not isinstance(instring,str):
+        logger.error("Input must be a string")
+        raise SModelSError
+    
+    instring = instring.replace(' ','').replace("'","")
+    newStr = ""
+    for i,c in enumerate(instring):
+        if c == '[' and instring[i+1] != '[':
+            newStr += c+"'"            
+        elif  c == ']' and instring[i-1] != ']':
+            newStr += "'"+c
+        elif c ==',' and  instring[i-1] != ']' and  instring[i+1] != '[':
+            newStr += "'"+c+"'"
+        else:
+            newStr += c
+    try:
+        pList = eval(newStr)
+    except:
+        logger.error("Error converting string %s to list" %instring)
+        raise SModelSError
+    
+    if not isinstance(pList,list):
+        logger.error("Conversion of string %s did not generate a list" %instring)
+        raise SModelSError
+    
+    return pList

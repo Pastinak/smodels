@@ -1,16 +1,16 @@
 """
 .. module:: theory.branch
-   :synopsis: Module holding the branch class and methods.
+   :synopsis: Module holding the branch class, its methods and related functions.
         
 .. moduleauthor:: Andre Lessa <lessa.a.p@gmail.com>
         
 """
 
-from smodels.theory.particleNames import simParticles, elementsInStr
+from smodels.theory.particle import simParticles
 from smodels.tools.physicsUnits import fb
+from smodels.theory.vertex import createVertexFromStr
+from smodels.theory.auxiliaryFunctions import stringToList
 import logging
-from smodels.particles import rEven, ptcDic
-import sys
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 
 logger = logging.getLogger(__name__)
@@ -18,49 +18,21 @@ logger = logging.getLogger(__name__)
 
 class Branch(object):
     """
-    An instance of this class represents a branch.    
-    A branch-element can be constructed from a string (e.g., ('[b,b],[W]').
+    An instance of this class represents a branch and it holds a list of vertices (Vertex objects).    
     
-    :ivar masses: list of masses for the intermediate states
-    :ivar particles: list of particles (strings) for the final states
-    :ivar PIDs: a list of the pdg numbers of the intermediate states appearing in the branch.
-                If the branch represents more than one possible pdg list, PIDs will correspond
-                to a nested list (PIDs = [[pid1,pid2,...],[pidA,pidB,...])
+    
+    :ivar vertexList: list of vertices
     :ivar maxWeight: weight of the branch (XSection object)
     """
-    def __init__(self, info=None):
+    
+    def __init__(self, vertices = []):
         """
-        Initializes the branch. If info is defined, tries to generate
-        the branch using it.
+        Initializes the branch. 
         
-        :parameter info: string describing the branch in bracket notation
-                         (e.g. [[e+],[jet]])
+        :parameter vertices: list of vertices
         """
-        self.masses = []
-        self.particles = []
-        self.PIDs = []
+        self.vertices = vertices
         self.maxWeight = None
-        self.vertnumb = None
-        self.vertparts = None
-        if type(info) == type(str()):
-            branch = elementsInStr(info)
-            if not branch or len(branch) > 1:
-                logger.error("Wrong input string " + info)
-                raise SModelSError()
-            else:
-                branch = branch[0]
-                vertices = elementsInStr(branch[1:-1])
-                for vertex in vertices:
-                    ptcs = vertex[1:-1].split(',')
-                    # Syntax check:
-                    for ptc in ptcs:
-                        if not ptc in rEven.values() \
-                                and not ptc in ptcDic:
-                            logger.error("Unknown particle. Add " + ptc + " to smodels/particle.py")
-                            raise SModelSError()
-                    self.particles.append(ptcs)
-            self.vertnumb = len(self.particles)
-            self.vertparts = [len(v) for v in self.particles]
 
 
     def __str__(self):
@@ -69,55 +41,40 @@ class Branch(object):
         
         :returns: string representation of the branch (in bracket notation)    
         """
-        st = str(self.particles).replace("'", "")
-        st = st.replace(" ", "")
+        
+        
+        st = str([str(v) for v in self.vertices])
+        st = st.replace("'", "").replace(" ", "")
         return st
+    
+    def __len__(self):
+        """
+        Defines the branch length (equal to its number of vertices)
+        :return: number of vertices in the branch
+        """
+        
+        return len(self.vertices)
 
     def __cmp__(self,other):
         """
         Compares the branch with other.        
-        The comparison is made based on .
-        OBS: The particles inside each vertex MUST BE sorted (see branch.sortParticles())         
+        The comparison is made based on the number of vertices, then on the size of each vertex
+        (number of particles in the vertex, then particle names and masses, see vertex.__cmp__)
+        OBS: The particles inside each vertex MUST BE sorted (see vertex.sortParticles())         
         :param other:  branch to be compared (Branch object)
         :return: -1 if self < other, 0 if self == other, +1, if self > other.
-        """
+        """        
         
-        if self.vertnumb != other.vertnumb:
-            comp = self.vertnumb > other.vertnumb
+        if len(self) != len(other):
+            comp = len(self) >  len(other)
             if comp: return 1
             else: return -1
-        elif self.vertparts != other.vertparts:
-            comp = self.vertparts > other.vertparts
-            if comp: return 1
-            else: return -1
-        elif self.particles != other.particles:
-            comp = self.particles > other.particles
-            if comp: return 1
-            else: return -1
-        elif self.masses != other.masses:
-            comp = self.masses > other.masses
+        elif self.vertices != other.vertices:
+            comp = self.vertices > other.vertices
             if comp: return 1
             else: return -1
         else:
             return 0  #Branches are equal
-
-    def sortParticles(self):
-        """
-        Sort the particles inside each vertex
-        """
-        
-        for iv,vertex in enumerate(self.particles):
-            self.particles[iv] = sorted(vertex)
-
-    def setInfo(self):
-        """
-        Defines the number of vertices (vertnumb) and number of
-        particles in each vertex (vertpats) properties, if they have not
-        been defined yet.
-        """
-
-        self.vertnumb = len(self.particles)
-        self.vertparts = [len(v) for v in self.particles]
 
     
     def particlesMatch(self, other):
@@ -131,18 +88,15 @@ class Branch(object):
         
         if type (other) != type(self):
             return False
-        
-        #Make sure number of vertices and particles have been defined
-        self.setInfo()
-        other.setInfo()
-        if self.vertnumb != other.vertnumb:
-            return False
-        if self.vertparts != other.vertparts:
+
+        if len(self) != len(other):
             return False
 
-        for iv,vertex in enumerate(self.particles):
-            if not simParticles(vertex,other.particles[iv]):
-                return False                        
+        for iv,vertex in enumerate(self.vertices):
+            if len(vertex) != other.vertices[iv]:
+                return False
+            if not simParticles(vertex.outParticles,other.vertices[iv].outParticles):
+                return False
         return True
    
 
@@ -153,116 +107,85 @@ class Branch(object):
         
         :returns: Branch object
         """
-        newbranch = Branch()
-        newbranch.masses = self.masses[:]
-        newbranch.particles = self.particles[:]
-        newbranch.PIDs = []
-        self.setInfo()
-        newbranch.vertnumb = self.vertnumb
-        newbranch.vertparts = self.vertparts[:]
-        for pidList in self.PIDs:
-            newbranch.PIDs.append(pidList[:])
+        newbranch = Branch(vertices = [v.copy() for v in self.vertices])
         if not self.maxWeight is None:
             newbranch.maxWeight = self.maxWeight.copy()
         return newbranch
 
 
-    def getLength(self):
+    def _addVertex(self, newVertex):
         """
-        Returns the branch length (number of R-odd particles).
+        Generate a new branch adding the new vertex to the original branch.
+        The PID of incoming particle in the new Vertex must match one of the PIDs of outgoing
+        particles in the last vertex of the original branch.
         
-        :returns: length of branch (number of R-odd particles)
-        """
-        
-        return len(self.masses)
-
-
-    def _addDecay(self, br, massDictionary):
-        """
-        Generate a new branch adding a 1-step cascade decay        
-        This is described by the br object, with particle masses given by
-        massDictionary.
-        
-        :parameter br: branching ratio object (see pyslha). Contains information about the decay.
-        :parameter massDictionary: dictionary containing the masses for all intermediate states.
+        :parameter newVertex: Vertex object. Contains both incoming and outgoing particles.  
         :returns: extended branch (Branch object). False if there was an error.
         """
-        newBranch = self.copy()
-        newparticles = []
-        newmass = []
         
-        if len(self.PIDs) != 1:
-            logger.error("During decay the branch should \
-                            not have multiple PID lists!")
-            return False   
-
-        for partID in br.ids:
-            # Add R-even particles to final state
-            if partID in rEven:
-                newparticles.append(rEven[partID])
-            else:
-                # Add masses of non R-even particles to mass vector
-                newmass.append(massDictionary[partID])
-                newBranch.PIDs[0].append(partID)
-
-        if len(newmass) > 1:
-            logger.warning("Multiple R-odd particles in the final state: " +
-                           str(br.ids))
-            return False
-
-        if newparticles:
-            newBranch.particles.append(sorted(newparticles))
-        if newmass:
-            newBranch.masses.append(newmass[0])
+        if not newVertex.inParticle._pid in [p._pid for p in self.vertices[-1].outParticles]:
+            logger.error("New vertex incoming particle does not match"
+                           + " any of the last vertex outgoing particles")
+            raise SModelSError
+        
+        newBranch = self.copy()
+        newV = newVertex.copy()
+        newBranch.vertices.append(newV)
         if not self.maxWeight is None:
-            newBranch.maxWeight = self.maxWeight * br.br
-
-        return newBranch
+            newBranch.maxWeight = self.maxWeight*newVertex.br        
 
 
-    def decayDaughter(self, brDictionary, massDictionary):
+    def decay(self, vertexDecayDict):
         """
         Generate a list of all new branches generated by the 1-step cascade
-        decay of the current branch daughter.
+        decay of the current branch daughter (outgoing particles in its last vertex).
+        OBS: There must be a single (or none) unstable particle in the last vertex. 
         
-        :parameter brDictionary: dictionary with the decay information
-                                 for all intermediate states (values are br objects, see pyslha)
-        :parameter massDictionary: dictionary containing the masses for all intermediate states.
-        :returns: list of extended branches (Branch objects). Empty list if daughter is stable or
-                  if daughterID was not defined.
+        :parameter vertexDecayDict: dictionary with the decay vertices 
+                                 for all odd particles. Keys are PIDs and values are a list of vertices.
+
+        :returns: list of extended branches (Branch objects). Empty list if daughter is stable.
         """
 
-        if len(self.PIDs) != 1:
-            logger.error("Can not decay branch with multiple PID lists")
-            return False                
-        if not self.PIDs[0][-1]:
-            # Do nothing if there is no R-odd daughter (relevant for RPV decays
-            # of the LSP)
+        nUnstable = 0
+        newVertices = None
+        for p in self.vertices[-1].outParticles:
+            if p._pid in vertexDecayDict:
+                nUnstable += 1
+                newVertices = vertexDecayDict[p._pid]
+
+        if nUnstable > 1:
+            logger.error("Can not decay vertex with multiple unstable outgoing particles")
+            return False
+        elif nUnstable == 0:
             return []
-        #If decay table is not defined, assume daughter is stable:
-        if not self.PIDs[0][-1] in brDictionary: return []
-        # List of possible decays (brs) for R-odd daughter in branch        
-        brs = brDictionary[self.PIDs[0][-1]]
-        if len(brs) == 0:
-            # Daughter is stable, there are no new branches
-            return []
-        newBranches = []
-        for br in brs:
-            if not br.br: continue  #Skip zero BRs
-            # Generate a new branch for each possible decay
-            newBranches.append(self._addDecay(br, massDictionary))
+        
+        newBranches = [self._addVertex(newVertex) for newVertex in newVertices]
         return newBranches
 
 
-def decayBranches(branchList, brDictionary, massDictionary,
-                  sigcut=0. *fb):
+def createBranchFromStr(branchStr):
     """
-    Decay all branches from branchList until all unstable intermediate states have decayed.
+    Creates a branch from a string in bracket notation (e.g. [[e+],[jet]])
+    Odd-particles are created as empty Particle objects and Even-particles only have 
+    the corresponding name.
+    :branchStr: string (e.g. [[e+],[jet]])
+    :return: Branch object
+    """
     
-    :parameter branchList: list of Branch() objects containing the initial mothers
-    :parameter brDictionary: dictionary with the decay information
-                                 for all intermediate states (values are br objects, see pyslha)
-    :parameter massDictionary: dictionary containing the masses for all intermediate states.
+    vertices = []
+    for vertex in stringToList(branchStr):
+        vertices.append(createVertexFromStr(str(vertex))) 
+    
+    return Branch(vertices=vertices)
+
+def decayBranches(branchList, vertexDecayDict, sigcut=0. *fb):
+    """
+    Decay all branches from branchList until all unstable states have decayed.
+    
+    :parameter branchList: list of Branch() objects containing the first vertex (produced mother and its decay)
+    :parameter vertexDecayDict: dictionary with the decay vertices 
+                                 for all odd particles. Keys are PIDs and values are a list of vertices.
     :parameter sigcut: minimum sigma*BR to be generated, by default sigcut = 0.
                    (all branches are kept)
     :returns: list of branches (Branch objects)    
@@ -276,9 +199,8 @@ def decayBranches(branchList, brDictionary, massDictionary,
             if sigcut.asNumber() > 0. and inbranch.maxWeight < sigcut:
                 # Remove the branches above sigcut and with length > topmax
                 continue
-            # Add all possible decays of the R-odd daughter to the original
-            # branch (if any)
-            newBranches = inbranch.decayDaughter(brDictionary, massDictionary)
+            # Add all possible decays of the last vertex to the original branch
+            newBranches = inbranch.decay(vertexDecayDict)
             if newBranches:
                 # New branches were generated, add them for next iteration
                 newBranchList.extend(newBranches)
@@ -289,5 +211,5 @@ def decayBranches(branchList, brDictionary, massDictionary,
         branchList = newBranchList
         
     #Sort list by initial branch PID:
-    finalBranchList = sorted(finalBranchList, key=lambda branch: branch.PIDs)
+    finalBranchList = sorted(finalBranchList, key=lambda branch: branch.vertices[0].inParticle._pid)
     return finalBranchList
