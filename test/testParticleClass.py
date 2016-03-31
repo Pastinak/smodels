@@ -11,7 +11,6 @@ import sys
 sys.path.insert(0,"../")
 import unittest
 from smodels.theory.particle import Particle
-from smodels.theory.vertex import Vertex
 from smodels.tools.physicsUnits import GeV
 
 
@@ -44,19 +43,7 @@ class ParticleTest(unittest.TestCase):
         self.assertEqual( sq1 > sq3, False)  #Smaller by name
         self.assertEqual( u > d, True)  #Larger by name
         self.assertEqual( sq1 > d, False)  #Smaller by zParity
-        
-    def testVertex(self):
-        
-        v1 = Vertex(inParticle=p1, outParticles=[sq1,u,d])
-        v2 = Vertex(inParticle=p1, outParticles=[sq1,d])
-        v3 = Vertex(inParticle=p1, outParticles=[sq2,d])
-        v5 = Vertex(inParticle=p3, outParticles=[sq1,u,d])
-        v5b = Vertex(inParticle=p4, outParticles=[sq1,u,d])
-        self.assertEqual( str(v1) == '[d,u]', True)
-        self.assertEqual( v1.stringRep().replace(' ','') == "-->squark1+[d,u]", True)
-        self.assertEqual(v1 > v2, True)  #Larger by number of outgoing particles
-        self.assertEqual(v2 > v3, True)  #Larger by mass of sq1
-        self.assertEqual(v5b == v5, True)  #All common properties are equal
+
         
 if __name__ == "__main__":
     unittest.main()

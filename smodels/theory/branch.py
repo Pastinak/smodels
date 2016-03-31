@@ -120,7 +120,7 @@ class Branch(object):
         particles in the last vertex of the original branch.
         
         :parameter newVertex: Vertex object. Contains both incoming and outgoing particles.  
-        :returns: extended branch (Branch object). False if there was an error.
+        :return: extended branch (Branch object). False if there was an error.
         """
         
         if not newVertex.inParticle._pid in [p._pid for p in self.vertices[-1].outParticles]:
@@ -131,9 +131,11 @@ class Branch(object):
         newBranch = self.copy()
         newV = newVertex.copy()
         newBranch.vertices.append(newV)
-        if not self.maxWeight is None:
-            newBranch.maxWeight = self.maxWeight*newVertex.br        
+        if not self.maxWeight is None and hasattr(newVertex,'br'):
+            newBranch.maxWeight = self.maxWeight*newVertex.br
+                
 
+        return newBranch
 
     def decay(self, vertexDecayDict):
         """
@@ -142,7 +144,8 @@ class Branch(object):
         OBS: There must be a single (or none) unstable particle in the last vertex. 
         
         :parameter vertexDecayDict: dictionary with the decay vertices 
-                                 for all odd particles. Keys are PIDs and values are a list of vertices.
+                                 for all odd particles. 
+                                 Keys are PIDs and values are a list of vertices.
 
         :returns: list of extended branches (Branch objects). Empty list if daughter is stable.
         """

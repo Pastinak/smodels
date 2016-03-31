@@ -72,14 +72,6 @@ class Vertex(object):
         
         return sorted([str(p) for p in self.outEven])
     
-    def getOddMassList(self):
-        """
-        Returns a list with the masses of outgoing odd particles  
-        """
-        
-        return [p.mass for p in self.outOdd]
-        
-    
     def __cmp__(self,other):
         """
         Compares the vertex with other.        
