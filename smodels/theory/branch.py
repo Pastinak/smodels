@@ -63,7 +63,10 @@ class Branch(object):
         OBS: The particles inside each vertex MUST BE sorted (see vertex.sortParticles())         
         :param other:  branch to be compared (Branch object)
         :return: -1 if self < other, 0 if self == other, +1, if self > other.
-        """        
+        """  
+        
+        if not isinstance(other,Branch):
+            return +1      
         
         if len(self) != len(other):
             comp = len(self) >  len(other)
@@ -187,20 +190,25 @@ class Branch(object):
         """
         
         newBranch = self.copy()
-        for iv,v in self.vertices[:-1]:
-            massA = max([p.mass for p in v.outOdd])
-            massB = max([p.mass for p in self.vertices[iv+1].outOdd])            
+        for iv,v in enumerate(self.vertices):
+            if iv == 0: continue #Skip production vertex            
+            massA = max([p.mass for p in self.vertices[iv-1].outOdd])
+            massB = max([p.mass for p in v.outOdd])                        
             if massA < massB:
                 logger.error("Odd masses in branch dot not decrease monotonically")
                 raise SModelSError 
             elif (massA - massB) < minmassgap:
+                #Glue adjacent vertices:
+                newBranch.vertices[iv-1].outOdd = newBranch.vertices[iv].outOdd
+                if iv < len(self.vertices)-1:
+                    newBranch.vertices[iv+1].inParticle = newBranch.vertices[iv].inParticle                    
                 newBranch.vertices[iv] = None
-        
-        if not None in newBranch:  #No vertex could be removed
+                    
+        if not None in newBranch.vertices:  #No vertex could be removed
             return None
         
-        while None in newBranch:
-            newBranch.remove(None)
+        while None in newBranch.vertices:
+            newBranch.vertices.remove(None)
         return newBranch
     
     def invisibleCompress(self):

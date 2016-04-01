@@ -52,6 +52,9 @@ class Element(object):
         :return: -1 if self < other, 0 if self == other, +1, if self > other.
         """
         
+        if not isinstance(other,Element):
+            return +1
+        
         #First compare number of branches:        
         if len(self.branches) != len(other.branches):            
             comp = len(self.branches) > len(other.branches)
@@ -86,6 +89,7 @@ class Element(object):
         """
         
         st = str([str(b) for b in self.branches])
+        st = st.replace("'", "").replace(" ", "")
         return st
     
     def sortBranches(self):

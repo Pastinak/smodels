@@ -88,6 +88,9 @@ class Vertex(object):
         :return: -1 if self < other, 0 if self == other, +1, if self > other.
         """
         
+        if not isinstance(other,Vertex):
+            return +1
+        
         #First check overall number of total, even and odd outgoing particles
         if len(self.outParticles) != len(other.outParticles):
             comp = len(self.outParticles) > len(other.outParticles)

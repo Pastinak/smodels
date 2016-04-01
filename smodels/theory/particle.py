@@ -47,6 +47,9 @@ class Particle(object):
         :return: -1 if self < other, 0 if self == other, +1, if self > other.        
         """
         
+        if not isinstance(other,ParticleList) and not isinstance(other,Particle):
+            return +1
+        
         if isinstance(other,ParticleList):
             return other.__cmp__(self)
         
