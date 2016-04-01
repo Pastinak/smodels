@@ -158,6 +158,7 @@ class Vertex(object):
         
         return newV    
 
+
 def createVertexFromStr(vertexStr):
     """
     Creates a vertex from a string in bracket notation (e.g. [e+,jet])

@@ -76,28 +76,28 @@ class Branch(object):
         else:
             return 0  #Branches are equal
 
-    
-    def particlesMatch(self, other):
-        """
-        Compare two Branches for matching particles, 
-        allow for inclusive particle labels (such as the ones defined in particles.py)
-        
-        :parameter other: branch to be compared (Branch object)
-        :returns: True if branches are equal (particles and masses match); False otherwise.              
-        """
-        
-        if type (other) != type(self):
-            return False
-
-        if len(self) != len(other):
-            return False
-
-        for iv,vertex in enumerate(self.vertices):
-            if len(vertex) != other.vertices[iv]:
-                return False
-            if not simParticles(vertex.outParticles,other.vertices[iv].outParticles):
-                return False
-        return True
+#     
+#     def particlesMatch(self, other):
+#         """
+#         Compare two Branches for matching particles, 
+#         allow for inclusive particle labels (such as the ones defined in particles.py)
+#         
+#         :parameter other: branch to be compared (Branch object)
+#         :returns: True if branches are equal (particles and masses match); False otherwise.              
+#         """
+#         
+#         if type (other) != type(self):
+#             return False
+# 
+#         if len(self) != len(other):
+#             return False
+# 
+#         for iv,vertex in enumerate(self.vertices):
+#             if len(vertex) != other.vertices[iv]:
+#                 return False
+#             if not vertex.particlesMatch(other.vertices[iv]):
+#                 return False
+#         return True
    
 
     def copy(self):
