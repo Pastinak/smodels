@@ -7,7 +7,8 @@
 """
 
 from smodels.tools.physicsUnits import fb
-from smodels.theory.vertex import createVertexFromStr
+from smodels.theory.vertex import createVertexFromStr, Vertex
+from smodels.theory.particle import Particle
 from smodels.theory.auxiliaryFunctions import stringToList
 import logging
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
@@ -42,7 +43,7 @@ class Branch(object):
         """
         
         
-        st = str([str(v) for v in self.vertices])
+        st = str([str(v) for v in self.vertices[1:]])
         st = st.replace("'", "").replace(" ", "")
         return st
     
@@ -89,6 +90,37 @@ class Branch(object):
             newbranch.maxWeight = self.maxWeight.copy()
         return newbranch
 
+    def sortVertices(self):
+        """
+        Sorts the particles in each vertex
+        """
+        
+        for v in self.vertices:
+            v.sortParticles()
+            
+    def getOddMasses(self):
+        """
+        Get the array of odd particle masses in the branch.
+        :returns: list of masses (mass array)            
+        """
+        massarray = []
+        for v in self.vertices:
+            massarray += [p.mass for p in v.outOdd]
+        return massarray
+    
+    def getOddPIDs(self):
+        """
+        Get the list of IDs (PDGs of the odd states appearing in the cascade decay), i.e.
+        [pdg1,pdg2,...].
+        The list might have more than one entry if the branch combines different pdg lists:
+        [[pdg1,pdg2,...],[pdg3,pdg4,...],...].        
+        :returns: list of PDG ids
+        """
+        
+        pids = []
+        for v in self.vertices:
+            pids += [p._pid for p in v.outOdd]
+        return pids            
 
     def _addVertex(self, newVertex):
         """
@@ -143,20 +175,91 @@ class Branch(object):
         newBranches = [self._addVertex(newVertex) for newVertex in newVertices]
         return newBranches
 
+    def massCompress(self,minmassgap):
+        """
+        Perform mass compression.
+        
+        :parameter minmassgap: value (in GeV) of the maximum 
+                               mass difference for compression
+                               (if mass difference < minmassgap -> perform mass compression)
+        :returns: compressed copy of the branch, if two masses in this
+                  element are degenerate; None, if compression is not possible;        
+        """
+        
+        newBranch = self.copy()
+        for iv,v in self.vertices[:-1]:
+            massA = max([p.mass for p in v.outOdd])
+            massB = max([p.mass for p in self.vertices[iv+1].outOdd])            
+            if massA < massB:
+                logger.error("Odd masses in branch dot not decrease monotonically")
+                raise SModelSError 
+            elif (massA - massB) < minmassgap:
+                newBranch.vertices[iv] = None
+        
+        if not None in newBranch:  #No vertex could be removed
+            return None
+        
+        while None in newBranch:
+            newBranch.remove(None)
+        return newBranch
+    
+    def invisibleCompress(self):
+        """
+        Perform invisible compression.
+        
+        :returns: compressed copy of the branch, if the branch ends with invisible
+                  particles (zero eCharge and zero qColor);
+                  None, if compression is not possible
+        """
+        
+        newBranch = self.copy()
+        for iv in range(-1,-len(newBranch.vertices),-1):
+            v = self.vertices[iv]
+            qTotal = 0
+            colorTotal = 0
+            for p in v.outParticles:
+                if hasattr(p, 'eCharge'):
+                    qTotal += abs(p.eCharge)
+                if hasattr(p, 'qColor'):
+                    colorTotal += abs(p.qColor)
+            #If the total charge of the final particles of the
+            # last cascade decay are zero, the previous particle must have
+            # zero charges as well (since charges are conserved) 
+            if qTotal + colorTotal == 0:
+                newBranch.vertices[iv-1].outOdd[0].eCharge = 0
+                newBranch.vertices[iv-1].outOdd[0].qCharge = 0
+            else:
+                break #If not, stop here
+            
+        newBranch = newBranch.vertices[:iv+1] #Vertices only go up to the non-zero charge one
+        
+        if len(newBranch) == len(self):  #Branch could not be compressed
+            return None
+        else:
+            return newBranch
+
 
 def createBranchFromStr(branchStr):
     """
-    Creates a branch from a string in bracket notation (e.g. [[e+],[jet]])
-    Odd-particles are created as empty Particle objects and Even-particles only have 
-    the corresponding name.
+    Creates a branch from a string in bracket notation (e.g. [[e+],[jet]]).
+    The cascade decay is assumed to follow a proper topology (e.g. odd_A -> odd_B + e+ -> odd_C + jet).  
+    Odd-particles are created as empty Particle objects and Even-particles are
+    created using the particles pre-defined (by the user) which match the corresponding
+    particle label.
+    The last odd particle in the cascade (e.g. odd_C) is assumed to be neutral
+    (missing ET signature).
     :branchStr: string (e.g. [[e+],[jet]])
     :return: Branch object
     """
     
-    vertices = []
+    #Start with a simple vertex (only with one outgoing mother)
+    vertices = [Vertex(outParticles=[Particle(zParity=-1, _name = 'Mother')])]
     for vertex in stringToList(branchStr):
         vertices.append(createVertexFromStr(str(vertex))) 
     
+    vertices[-1].outOdd[0].eCharge = 0
+    vertices[-1].outOdd[0].qCharge = 0  #Assumes the last odd particle is neutral
+    vertices[-1].outOdd[0]._name = "Daughter"
     return Branch(vertices=vertices)
 
 def decayBranches(branchList, vertexDecayDict, sigcut=0. *fb):
@@ -191,5 +294,5 @@ def decayBranches(branchList, vertexDecayDict, sigcut=0. *fb):
         branchList = newBranchList
         
     #Sort list by initial branch PID:
-    finalBranchList = sorted(finalBranchList, key=lambda branch: branch.vertices[0].inParticle._pid)
+    finalBranchList = sorted(finalBranchList, key=lambda branch: branch.vertices[0].outOdd[0]._pid)
     return finalBranchList

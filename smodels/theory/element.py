@@ -6,13 +6,11 @@
     
 """
 
-from smodels.theory.particleNames import elementsInStr
-from smodels.theory.branch import Branch
 from smodels.theory import crossSection
-from smodels.particles import rEven, ptcDic
+from smodels.theory.auxiliaryFunctions import stringToList
+from smodels.theory.branch import createBranchFromStr
 import logging
-from smodels.theory.exceptions import SModelSTheoryError as SModelSError
-
+import itertools
 logger = logging.getLogger(__name__)
 
 
@@ -29,59 +27,46 @@ class Element(object):
                           Holds a pair of (whence, mother element), where
                           whence describes what process generated the element    
     """
-    def __init__(self, info=None):
+    def __init__(self, branches=[]):
         """
         Initializes the element. If info is defined, tries to generate
         the element using it.
         
-        :parameter info: string describing the element in bracket notation
-                         (e.g. [[[e+],[jet]],[[e-],[jet]]])
+        :parameter branches: List of branch objects
         """
-        self.branches = [Branch(), Branch()]
+        self.branches = branches
         self.weight = crossSection.XSectionList()
         self.motherElements = []
         self.elID = 0
         self.covered = 0 # how many analyses cover this element?
         
-        if info:
-            # Create element from particle string
-            if type(info) == type(str()):
-                elements = elementsInStr(info)
-                if not elements or len(elements) > 1:
-                    nel = 0
-                    if elements:
-                        nel = len(elements)
-                    logging.error("Malformed input string. Number of elements "
-                                  "is %d (expected 1) in: ``%s''", nel, info)
-                    return False
-                else:
-                    el = elements[0]
-                    branches = elementsInStr(el[1:-1])
-                    if not branches or len(branches) != 2:
-                        logging.error("Malformed input string. Number of "
-                                      "branches is %d (expected 2) in: ``%s''",
-                                      len(branches), info)
-                        return False
-                    self.branches = []                    
-                    for branch in branches:
-                        self.branches.append(Branch(branch))
-            # Create element from branch pair
-            elif type(info) == type([]) and type(info[0]) == type(Branch()):
-                for ib, branch in enumerate(info):
-                    self.branches[ib] = branch.copy()
-        
+        self.sortBranches()
     
     def __cmp__(self,other):
         """
         Compares the element with other.        
-        The comparison is made based on branches.
-        OBS: The elements and the branches must be sorted! 
+        The comparison is made based on branches irrespect of branch ordering.
+        OBS: The elements and the branches must be sorted in order for the > (<)
+        comparison to make sense. 
         :param other:  element to be compared (Element object)
         :return: -1 if self < other, 0 if self == other, +1, if self > other.
         """
         
-        #Compare branches:
-        if self.branches != other.branches:            
+        #First compare number of branches:        
+        if len(self.branches) != len(other.branches):            
+            comp = len(self.branches) > len(other.branches)
+            if comp: return 1
+            else: return -1
+        #If both have the same number of branches compare
+        #all possible branch orderings (for 2 branches there are only 2 options)
+        branchLists = [list(br) for br in itertools.permutations(self.branches)]
+        match = False
+        for branches in branchLists:
+            if branches == other.branches:
+                match = True
+                break
+        #There is at one branch ordering which matches: 
+        if not match:
             comp = self.branches > other.branches
             if comp: return 1
             else: return -1
@@ -99,9 +84,9 @@ class Element(object):
         
         :returns: string representation of the element (in bracket notation)    
         """
-        particleString = str(self.getParticles()).replace(" ", "").\
-                replace("'", "")
-        return particleString
+        
+        st = str([str(b) for b in self.branches])
+        return st
     
     def sortBranches(self):
         """
@@ -112,45 +97,9 @@ class Element(object):
         #First make sure each branch is individually sorted 
         #(particles in each vertex are sorted)
         for br in self.branches:
-            br.sortParticles()
+            br.sortVertices()  #Sort particles in each vertex
         #Now sort branches
         self.branches = sorted(self.branches)
-
-
-    def particlesMatch(self, other, branchOrder=False):
-        """
-        Compare two Elements for matching particles only.
-        Allow for inclusive particle labels (such as the ones defined in particles.py).
-        If branchOrder = False, check both branch orderings.
-        
-        :parameter other: element to be compared (Element object)
-        :parameter branchOrder: If False, check both orderings, otherwise
-                                check the same branch ordering
-        :returns: True, if particles match; False, else;        
-        """
-        
-        
-        if type(self) != type(other):
-            return False
-        
-        if len(self.branches) != len(other.branches):
-            return False
-
-        #Check if particles inside each branch match in the correct order
-        branchMatches = []
-        for ib,br in enumerate(self.branches):
-            branchMatches.append(br.particlesMatch(other.branches[ib]))
-        if sum(branchMatches) == 2:
-                return True
-        elif branchOrder:
-            return False
-        else:       
-        #Now check for opposite order
-            for ib,br in enumerate(self.switchBranches().branches):
-                if not br.particlesMatch(other.branches[ib]):
-                    return False
-
-            return True
 
 
     def copy(self):
@@ -169,78 +118,20 @@ class Element(object):
         newel.elID = self.elID
         return newel
 
-
-    def setMasses(self, mass, sameOrder=True, opposOrder=False):
+    def getOddMasses(self):
         """
-        Set the element masses to the input mass array.
-        
-        
-        :parameter mass: list of masses ([[masses for branch1],[masses for branch2]])
-        :parameter sameOrder: if True, set the masses to the same branch ordering
-                              If True and opposOrder=True, set the masses to the
-                              smaller of the two orderings.
-        :parameter opposOrder: if True, set the masses to the opposite branch ordering.
-                               If True and sameOrder=True, set the masses to the
-                               smaller of the two orderings.             
-        """
-        if sameOrder and opposOrder:
-            newmass = sorted(mass)
-        elif sameOrder:
-            newmass = mass
-        elif opposOrder:
-            newmass = [mass[1], mass[0]]
-        else:
-            logger.error("Called with no possible ordering")            
-            raise SModelSError()
-        if len(newmass) != len(self.branches):
-            logger.error("Called with wrong number of mass branches")
-            raise SModelSError()
-
-        for i, mass in enumerate(newmass):
-            self.branches[i].masses = mass[:]
-
-
-    def switchBranches(self):
-        """
-        Switch branches, if the element contains a pair of them.
-        
-        :returns: element with switched branches (Element object)                
-        """
-        
-        newEl = self.copy()
-        if len(self.branches) == 2:
-            newEl.branches = [newEl.branches[1], newEl.branches[0]]
-        return newEl
-
-
-    def getParticles(self):
-        """
-        Get the array of particles in the element.
-        
-        :returns: list of particle strings                
-        """
-        
-        ptcarray = []
-        for branch in self.branches:
-            ptcarray.append(branch.particles)
-        return ptcarray
-
-
-    def getMasses(self):
-        """
-        Get the array of masses in the element.    
-        
+        Get the array of odd particle masses in the element.
         :returns: list of masses (mass array)            
         """
         massarray = []
         for branch in self.branches:
-            massarray.append(branch.masses)
+            massarray.append(branch.getOddMasses())
         return massarray
 
-    def getPIDs(self):
+    def getOddPIDs(self):
         """
-        Get the list of IDs (PDGs of the intermediate states appearing the cascade decay), i.e.
-        [  [[pdg1,pdg2,...],[pdg3,pdg4,...]] ].
+        Get the list of IDs (PDGs of the odd states appearing in the cascade decay), i.e.
+        [ [pdg1,pdg2,...],[pdg3,pdg4,...] ].
         The list might have more than one entry if the element combines different pdg lists:
         [  [[pdg1,pdg2,...],[pdg3,pdg4,...]],  [[pdg1',pdg2',...],[pdg3',pdg4',...]], ...]
         
@@ -248,100 +139,10 @@ class Element(object):
         """
         
         pids = []
-        for ipid,PIDlist in enumerate(self.branches[0].PIDs):            
-            for ipid2,PIDlist2 in enumerate(self.branches[1].PIDs):
-                pids.append([self.branches[0].PIDs[ipid],self.branches[1].PIDs[ipid2]])
+        for branch in self.branches:
+            pids.append(branch.getOddPIDs())        
         
         return pids
-
-    def getDaughters(self):
-        """
-        Get a pair of daughter IDs (PDGs of the last intermediate 
-        state appearing the cascade decay), i.e. [ [pdgLSP1,pdgLSP2] ]    
-        Can be a list, if the element combines several daughters:
-        [ [pdgLSP1,pdgLSP2],  [pdgLSP1',pdgLSP2']] 
-        
-        :returns: list of PDG ids
-        """
-        
-        pids = self.getPIDs()
-        daughterPIDs = []
-        for pidlist in pids:
-            daughterPIDs.append([pidlist[0][-1],pidlist[1][-1]])
-            
-        return daughterPIDs
-    
-    def getMothers(self):
-        """
-        Get a pair of mother IDs (PDGs of the first intermediate 
-        state appearing the cascade decay), i.e. [ [pdgMOM1,pdgMOM2] ]    
-        Can be a list, if the element combines several mothers:
-        [ [pdgMOM1,pdgMOM2],  [pdgMOM1',pdgMOM2']] 
-        
-        :returns: list of PDG ids
-        """
-        
-        pids = self.getPIDs()
-        momPIDs = []
-        for pidlist in pids:
-            momPIDs.append([pidlist[0][0],pidlist[1][0]])
-            
-        return momPIDs    
-
-
-    def getEinfo(self):
-        """
-        Get topology info from particle string.
-        
-        :returns: dictionary containing vertices and number of final states information  
-        """
-        
-        vertnumb = []
-        vertparts = []
-        for branch in self.branches:
-            vertparts.append([len(ptcs) for ptcs in branch.particles])
-            if branch.masses:
-                vertnumb.append(len(branch.masses))                
-                if len(vertparts[len(vertparts) - 1]) == \
-                    vertnumb[len(vertnumb) - 1] - 1:
-                    # Append 0 for stable LSP
-                    vertparts[len(vertparts) - 1].append(0)
-            else:
-                #If masses are not defined assume there is a stable LSP at the end
-                vertparts[-1].append(0)
-                vertnumb.append(len(vertparts[-1]))
-                
-        return {"vertnumb" : vertnumb, "vertparts" : vertparts}
-
-
-    def _getLength(self):
-        """
-        Get the maximum of the two branch lengths.    
-        
-        :returns: maximum length of the element branches (int)    
-        """
-        return max(self.branches[0].getLength(), self.branches[1].getLength())
-
-
-    def checkConsistency(self):
-        """
-        Check if the particles defined in the element exist and are consistent
-        with the element info.
-        
-        :returns: True if the element is consistent. Print error message
-                  and exits otherwise.
-        """
-        info = self.getEinfo()
-        for ib, branch in enumerate(self.branches):
-            for iv, vertex in enumerate(branch.particles):
-                if len(vertex) != info['vertparts'][ib][iv]:
-                    logger.error("Wrong syntax")
-                    raise SModelSError()
-                for ptc in vertex:
-                    if not ptc in rEven.values() and not ptc in ptcDic:
-                        logger.error("Unknown particle. Add " + ptc + " to smodels/particle.py")
-                        raise SModelSError()
-        return True
 
     
     def compressElement(self, doCompress, doInvisible, minmassgap):
@@ -395,54 +196,18 @@ class Element(object):
                   element are degenerate; None, if compression is not possible;        
         """
         
-        masses = self.getMasses()
-        massDiffs = []
-        #Compute mass differences in each branch
-        for massbr in masses:
-            massDiffs.append([massbr[i]-massbr[i+1] for i in range(len(massbr)-1)])
-        #Compute list of vertices to be compressed in each branch            
-        compVertices = []
-        for ibr,massbr in enumerate(massDiffs):
-            compVertices.append([])
-            for iv,massD in enumerate(massbr):            
-                if massD < minmassgap: compVertices[ibr].append(iv)
-        if not sum(compVertices,[]): return None #Nothing to be compressed
+        newelement = self.copy()
+        compBranches = [br.massCompress(minmassgap) for br in self.branches]
+        if compBranches.count(None) == len(compBranches):
+            return None #No branch was compressed
         else:
-            newelement = self.copy()
-            newelement.motherElements = [ ("mass", self.copy()) ]
-            for ibr,compbr in enumerate(compVertices):
-                if compbr:            
-                    new_branch = newelement.branches[ibr]
-                    ncomp = 0
-                    for iv in compbr:
-                        new_branch.masses.pop(iv-ncomp)
-                        new_branch.particles.pop(iv-ncomp)
-                        ncomp +=1
-                    new_branch.setInfo() 
+            for ibr,br in enumerate(compBranches):
+                if br:
+                    newelement.branches[ibr] = br
+        newelement.motherElements = [ ("mass", self.copy()) ]
 
         newelement.sortBranches()
         return newelement
-    
-
-    def hasTopInList(self, elementList):
-        """
-        Check if the element topology matches any of the topologies in the
-        element list.
-        
-        :parameter elementList: list of elements (Element objects)
-        :returns: True, if element topology has a match in the list, False otherwise.        
-        """
-        if type(elementList) != type([]) or len(elementList) == 0:
-            return False
-        for element in elementList:
-            if type(element) != type(self):
-                continue
-            info1 = self.getEinfo()
-            info2 = element.getEinfo()
-            info2B = element.switchBranches().getEinfo()
-            if info1 == info2 or info1 == info2B:
-                return True
-        return False
 
 
     def invisibleCompress(self):
@@ -452,62 +217,68 @@ class Element(object):
         :returns: compressed copy of the element, if element ends with invisible
                   particles; None, if compression is not possible
         """
+        
         newelement = self.copy()
+        compBranches = [br.invisibleCompress() for br in self.branches]
+        if compBranches.count(None) == len(compBranches):
+            return None #No branch was compressed
+        else:
+            for ibr,br in enumerate(compBranches):
+                if br:
+                    newelement.branches[ibr] = br
         newelement.motherElements = [ ("invisible", self.copy()) ]
 
-        vertnumb = self.getEinfo()["vertnumb"]
-        # Nothing to be compressed
-        if max(vertnumb) < 2:
-            return None
-        # Loop over branches
-        for ib, branch in enumerate(self.branches):
-            if vertnumb[ib] < 2:
-                continue
-            particles = branch.particles
-            for ivertex in range(vertnumb[ib] - 2, -1, -1):
-                if particles[ivertex].count('nu') == len(particles[ivertex]):
-                    newelement.branches[ib].masses.pop(ivertex + 1)
-                    newelement.branches[ib].particles.pop(ivertex)
-                else:
-                    break
-            newelement.branches[ib].setInfo()
-
         newelement.sortBranches()
-        if newelement == self:
-            return None
-        else:            
-            return newelement
-
-
-    def combineMotherElements ( self, el2 ):
-        """
-        Combine mother elements from self and el2 into self
+        return newelement
         
-        :parameter el2: element (Element Object)  
+
+    def combineMotherElements ( self, other ):
+        """
+        Combine mother elements from self and other into self
+        
+        :parameter other: element (Element Object)  
         """
         if len(self.motherElements)==0: 
             # no mothers? then you yourself are mother!
             tmp=self.copy()
             self.motherElements.append ( ("combine", tmp) )
-        for m in el2.motherElements:
+        for m in other.motherElements:
             self.motherElements.append ( (m[0], m[1].copy()) )
-        if len(el2.motherElements)==0: 
+        if len(other.motherElements)==0: 
             # no mothers? then yo yourself are mother now
-            tmp=el2.copy()
+            tmp=other.copy()
             self.motherElements.append ( ("combine", tmp) )
 
 
-    def combinePIDs(self,el2):
+    def combinePIDs(self,other):
         """
         Combine the PIDs of both elements. If the PIDs already appear in self,
         do not add them to the list.
         
-        :parameter el2: element (Element Object) 
+        :parameter other: element (Element Object) 
         """
            
         elPIDs = self.getPIDs()
-        newelPIDs = el2.getPIDs()
+        newelPIDs = other.getPIDs()
         for pidlist in newelPIDs:                    
             if not pidlist in elPIDs:
                 self.branches[0].PIDs.append(pidlist[0])
                 self.branches[1].PIDs.append(pidlist[1])
+
+def createElementFromStr(branchStr):
+    """
+    Creates an element from a string in bracket notation (e.g. [[[e+],[jet]], [[mu+,L],[e-]]]).
+    Odd-particles are created as empty Particle objects and Even-particles are
+    created using the particles pre-defined (by the user) which match the corresponding
+    particle label/name.
+    The last odd particle in the cascade branches are assumed to be neutral
+    (missing ET signature).
+    :branchStr: string (e.g. [[[e+],[jet]], [[mu+,L],[e-]]])
+    :return: Element object
+    """
+    
+    branches = []
+    for br in stringToList(branchStr):
+        branches.append(createBranchFromStr(str(br))) 
+
+    return Element(branches=branches)

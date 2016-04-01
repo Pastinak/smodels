@@ -157,13 +157,13 @@ class Vertex(object):
         
     def sanityCheck(self):
         """
-        Makes sure the vertex has the correct structure: 1 incoming Z2-odd particle,
+        Makes sure the vertex has the correct structure: 1 (or 0) incoming Z2-odd particle,
         1 outgoing Z2-odd particle and n-2 Z2-even outgoing particles
         
         :return: True if the structure is correct, False otherwise
         """
         
-        if not self.inParticle.zParity == -1:
+        if self.inParticle and not self.inParticle.zParity == -1:
             logger.error("Vertex does not have one incoming Z2-odd particle")
             return False
         
@@ -186,8 +186,13 @@ class Vertex(object):
         :return: copy of itself (Vertex object)
         """
         
-        newV = Vertex(inParticle=self.inParticle.copy(relevantProp=relevantProp), 
-                      outParticles=[p.copy(relevantProp=relevantProp) for p in self.outParticles])
+        if self.inParticle:
+            newInParticle = self.inParticle.copy(relevantProp=relevantProp)
+        else:
+            newInParticle = None
+        newOutParticles = [p.copy(relevantProp=relevantProp) for p in self.outParticles]
+        
+        newV = Vertex(inParticle=newInParticle, outParticles=newOutParticles)
         if hasattr(self, 'br'): newV.br = self.br
         
         return newV    
@@ -196,8 +201,9 @@ class Vertex(object):
 def createVertexFromStr(vertexStr):
     """
     Creates a vertex from a string in bracket notation (e.g. [e+,jet])
-    Odd-particles are created as empty Particle objects and Even-particles only have 
-    the corresponding name.
+    Odd-particles are created as empty Particle objects and Even-particles
+    are created using the particles pre-defined (by the user) which match the corresponding
+    particle label/name.
     :branchStr: vertexStr (e.g. [e+,jet])
     :return: Branch object
     """
