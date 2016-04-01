@@ -13,7 +13,7 @@ from smodels.theory.particle import Particle, ParticleList
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 from smodels.theory.auxiliaryFunctions import stringToList
 import itertools
-from timeit import itertools
+from smodels.particleDefinitions import useParticlesDict
 
 logger = logging.getLogger(__name__)
 
@@ -200,12 +200,15 @@ def createVertexFromStr(vertexStr):
     """
     
     #Define empty incoming and outgoing odd particles
-    inParticle = Particle(zParity = -1)
-    outParticles = [Particle(zParity = -1)]
+    inParticle = Particle(zParity = -1, _name = "incomingOdd")
+    outParticles = [Particle(zParity = -1, _name = "outgoingOdd")]
     for pname in stringToList(vertexStr):
         if not isinstance(pname,str):
             logger.error("Error converting vertex string %s" %vertexStr)
             raise SModelSError
-        outParticles.append(Particle(zParity = +1, name = pname))
+        if not pname in useParticlesDict:
+            logger.error("Particle %s has not been defined (see particleDefinitions.py)" %pname)
+            raise SModelSError
+        outParticles.append(useParticlesDict[pname])
     
     return Vertex(inParticle=inParticle, outParticles=outParticles)

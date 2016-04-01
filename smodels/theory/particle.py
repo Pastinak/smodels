@@ -10,7 +10,6 @@
 
 import logging
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
-import itertools
 logger = logging.getLogger(__name__)
 
 
@@ -40,8 +39,9 @@ class Particle(object):
     def __cmp__(self,other):
         """
         Compares the particle with other.
-        First compare parities, then names (if it exists), then masses (if it exists) then other properties.
-        Protected properties of the type '_property' are not used for comparison.
+        Only compares physics attributes/properties (ignore properties starting with "_",
+        such as _pid).
+        First compare masses (if it exists) then other properties.
         If other is a ParticleList, uses the ParticleList comparison method.
         :param other:  particle to be compared (Particle object)
         :return: -1 if self < other, 0 if self == other, +1, if self > other.        
@@ -55,11 +55,6 @@ class Particle(object):
             if comp: return 1
             else: return -1            
         
-        if hasattr(self,'name') and hasattr(other,'name'):            
-            if self.name != other.name:        
-                comp = self.name > other.name
-                if comp: return 1
-                else: return -1
         if hasattr(self,'mass') and hasattr(other,'mass'):
             if self.mass != other.mass:
                 comp = self.mass > other.mass
@@ -83,20 +78,24 @@ class Particle(object):
         String represantion (particle name, if defined)
         :return: Particle name, if defined. Otherwise empty string.
         """
-        if hasattr(self, 'name'):
-            return self.name
+        if hasattr(self, '_name'):
+            return self._name
         else:
             return ''
     
-    def copy(self):
+    def copy(self,relevantProp=None):
         """
-        Generates a copy of the particle  
+        Generates a copy of the particle
+        :param relevantProp: List of the relevant properties to be kept in the copy 
+                            (e.g. ['_name','mass','eCharge',...])
+                            If None, keep all properties.
         :return: copy of itself (Particle object)
         """
         
         newP = Particle(zParity = self.zParity)
         for key,val in self.__dict__.items():
-            setattr(newP,key,val)
+            if relevantProp is None or key in relevantProp:
+                setattr(newP,key,val)
         
         return newP
     
@@ -115,13 +114,13 @@ class Particle(object):
             pConjugate.eCharge *= -1
         if hasattr(pConjugate, '_pid'):
             pConjugate._pid *= -1
-        if hasattr(pConjugate, 'name'):
-            if pConjugate.name[-1] == "+":
-                pConjugate.name = pConjugate.name[:-1] + "-"
-            elif pConjugate.name[-1] == "-":
-                pConjugate.name = pConjugate.name[:-1] + "+"
+        if hasattr(pConjugate, '_name'):
+            if pConjugate._name[-1] == "+":
+                pConjugate._name = pConjugate._name[:-1] + "-"
+            elif pConjugate._name[-1] == "-":
+                pConjugate._name = pConjugate._name[:-1] + "+"
             else:
-                pConjugate.name += "*"
+                pConjugate._name += "*"
                 
         return pConjugate
     
@@ -159,17 +158,19 @@ class ParticleList(object):
             for key,val in p.__dict__.items():
                 if not hasattr(self, key):
                     setattr(self,key,val)
+                elif getattr(self,key) is None:  #Attribute has already been set to None (skip)
+                    continue 
                 elif val != getattr(self,key):
                     setattr(self,key,None)
         
-        self.name = label
+        self._name = label
         
     def __str__(self):
         """
         Returns the ParticleList label (name)
         """
         
-        return str(self.name)        
+        return str(self._name)        
         
     def __cmp__(self,other):
         """

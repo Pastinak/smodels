@@ -20,11 +20,20 @@
 
 from MSSMparticleDefinitions import MSSM
 from smodels.theory.particle import Particle
+import logging
+logger = logging.getLogger(__name__)
+
 
 
 useParticles = MSSM
 
-
 #Add new particle:
 #new = Particle(name='some_new_particle', _pid=1000, eCharge = 0, qColor = 3, spin = 0)
 #useParticles = MSSM + [new]
+
+
+useParticlesDict = {}
+for p in useParticles:
+    if p._name in useParticlesDict:
+        logger.warning("Multiple definitions of particles with name %s" %p._name)
+    useParticlesDict[p._name] = p

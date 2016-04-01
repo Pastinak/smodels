@@ -6,7 +6,6 @@
         
 """
 
-from smodels.theory.particle import simParticles
 from smodels.tools.physicsUnits import fb
 from smodels.theory.vertex import createVertexFromStr
 from smodels.theory.auxiliaryFunctions import stringToList
@@ -59,7 +58,7 @@ class Branch(object):
         """
         Compares the branch with other.        
         The comparison is made based on the number of vertices, then on the size of each vertex
-        (number of particles in the vertex, then particle names and masses, see vertex.__cmp__)
+        (number of particles in the vertex, then particle masses, see vertex.__cmp__)
         OBS: The particles inside each vertex MUST BE sorted (see vertex.sortParticles())         
         :param other:  branch to be compared (Branch object)
         :return: -1 if self < other, 0 if self == other, +1, if self > other.
