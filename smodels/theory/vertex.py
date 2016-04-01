@@ -177,14 +177,17 @@ class Vertex(object):
         
         return True
     
-    def copy(self):
+    def copy(self,relevantProp=None):
         """
-        Generates a copy of the particle  
+        Generates a copy of the vertex.
+        :param relevantProp: List of the relevant properties to be kept when
+                            copying the particles (e.g. ['_name','mass','eCharge',...]).
+                            If None, keep all properties.
         :return: copy of itself (Vertex object)
         """
         
-        newV = Vertex(inParticle=self.inParticle.copy(), 
-                      outParticles=[p.copy() for p in self.outParticles])
+        newV = Vertex(inParticle=self.inParticle.copy(relevantProp=relevantProp), 
+                      outParticles=[p.copy(relevantProp=relevantProp) for p in self.outParticles])
         if hasattr(self, 'br'): newV.br = self.br
         
         return newV    

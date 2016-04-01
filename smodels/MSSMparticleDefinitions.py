@@ -24,20 +24,20 @@ from smodels.tools.physicsUnits import GeV
 
 ####  R-odd   ##########
 #1st generation squarks and its conjugates:
-sdl = Particle(zParity=-1, _name = 'sd_L', _pid = 1000001, qColor = 3, eCharge = -1/3, spin = 0)
-sul = Particle(zParity=-1, _name = 'su_L', _pid = 1000002, qColor = 3, eCharge = 2/3, spin = 0)
-sdr = Particle(zParity=-1, _name = 'sd_R', _pid = 2000001, qColor = 3, eCharge = -1/3, spin = 0)
-sur = Particle(zParity=-1, _name = 'su_R', _pid = 2000002, qColor = 3, eCharge = 2/3, spin = 0)
+sdl = Particle(zParity=-1, _name = 'sd_L', _pid = 1000001, qColor = 3, eCharge = -1./3, spin = 0)
+sul = Particle(zParity=-1, _name = 'su_L', _pid = 1000002, qColor = 3, eCharge = 2./3, spin = 0)
+sdr = Particle(zParity=-1, _name = 'sd_R', _pid = 2000001, qColor = 3, eCharge = -1./3, spin = 0)
+sur = Particle(zParity=-1, _name = 'su_R', _pid = 2000002, qColor = 3, eCharge = 2./3, spin = 0)
 #2nd generation squarks and its conjugates:
-ssl = Particle(zParity=-1, _name = 'ss_L', _pid = 1000004, qColor = 3, eCharge = -1/3, spin = 0)
-scl = Particle(zParity=-1, _name = 'sc_L', _pid = 1000004, qColor = 3, eCharge = 2/3, spin = 0)
-ssr = Particle(zParity=-1, _name = 'ss_R', _pid = 2000003, qColor = 3, eCharge = -1/3, spin = 0)
-scr = Particle(zParity=-1, _name = 'sc_R', _pid = 2000004, qColor = 3, eCharge = 2/3, spin = 0)
+ssl = Particle(zParity=-1, _name = 'ss_L', _pid = 1000004, qColor = 3, eCharge = -1./3, spin = 0)
+scl = Particle(zParity=-1, _name = 'sc_L', _pid = 1000004, qColor = 3, eCharge = 2./3, spin = 0)
+ssr = Particle(zParity=-1, _name = 'ss_R', _pid = 2000003, qColor = 3, eCharge = -1./3, spin = 0)
+scr = Particle(zParity=-1, _name = 'sc_R', _pid = 2000004, qColor = 3, eCharge = 2./3, spin = 0)
 #3rd generation squarks and its conjugates:
-sb1 = Particle(zParity=-1, _name = 'sb_1', _pid = 1000005, qColor = 3, eCharge = 2/3, spin = 0)
-st1 = Particle(zParity=-1, _name = 'st_1', _pid = 1000006, qColor = 3, eCharge = -1/3, spin = 0)
-sb2 = Particle(zParity=-1, _name = 'sb_2', _pid = 2000005, qColor = 3, eCharge = 2/3, spin = 0)
-st2 = Particle(zParity=-1, _name = 'st_2', _pid = 2000006, qColor = 3, eCharge = -1/3, spin = 0)
+sb1 = Particle(zParity=-1, _name = 'sb_1', _pid = 1000005, qColor = 3, eCharge = 2./3, spin = 0)
+st1 = Particle(zParity=-1, _name = 'st_1', _pid = 1000006, qColor = 3, eCharge = -1./3, spin = 0)
+sb2 = Particle(zParity=-1, _name = 'sb_2', _pid = 2000005, qColor = 3, eCharge = 2./3, spin = 0)
+st2 = Particle(zParity=-1, _name = 'st_2', _pid = 2000006, qColor = 3, eCharge = -1./3, spin = 0)
 #1st generation sleptons and its conjugates:
 sel = Particle(zParity=-1, _name = 'se_L', _pid = 1000011, qColor = 0, eCharge = -1, spin = 0)
 snel = Particle(zParity=-1, _name = 'sne_L', _pid = 1000012, qColor = 0, eCharge = 0, spin = 0)
@@ -51,15 +51,15 @@ sta1 = Particle(zParity=-1, _name = 'sta_1', _pid = 1000015, qColor = 0, eCharge
 sntal = Particle(zParity=-1, _name = 'snta_L', _pid = 1000016, qColor = 0, eCharge = 0, spin = 0)
 sta2 = Particle(zParity=-1, _name = 'sta_2', _pid = 2000015, qColor = 0, eCharge = -1, spin = 0)
 #Gluino:
-gluino = Particle(zParity=-1, _name = 'gluino', _pid = 1000021, qColor = 8, eCharge = 0, spin = 1/2)
+gluino = Particle(zParity=-1, _name = 'gluino', _pid = 1000021, qColor = 8, eCharge = 0, spin = 1./2)
 #Neutralinos
-n1 = Particle(zParity=-1, _name = 'N1', _pid = 1000022, qColor = 0, eCharge = 0, spin = 1/2)
-n2 = Particle(zParity=-1, _name = 'N2', _pid = 1000023, qColor = 0, eCharge = 0, spin = 1/2)
-n3 = Particle(zParity=-1, _name = 'N3', _pid = 1000025, qColor = 0, eCharge = 0, spin = 1/2)
-n4 = Particle(zParity=-1, _name = 'N4', _pid = 1000035, qColor = 0, eCharge = 0, spin = 1/2)
+n1 = Particle(zParity=-1, _name = 'N1', _pid = 1000022, qColor = 0, eCharge = 0, spin = 1./2)
+n2 = Particle(zParity=-1, _name = 'N2', _pid = 1000023, qColor = 0, eCharge = 0, spin = 1./2)
+n3 = Particle(zParity=-1, _name = 'N3', _pid = 1000025, qColor = 0, eCharge = 0, spin = 1./2)
+n4 = Particle(zParity=-1, _name = 'N4', _pid = 1000035, qColor = 0, eCharge = 0, spin = 1./2)
 #Charginos
-c1 = Particle(zParity=-1, _name = 'C1+', _pid = 1000024, qColor = 0, eCharge = 1, spin = 1/2)
-c2 = Particle(zParity=-1, _name = 'C2+', _pid = 1000037, qColor = 0, eCharge = 1, spin = 1/2)
+c1 = Particle(zParity=-1, _name = 'C1+', _pid = 1000024, qColor = 0, eCharge = 1, spin = 1./2)
+c2 = Particle(zParity=-1, _name = 'C2+', _pid = 1000037, qColor = 0, eCharge = 1, spin = 1./2)
 
 ##### R-even  ###############
 #Higgs

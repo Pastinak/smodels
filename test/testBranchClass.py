@@ -22,9 +22,9 @@ g = Particle(mass=500.*GeV,_pid=1000021, zParity=-1)
 sq1 = Particle(mass = 150.*GeV, zParity = -1,_pid=1000005)
 sq2 = Particle(mass = 100.*GeV, zParity = -1,_pid=2000005)
 sq2b = Particle(mass = 100.*GeV, zParity = -1, _pid = 1000004)
-sn1 = Particle(name='neutralino1', mass = 50.*GeV, zParity = -1, _pid = 1000022)
-u = Particle(name='u', zParity = 1, _pid = 3)
-d = Particle(name='d',mass = 0.01*GeV, zParity = 1, _pid = 2)
+sn1 = Particle(_name='neutralino1', mass = 50.*GeV, zParity = -1, _pid = 1000022)
+u = Particle(_name='u', zParity = 1, _pid = 3)
+d = Particle(_name='d',mass = 0.0*GeV, zParity = 1, _pid = 2)
 
 
 

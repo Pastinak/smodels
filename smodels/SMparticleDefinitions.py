@@ -25,23 +25,23 @@ from smodels.theory.particle import Particle,ParticleList
 from smodels.tools.physicsUnits import GeV
 
 #1st generation quarks
-d = Particle(zParity=+1,_name = 'd',_pid = 1,qColor = 3,eCharge = -1/3,spin = 1/2,mass = 0.*GeV)
-u = Particle(zParity=+1,_name = 'u',_pid = 2,qColor = 3,eCharge = 2/3,spin = 1/2,mass = 0.*GeV)
+d = Particle(zParity=+1,_name = 'd',_pid = 1,qColor = 3,eCharge = -1./3,spin = 1./2,mass = 0.*GeV)
+u = Particle(zParity=+1,_name = 'u',_pid = 2,qColor = 3,eCharge = 2./3,spin = 1./2,mass = 0.*GeV)
 #2nd generation quarks
-s = Particle(zParity=+1,_name = 's',_pid = 3,qColor = 3,eCharge = -1/3,spin = 1/2,mass = 0.*GeV)
-c = Particle(zParity=+1,_name = 'c',_pid = 4,qColor = 3,eCharge = 2/3,spin = 1/2,mass = 1.275*GeV)
+s = Particle(zParity=+1,_name = 's',_pid = 3,qColor = 3,eCharge = -1./3,spin = 1./2,mass = 0.*GeV)
+c = Particle(zParity=+1,_name = 'c',_pid = 4,qColor = 3,eCharge = 2./3,spin = 1./2,mass = 1.275*GeV)
 #3rd generation quarks
-b = Particle(zParity=+1,_name = 'b',_pid = 5,qColor = 3,eCharge = -1/3,spin = 1/2,mass = 4.66*GeV)
-t = Particle(zParity=+1,_name = 't+',_pid = 6,qColor = 3,eCharge = 2/3,spin = 1/2,mass = 173.21*GeV)
+b = Particle(zParity=+1,_name = 'b',_pid = 5,qColor = 3,eCharge = -1./3,spin = 1./2,mass = 4.66*GeV)
+t = Particle(zParity=+1,_name = 't+',_pid = 6,qColor = 3,eCharge = 2./3,spin = 1./2,mass = 173.21*GeV)
 #1st generation leptons
-e = Particle(zParity=+1,_name = 'e-',_pid = 11,qColor = 0,eCharge = -1,spin = 1/2, mass = 0.*GeV)
-ne = Particle(zParity=+1,_name = 'nue',_pid = 12,qColor = 0,eCharge = 0,spin = 1/2, mass = 0.*GeV)
+e = Particle(zParity=+1,_name = 'e-',_pid = 11,qColor = 0,eCharge = -1,spin = 1./2, mass = 0.*GeV)
+ne = Particle(zParity=+1,_name = 'nue',_pid = 12,qColor = 0,eCharge = 0,spin = 1./2, mass = 0.*GeV)
 #2nd generation leptons
-mu = Particle(zParity=+1,_name = 'mu-',_pid = 13,qColor = 0,eCharge = -1,spin = 1/2, mass = 0.106*GeV)
-nmu = Particle(zParity=+1,_name = 'numu',_pid = 14,qColor = 0,eCharge = 0,spin = 1/2, mass = 0.*GeV)
+mu = Particle(zParity=+1,_name = 'mu-',_pid = 13,qColor = 0,eCharge = -1,spin = 1./2, mass = 0.106*GeV)
+nmu = Particle(zParity=+1,_name = 'numu',_pid = 14,qColor = 0,eCharge = 0,spin = 1./2, mass = 0.*GeV)
 #3rd generation leptons
-ta = Particle(zParity=+1,_name = 'ta-',_pid = 15,qColor = 0,eCharge = -1,spin = 1/2, mass = 1.77*GeV)
-nta = Particle(zParity=+1,_name = 'nuta',_pid = 16,qColor = 0,eCharge = 0,spin = 1/2, mass = 0.*GeV)
+ta = Particle(zParity=+1,_name = 'ta-',_pid = 15,qColor = 0,eCharge = -1,spin = 1./2, mass = 1.77*GeV)
+nta = Particle(zParity=+1,_name = 'nuta',_pid = 16,qColor = 0,eCharge = 0,spin = 1./2, mass = 0.*GeV)
 #Gauge bosons:
 gluon = Particle(zParity=+1,_name = 'g',_pid = 21,qColor = 3,eCharge = 0,spin = 1, mass = 0.*GeV)
 photon = Particle(zParity=+1,_name = 'photon',_pid = 22,qColor = 0,eCharge = 0,spin = 1, mass = 0.*GeV)

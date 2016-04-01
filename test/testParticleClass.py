@@ -10,8 +10,9 @@
 import sys
 sys.path.insert(0,"../")
 import unittest
-from smodels.theory.particle import Particle
+from smodels.theory.particle import Particle, ParticleList
 from smodels.tools.physicsUnits import GeV
+from smodels.particleDefinitions import useParticlesDict
 
 
 p1 = Particle(mass=100.*GeV, zParity=-1)
@@ -19,12 +20,15 @@ p2 = Particle(_pid=1000021, zParity=-1)
 p3 = Particle( _pid=1, mass=110.*GeV, zParity=-1)
 p4 = Particle(mass = 110.*GeV, zParity = -1)
 p1c = p1.copy()
+p1d = p1.copy(relevantProp=['zParity']) #Keep only zParity
 
-sq1 = Particle(name='squark1', mass = 110.*GeV, zParity = -1)
-sq2 = Particle(name='squark1', mass = 100.*GeV, zParity = -1)
-sq3 = Particle(name='squark2', mass = 110.*GeV, zParity = -1)
-u = Particle(name='u', zParity = 1)
-d = Particle(name='d',mass = 0.01*GeV, zParity = 1)
+sq1 = Particle(_name='squark1', mass = 110.*GeV, zParity = -1)
+sq2 = Particle(_name='squark1', mass = 100.*GeV, zParity = -1)
+sq3 = Particle(_name='squark2', mass = 110.*GeV, zParity = -1)
+A = Particle(_name='A', zParity = 1)
+B = Particle(_name='B',mass = 0.01*GeV, zParity = 1)
+u = useParticlesDict['u']
+d = useParticlesDict['d']
 
 
 
@@ -37,13 +41,26 @@ class ParticleTest(unittest.TestCase):
         self.assertEqual( p4 == p3 == p2, True)
         self.assertEqual( p1c == p1, True)
         self.assertEqual( p1c == p3, False) #Differ by mass
+        self.assertEqual( p1d == p3, True) #Mass has been removed in p1d
         self.assertEqual( sq1 == p4, True) #Only common property for comparison is mass and zParity
         self.assertEqual( sq1 > p1, True)  #Larger by mass
         self.assertEqual( sq1 > sq2, True)  #Larger by mass
-        self.assertEqual( sq1 > sq3, False)  #Smaller by name
-        self.assertEqual( u > d, True)  #Larger by name
-        self.assertEqual( sq1 > d, False)  #Smaller by zParity
+        self.assertEqual( sq1 == sq3, True)
+        self.assertEqual( A == B, True)
+        self.assertEqual( sq1 > B, False)  #Smaller by zParity
+        self.assertEqual( u > d, True)  #Bigger by electric Charge
+        self.assertEqual( u.chargeConjugate() > d, False)  #Smaller by electric Charge
 
+    def testParticleList(self):
+        l1 = ParticleList(particles=[A,B],label='Alist')
+        L = useParticlesDict['L']
+        l = useParticlesDict['l']
+        self.assertEqual( str(l1) == 'Alist', True)
+        self.assertEqual( l1.mass == B.mass, True)
+        self.assertEqual( l > L, False) #L is longer
+        self.assertEqual( l1 == A, True) #l1 contains A
+        self.assertEqual( l1 == B, True) #l1 contains A
         
+            
 if __name__ == "__main__":
     unittest.main()

@@ -13,6 +13,7 @@ import unittest
 from smodels.theory.particle import Particle
 from smodels.theory.vertex import Vertex, createVertexFromStr
 from smodels.tools.physicsUnits import GeV
+from smodels.particleDefinitions import useParticlesDict
 
 
 class VertexTest(unittest.TestCase):        
@@ -22,10 +23,10 @@ class VertexTest(unittest.TestCase):
         p3 = Particle( _pid=1, mass=110.*GeV, zParity=-1)
         p4 = Particle(mass = 110.*GeV, zParity = -1)
         
-        sq1 = Particle(name='squark1', mass = 110.*GeV, zParity = -1)
-        sq2 = Particle(name='squark1', mass = 100.*GeV, zParity = -1)
-        u = Particle(name='u', zParity = 1)
-        d = Particle(name='d',mass = 0.01*GeV, zParity = 1)
+        sq1 = Particle(_name='squark1', mass = 110.*GeV, zParity = -1)
+        sq2 = Particle(_name='squark1', mass = 100.*GeV, zParity = -1)
+        u = Particle(_name='u', zParity = 1)
+        d = Particle(_name='d',mass = 0.01*GeV, zParity = 1)
         
         v1 = Vertex(inParticle=p1, outParticles=[sq1,u,d])
         v2 = Vertex(inParticle=p1, outParticles=[sq1,d])
@@ -40,14 +41,28 @@ class VertexTest(unittest.TestCase):
         
     def testVertexStr(self):
         
-        ep = Particle(name='e+',mass = 0.0005*GeV, zParity = 1)
-        L = Particle(name='L', zParity = 1)
-        mum = Particle(name='mu-', eCharge = -1, mass = 0.106*GeV, zParity = 1)
+        ep = Particle(_name='e+',mass = 0.0*GeV, zParity = 1)
+        L = Particle(_name='L', zParity = 1)
+        mum = Particle(_name='mu-', eCharge = -1, mass = 0.106*GeV, zParity = 1)
         inP = Particle(zParity = -1)
         outP = Particle(zParity = -1)
         vstr = createVertexFromStr('[e+,L,mu-]')
         v = Vertex(inParticle=inP, outParticles=[ep,mum,L,outP])
+        vB = Vertex(inParticle=inP, outParticles=[useParticlesDict['e+'],
+                                                  useParticlesDict['mu-'],
+                                                  useParticlesDict['ta-'],outP])
+        vC = v.copy()
+        vD = v.copy(relevantProp=['zParity','eCharge'])
         self.assertEqual(v == vstr, True)  #Check that vertices match
+        self.assertEqual(vB == vstr, True)  #Check that vertices match
+        self.assertEqual(vB == vC, True)  #Check that vertices match
+        for p in vC.outEven:
+            if p._name != 'mu-': continue
+            self.assertEqual(hasattr(p,'mass'), True)  #Mass has been kept
+        
+        for p in vD.outEven:
+            self.assertEqual(hasattr(p,'mass'), False)  #Mass has not been kept
+        
         
 if __name__ == "__main__":
     unittest.main()
