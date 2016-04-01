@@ -70,5 +70,10 @@ tList = ParticleList(particles=[quarks[4],quarksC[4]],label='t')
 LpList = ParticleList(particles=[lpList,leptonsC[4]],label='L+')
 LmList = ParticleList(particles=[lmList,leptons[4]],label='L-')
 LList = ParticleList(particles=[LpList,LmList],label='L')
-jetList = ParticleList(particles=[quarks[0:4],quarksC[0:4],gauge[0],gaugeC[0]],label='jet')
+jetList = ParticleList(particles= quarks[0:4]+quarksC[0:4]+[gauge[0],gaugeC[0]], label='jet')
 allp = ParticleList(particles=SMparticles,label='all')
+
+particleLists = [eList,  muList, taList, lpList, lmList, lList, WList, tList,
+                 LpList, LmList, LList, jetList, allp]
+
+SM += particleLists

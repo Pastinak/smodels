@@ -9,9 +9,12 @@
 """
 
 import logging
-from smodels.theory.particle import Particle
+from smodels.theory.particle import Particle, ParticleList
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 from smodels.theory.auxiliaryFunctions import stringToList
+import itertools
+from timeit import itertools
+
 logger = logging.getLogger(__name__)
 
 
@@ -38,8 +41,8 @@ class Vertex(object):
             raise SModelSError
         else:
             for p in outParticles:
-                if not isinstance(p,Particle):
-                    logger.error("Particle must be a Particle object and not %s" %str(type(p)))
+                if not isinstance(p,Particle) and not isinstance(p,ParticleList):
+                    logger.error("Particle must be a Particle or ParticleList object and not %s" %str(type(p)))
                     raise SModelSError
         self.outParticles = outParticles
 
@@ -78,30 +81,58 @@ class Vertex(object):
         The comparison is made based on the number of particles in the vertex, 
         then on the size of the outgoing even particles, then the odd particles 
         and finally the incoming particle (see particle.__cmp__).
-        OBS: The particles inside each vertex MUST BE sorted (see vertex.sortParticles())         
+        The particle ordering inside each vertex is not taken into account.
+        OBS: The vertices should be sorted (see vertex.sortParticles()) in
+        order for the > (<) comparison to make sense.                
         :param other:  vertex to be compared (Vertex object)
         :return: -1 if self < other, 0 if self == other, +1, if self > other.
         """
         
+        #First check overall number of total, even and odd outgoing particles
         if len(self.outParticles) != len(other.outParticles):
             comp = len(self.outParticles) > len(other.outParticles)
             if comp: return 1
             else: return -1
-        elif self.outEven != other.outEven:
+        elif len(self.outEven) != len(other.outEven):
+            comp = len(self.outEven) > len(other.outEven)
+            if comp: return 1
+            else: return -1
+        elif len(self.outOdd) != len(other.outOdd):
+            comp = len(self.outOdd) > len(other.outOdd)
+            if comp: return 1
+            else: return -1
+            
+        #Compare outgoing even particles (irrespective of order)
+        evenList = [list(v) for v in itertools.permutations(self.outEven)]
+        match = False
+        for v in evenList:
+            if v == other.outEven:
+                match = True
+                break
+        if not match:
             comp = self.outEven > other.outEven
             if comp: return 1
             else: return -1
-        elif self.outOdd != other.outOdd:  
+        
+        #Compare outgoing odd particles (irrespective of order)
+        oddList = [list(v) for v in itertools.permutations(self.outOdd)]
+        match = False
+        for v in oddList:
+            if v == other.outOdd:
+                match = True
+                break
+        if not match:
             comp = self.outOdd > other.outOdd
             if comp: return 1
             else: return -1
-        elif self.inParticle != other.inParticle:
+        
+        #Compare incoming particle   
+        if self.inParticle != other.inParticle:   
             comp = self.inParticle > other.inParticle
             if comp: return 1
-            else: return -1
-       
-        else:
-            return 0    #Vertices are equal   
+            else: return -1  
+                 
+        return 0   #Vertices are equal   
     
     
     def stringRep(self):

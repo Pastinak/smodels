@@ -10,7 +10,6 @@
 
 import logging
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
-from smodels.particleDefinitions import rEven, rOdd, ptcDic
 import itertools
 logger = logging.getLogger(__name__)
 
@@ -118,9 +117,9 @@ class Particle(object):
             pConjugate._pid *= -1
         if hasattr(pConjugate, 'name'):
             if pConjugate.name[-1] == "+":
-                pConjugate.name[-1] = "-"
+                pConjugate.name = pConjugate.name[:-1] + "-"
             elif pConjugate.name[-1] == "-":
-                pConjugate.name[-1] = "+"
+                pConjugate.name = pConjugate.name[:-1] + "+"
             else:
                 pConjugate.name += "*"
                 
@@ -137,8 +136,14 @@ class ParticleList(object):
         Initializes the particle list. Particles can be a list of Particle objects
         and/or ParticleList objects. For the later all the particles in the ParticleList
         are included.
+        All the common (shared) properties for all particles in the list are automatically
+        attributed to the ParticleList. Properties which are not shared by all the particles
+        are set to None.
+        The ParticleList name is set to label.
+        :param particles: list of single particles or ParticleLists
+        :param label: name of the list
         """
-        
+                
         self.particles = []
         for p in particles:
             if isinstance(p,Particle):
@@ -150,6 +155,21 @@ class ParticleList(object):
                 raise SModelSError
             
         self.particles = sorted(self.particles)
+        for p in self.particles:
+            for key,val in p.__dict__.items():
+                if not hasattr(self, key):
+                    setattr(self,key,val)
+                elif val != getattr(self,key):
+                    setattr(self,key,None)
+        
+        self.name = label
+        
+    def __str__(self):
+        """
+        Returns the ParticleList label (name)
+        """
+        
+        return str(self.name)        
         
     def __cmp__(self,other):
         """
@@ -178,110 +198,5 @@ class ParticleList(object):
                 for p in self.particles:
                     if p > other: return +1
                 return -1
-                                     
 
-def getName(pdg):
-    """
-    Convert pdg number to particle name according to the dictionaries rOdd and
-    rEven.
-
-    :type pdg: int
-    :returns: particle name (e.g. gluino, mu-, ...)
-    
-    """
-    p = int(pdg)
-    if p in rOdd:
-        return rOdd[p]
-    if p in rEven:
-        return rEven[p]
-    else:
-        return False
-
-
-def getPdg(name):
-    """
-    Convert a name to the pdg number according to the dictionaries rOdd and
-    rEven.
-
-    :type name: string
-    :returns: particle pdg; None, if name could not be resolved
-    
-    """
-    for (pdg, pname) in rOdd.items():
-        if name == pname:
-            return abs(pdg)
-    for (pdg, pname) in rEven.items():
-        if name == pname:
-            return abs(pdg)
-    return None
-
-
-
-def simParticles(particles1, particles2, useDict=True):
-    """
-    Compares two lists of particles. Allows for inclusive
-    labels (Ex: L = l, l+ = l, l = l-,...). Ignores particle ordering inside
-    the list and particles with no name defined (blank name)
- 
-    :param particles1: first list of particles (Particle objects)
-    :param particles2: second list of particles (Particle objects) 
-    :param useDict: use the translation dictionary, i.e. allow e to stand for
-                    e+ or e-, l+ to stand for e+ or mu+, etc 
-    :returns: True/False if the particles list match (ignoring order)    
-    """
-    
-    plist1 = []
-    for p in particles1:
-        name = str(p)
-        if name: plist1.append(name)
-    plist2 = []
-    for p in particles2:
-        name = str(p)
-        if name: plist2.append(name)
-
-
-    if len(plist1) != len(plist2):
-        return False
-    for i,p in enumerate(plist1):
-        if not isinstance(p,str) or not isinstance(plist2[i],str):
-            logger.error("Input must be a list of particle strings")
-            raise SModelSError()
-        elif not p in ptcDic.keys() + rEven.values():
-            logger.error("Unknow particle: %s" %p)
-            raise SModelSError()
-        elif not plist2[i] in ptcDic.keys() + rEven.values():
-            logger.error("Unknow particle: %s" %plist2[i])
-            raise SModelSError()
-                        
-        
-    l1 = sorted(plist1)
-    l2 = sorted(plist2)
-    if not useDict:
-        return l1 == l2
-    
-    #If dictionary is to be used, replace particles by their dictionay entries
-    #e.g. [jet,mu+] -> [[q,g,c],[mu+]], [jet,mu] -> [[q,g,c],[mu+,mu-]] 
-    extendedL1 = []    
-    for i,p in enumerate(plist1):
-        if not p in ptcDic:
-            extendedL1.append([p])
-        else:
-            extendedL1.append(ptcDic[p])
-    extendedL2 = []    
-    for i,p in enumerate(plist2):
-        if not p in ptcDic:
-            extendedL2.append([p])
-        else:
-            extendedL2.append(ptcDic[p])
-    
-    #Generate all combinations of particle lists (already sorted to avoid ordering issues)
-    #e.g. [[q,g,c],[mu+]] -> [[q,mu+],[g,mu+],[c,mu+]]
-    extendedL1 = [sorted(list(i)) for i in itertools.product(*extendedL1)]
-    extendedL2 = [sorted(list(i)) for i in itertools.product(*extendedL2)]
-
-    #Now compare the two lists and see if there is a match:
-    for plist in extendedL1:
-        if plist in extendedL2: return True
-        
-    return False
 
