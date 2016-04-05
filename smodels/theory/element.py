@@ -92,6 +92,20 @@ class Element(object):
         st = st.replace("'", "").replace(" ", "")
         return st
     
+    def stringRep(self):
+        """
+        Extended string representation.
+        :return: string represantion in the format 
+                    B0: inParticle --> oddParticle + [evenParticles] / ...
+                    B1: inParticle --> oddParticle + [evenParticles] / ...
+        """
+        
+        strR = ""
+        for ib,b in enumerate(self.branches):
+            strR += "B"+str(ib)+": " + b.stringRep() +"\n" 
+        
+        return strR    
+    
     def sortBranches(self):
         """
         Sort branches. The smallest branch is the first one.

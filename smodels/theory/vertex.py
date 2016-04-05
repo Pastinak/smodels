@@ -23,13 +23,16 @@ class Vertex(object):
     An instance of this class represents a vertex (belonging to a branch/element).    
 
     """
-    def __init__(self, inParticle=None, outParticles=[]):
+    def __init__(self, inParticle=None, outParticles=[], br = None):
         """
         Initializes the vertex.
         
         :parameter inParticle: incoming particle (Particle object)
         :parameter outParticles: List of outgoing particles (Particle objects)
+        :parameter br: Corresponding branching ratio for the vertex (optional)
         """
+        
+        self.br = br
           
         if (not inParticle is None) and (not isinstance(inParticle, Particle)):
             logger.error("inParticle must be a Particle object and not %s" %str(type(inParticle)))
@@ -144,8 +147,9 @@ class Vertex(object):
         :return: string represantion in the format inParticle --> oddParticle + [evenParticles]
         """
         
-        strR = str(self.inParticle) + ' --> ' + str(self.outOdd[0]) 
-        strR += ' + ' + str(self)
+        strR = str(self.inParticle) + ' --> ' + str(self.outOdd[0])
+        if  self.outEven:
+            strR += ' + ' + str(self)
         
         return strR
     
@@ -196,7 +200,8 @@ class Vertex(object):
         newOutParticles = [p.copy(relevantProp=relevantProp) for p in self.outParticles]
         
         newV = Vertex(inParticle=newInParticle, outParticles=newOutParticles)
-        if hasattr(self, 'br'): newV.br = self.br
+        if not self.br is None:
+            newV.br = self.br
         
         return newV    
 

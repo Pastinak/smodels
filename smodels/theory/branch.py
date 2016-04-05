@@ -47,6 +47,7 @@ class Branch(object):
         st = st.replace("'", "").replace(" ", "")
         return st
     
+    
     def __len__(self):
         """
         Defines the branch length (equal to its number of vertices)
@@ -79,7 +80,19 @@ class Branch(object):
         else:
             return 0  #Branches are equal
 
-   
+    def stringRep(self):
+        """
+        Extended string representation.
+        :return: string represantion in the format 
+                    inParticle --> oddParticle + [evenParticles] /
+                    inParticle --> oddParticle + [evenParticles] / ...
+        """
+        
+        strR = ""
+        for v in self.vertices:
+            strR += v.stringRep() +"/" 
+        
+        return strR[:-1]
 
     def copy(self):
         """
@@ -190,25 +203,32 @@ class Branch(object):
         """
         
         newBranch = self.copy()
-        for iv,v in enumerate(self.vertices):
-            if iv == 0: continue #Skip production vertex            
-            massA = max([p.mass for p in self.vertices[iv-1].outOdd])
-            massB = max([p.mass for p in v.outOdd])                        
-            if massA < massB:
-                logger.error("Odd masses in branch dot not decrease monotonically")
-                raise SModelSError 
-            elif (massA - massB) < minmassgap:
-                #Glue adjacent vertices:
-                newBranch.vertices[iv-1].outOdd = newBranch.vertices[iv].outOdd
-                if iv < len(self.vertices)-1:
-                    newBranch.vertices[iv+1].inParticle = newBranch.vertices[iv].inParticle                    
-                newBranch.vertices[iv] = None
-                    
-        if not None in newBranch.vertices:  #No vertex could be removed
-            return None
+        newBranch.vertices = [newBranch.vertices[0]]        
+        #Add vertices to new branch
+        for v in self.vertices[1:]:            
+            if len(newBranch.vertices[-1].outOdd) != 1 or len(v.outOdd) != 1:
+                logger.warning("Compression with multiple (or none) odd"
+                               +" outgoing particles in a vertex is not implemented.")
+                return None
+            if newBranch.vertices[-1].outOdd[0] != v.inParticle:
+                logger.warning("Incoming and out going particles do not match."
+                               +" Compression will not be applied.")
+                return None                            
+            massDiff = v.inParticle.mass - v.outOdd[0].mass
+            if massDiff.asNumber() < 0.:
+                logger.error("Odd masses in vertex dot not decrease monotonically")
+                raise SModelSError                
+            elif massDiff < minmassgap:
+                #Vertex to be added is ~ degenerate
+                #Replace outgoing odd particle from previous vertex by the new one                
+                newBranch.vertices[-1].outOdd[0] = v.outOdd[0]
+            else:
+                newBranch.vertices.append(v.copy())
+
+
+        if len(newBranch) == len(self):
+            return None  #Branch was not compressed
         
-        while None in newBranch.vertices:
-            newBranch.vertices.remove(None)
         return newBranch
     
     def invisibleCompress(self):
@@ -220,8 +240,8 @@ class Branch(object):
                   None, if compression is not possible
         """
         
-        newBranch = self.copy()
-        for iv in range(-1,-len(newBranch.vertices),-1):
+        newBranch = self.copy()        
+        for iv in range(-1,-len(self.vertices),-1):
             v = self.vertices[iv]
             qTotal = 0
             colorTotal = 0
@@ -230,16 +250,16 @@ class Branch(object):
                     qTotal += abs(p.eCharge)
                 if hasattr(p, 'qColor'):
                     colorTotal += abs(p.qColor)
-            #If the total charge of the final particles of the
-            # last cascade decay are zero, the previous particle must have
-            # zero charges as well (since charges are conserved) 
+            #Check if the total charge of the final particles of the
+            # last cascade decay are zero 
             if qTotal + colorTotal == 0:
-                newBranch.vertices[iv-1].outOdd[0].eCharge = 0
-                newBranch.vertices[iv-1].outOdd[0].qCharge = 0
+                #Remove last vertex
+                newBranch.vertices.pop(-1)
+                #Effective charge of last vertex is zero:                
+                newBranch.vertices[-1].outOdd[0].eCharge = 0 
+                newBranch.vertices[-1].outOdd[0].qCharge = 0
             else:
                 break #If not, stop here
-            
-        newBranch = newBranch.vertices[:iv+1] #Vertices only go up to the non-zero charge one
         
         if len(newBranch) == len(self):  #Branch could not be compressed
             return None
