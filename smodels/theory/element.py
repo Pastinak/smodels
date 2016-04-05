@@ -102,7 +102,7 @@ class Element(object):
         
         strR = ""
         for ib,b in enumerate(self.branches):
-            strR += "B"+str(ib)+": " + b.stringRep() +"\n" 
+            strR += "B"+str(ib)+": " + b.describe() +"\n" 
         
         return strR
     
@@ -159,23 +159,6 @@ class Element(object):
         for branch in self.branches:
             massarray.append(branch.getOddMasses())
         return massarray
-
-    def getOddPIDs(self):
-        """
-        Get the list of IDs (PDGs of the odd states appearing in the cascade decay), i.e.
-        [ [pdg1,pdg2,...],[pdg3,pdg4,...] ].
-        The list might have more than one entry if the element combines different pdg lists:
-        [  [[pdg1,pdg2,...],[pdg3,pdg4,...]],  [[pdg1',pdg2',...],[pdg3',pdg4',...]], ...]
-        
-        :returns: list of PDG ids
-        """
-        
-        pids = []
-        for branch in self.branches:
-            pids.append(branch.getOddPIDs())        
-        
-        return pids
-
     
     def compressElement(self, doCompress, doInvisible, minmassgap):
         """
@@ -263,6 +246,18 @@ class Element(object):
         newelement.sortBranches()
         return newelement
         
+    def combineWith(self,other):
+        """
+        Combined the element with other.
+        Combine the elements weights, their mothers and PIDs.
+        
+        :parameter other: element (Element Object)  
+        """
+        
+        self.combineMotherElements(other)
+        self.combinePIDs(other)
+        self.weight.combineWith(other.weight)
+
 
     def combineMotherElements ( self, other ):
         """
@@ -284,18 +279,31 @@ class Element(object):
 
     def combinePIDs(self,other):
         """
-        Combine the PIDs of both elements. If the PIDs already appear in self,
-        do not add them to the list.
+        Combine the PIDs of both elements (_pid property of the odd particles).
+        If the PIDs already appear in self,  do not add them to the list.
         
         :parameter other: element (Element Object) 
         """
-           
-        elPIDs = self.getPIDs()
-        newelPIDs = other.getPIDs()
-        for pidlist in newelPIDs:                    
-            if not pidlist in elPIDs:
-                self.branches[0].PIDs.append(pidlist[0])
-                self.branches[1].PIDs.append(pidlist[1])
+        
+        if len(self.branches)!= len(other.branches):
+            logger.warning("Can not combine PIDs. Elements have distinct number of branches.")
+            return
+
+        for ib,br in enumerate(self.branches):
+            br.combinePIDs(other.branches[ib])
+            
+    def getOddPIDs(self):
+        """
+        Return the (nested) list of PIDs for the outgoing odd particles.
+        If the element combines distinct PIDs, the list may be nested.
+        :return: List of PIDs 
+                (e.g. [ [pidA,pidB,pidC], [pid1, pid2] ] for a simple element)
+                (e.g. [ [pidA,[pidB1,pidB2],pidC], [[pid11,pid12], pid2] ] for a combined element) 
+        """
+        
+        pids = [b.getOddPIDs() for b in self.branches]
+        
+        return pids
 
 def createElementFromStr(branchStr):
     """

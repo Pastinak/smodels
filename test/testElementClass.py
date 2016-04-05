@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 """
-.. module:: testBranchClass
-   :synopsis: Tests the theory.particle.Branch class
+.. module:: testElementClass
+   :synopsis: Tests the theory.element.Element class
 
 .. moduleauthor:: Andre Lessa <lessa.a.p@gmail.com>
 

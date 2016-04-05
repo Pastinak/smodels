@@ -58,13 +58,6 @@ class Topology(object):
             ret += "%s" % str(p).replace(" ", "")
         return ret
 
-    def __ne__(self,other):
-        return not ( self.__eq__(other) )
-
-    def __eq__(self,other):
-        ret = (self.__cmp__(other)==0 )
-        return ret
-
     def __cmp__(self,other):
         """
         Compares the topology with other.
@@ -155,9 +148,7 @@ class Topology(object):
         
         index = index_bisect(self.elementList,newelement)        
         if index != len(self.elementList) and self.elementList[index] == newelement:
-            self.elementList[index].weight.combineWith(newelement.weight)
-            self.elementList[index].combinePIDs(newelement)
-            self.elementList[index].combineMotherElements(newelement)
+            self.elementList[index].combineWith(newelement)
         else:
             self.elementList.insert(index,newelement)
 
@@ -202,16 +193,29 @@ class TopologyList(object):
         Add topologies sequentially, if provided.
         """
 
-        super(TopologyList, self).__init__()
         self.topos = []
         for topo in topologies:
             self.add(topo)
 
-    def __ne__(self,other):
-        return not self.__eq__(other)
-
-    def __eq__(self,other):
-        return self.topos == other.topos
+    
+    def __cmp__(self,other):
+        """
+        Compares the topology list with other.
+        The comparison is made on number of topologies in the
+        list. If numbers are the same, compare the topologies themselves.
+        :param other:  topology list to be compared (TopologyList object)
+        :return: -1 if self < other, 0 if self == other, +1, if self > other.
+        """
+                
+        if len(self.topos) != len(other.topos):
+            comp = len(self.topos) > len(other.topos)
+            if comp: return 1
+            else: return -1  
+        else:
+            comp = self.topos > other.topos
+            if comp: return 1
+            else: return -1  
+        return 0        
 
     def __len__(self):
         return len(self.topos)

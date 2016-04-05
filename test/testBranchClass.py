@@ -2,7 +2,7 @@
 
 """
 .. module:: testBranchClass
-   :synopsis: Tests the theory.particle.Branch class
+   :synopsis: Tests the theory.branch.Branch class
 
 .. moduleauthor:: Andre Lessa <lessa.a.p@gmail.com>
 

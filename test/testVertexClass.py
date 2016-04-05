@@ -2,7 +2,7 @@
 
 """
 .. module:: testVertexClass
-   :synopsis: Tests the theory.particle.Vertex class
+   :synopsis: Tests the theory.vertex.Vertex class
 
 .. moduleauthor:: Andre Lessa <lessa.a.p@gmail.com>
 

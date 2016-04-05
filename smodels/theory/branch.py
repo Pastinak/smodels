@@ -90,7 +90,7 @@ class Branch(object):
         
         strR = ""
         for v in self.vertices:
-            strR += v.stringRep() +"/" 
+            strR += v.describe() +"/" 
         
         return strR[:-1]
 
@@ -124,18 +124,33 @@ class Branch(object):
             massarray += [p.mass for p in v.outOdd]
         return massarray
     
-    def getOddPIDs(self):
+    
+    def combinePIDs(self,other):
         """
-        Get the list of IDs (PDGs of the odd states appearing in the cascade decay), i.e.
-        [pdg1,pdg2,...].
-        The list might have more than one entry if the branch combines different pdg lists:
-        [[pdg1,pdg2,...],[pdg3,pdg4,...],...].        
-        :returns: list of PDG ids
+        Combine the PIDs of both branches (_pid property of the odd particles).
+        If the PIDs already appear in self,  do not add them to the list.
+        
+        :parameter other: branch (Branch Object) 
         """
         
-        pids = []
-        for v in self.vertices:
-            pids += [p._pid for p in v.outOdd]
+        if len(self.vertices)!= len(other.vertices):
+            logger.warning("Can not combine PIDs. Branches have distinct number of vertices.")
+            return
+
+        for iv,v in enumerate(self.vertices):
+            v.combinePIDs(other.vertices[iv])
+            
+    def getOddPIDs(self):
+        """
+        Return the (nested) list of PIDs for the outgoing odd particles.
+        If the branch combines distinct PIDs, the list may be nested.
+        :return: List of PIDs 
+                (e.g. [pidA,pidB,pidC] for a simple element)
+                (e.g. [pidA,[pidB1,pidB2],pidC] for a combined branch) 
+        """
+        
+        pids = [v.getOddPIDs() for v in self.vertices]
+        
         return pids            
 
     def _addVertex(self, newVertex):

@@ -13,7 +13,6 @@ from smodels.theory import lheReader
 import smodels.particles
 import logging
 import pyslha
-import sys
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 
 FORMAT = '%(levelname)s in %(module)s.%(funcName)s() in %(lineno)s: %(message)s'
