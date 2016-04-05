@@ -31,6 +31,9 @@ e = useParticlesDict['e']
 gluino = useParticlesDict['gluino']
 st1 = useParticlesDict['st_1']
 n1 = useParticlesDict['N1']
+n2 = useParticlesDict['N2']
+n3 = useParticlesDict['N3']
+n4 = useParticlesDict['N4']
 
 class ElementTest(unittest.TestCase):
         
@@ -138,33 +141,61 @@ class ElementTest(unittest.TestCase):
         self.assertEqual( el1Comp == el2, True) #Elements should be equal  
         
 
-#     def testElementInvComp(self):
-#          
-#         gluino.mass = 400.*GeV
-#         st1.mass = 398.*GeV
-#         n1.mass = 390.*GeV
-#         st1B = st1.copy(relevantProp=['eCharge','qColor','mass','_pid'])
-#         n1B = st1.copy(relevantProp=['eCharge','qColor','mass','_pid'])
-#          
-#         v0 = Vertex(inParticle=None, outParticles=[gluino])
-#         v0b = Vertex(inParticle=None, outParticles=[st1B])
-#         v0c = Vertex(inParticle=None, outParticles=[n1])
-#         v1 = Vertex(inParticle=gluino, outParticles=[st1B,t])
-#         v2 = Vertex(inParticle=st1B, outParticles=[n1B,nue,nue])
-#         v1c = Vertex(inParticle=gluino, outParticles=[n1B,t])
-#          
-#         b1 = Branch(vertices=[v0,v1,v2])
-#         b2 = Branch(vertices=[v0b,v2])
-#         el1 = Element(branches=[b1,b2])
-#         
-#         el1Comp = el1.invisibleCompress()
-#         
-#         b1Comp = Branch(vertices=[v0,v1c])
-#         b2Comp = Branch(vertices=[v0c])
-#         el2 = Element(branches=[b1Comp,b2Comp])
-#         
-#          
-#         self.assertEqual( el1Comp == el2, True) #Elements should be equal
+    def testElementInvComp(self):
+          
+        gluino.mass = 500.*GeV
+        st1.mass = 400.*GeV
+        n1.mass = 300.*GeV
+        n2.mass = 310.*GeV
+        n3.mass = 320.*GeV 
+        n4.mass = 330.*GeV  
+          
+        v0 = Vertex(inParticle=None, outParticles=[gluino])        
+        v0c = Vertex(inParticle=None, outParticles=[n3])
+        v1 = Vertex(inParticle=gluino, outParticles=[st1,t])
+        v2 = Vertex(inParticle=st1, outParticles=[n3,t])
+        v3 = Vertex(inParticle=n3, outParticles=[n1,nue,nue])        
+        v4 = Vertex(inParticle=n3, outParticles=[n2,nue])
+        v5 = Vertex(inParticle=n2, outParticles=[n1,nue,nue,nue,nue])
+        v6 = Vertex(inParticle=n2, outParticles=[n1,nue,nue,nue,em])
+          
+
+         
+        #Compress one step:
+        #N3 --> N1 + [nue,nue]
+        #gluino --> st_1 + [t+]/st_1 --> N3 + [t+]/N3 --> N1 + [nue,nue]
+        b1 = Branch(vertices=[v0,v1,v2,v3])
+        b2 = Branch(vertices=[v0c,v3])
+        el1 = Element(branches=[b1,b2])
+        el1Comp = el1.invisibleCompress()                 
+        b1Comp = Branch(vertices=[v0,v1,v2])
+        b2Comp = Branch(vertices=[v0c])
+        el2 = Element(branches=[b1Comp,b2Comp])
+        self.assertEqual( el1Comp == el2, True) #Elements should be equal
+
+        #Compress two steps:
+        #N3 --> N1 + [nue,nue]
+        #gluino --> st_1 + [t+]/st_1 --> N3 + [t+]/N3 --> N2 + [nue]/N2 --> N1 + [nue,nue,nue,nue]
+        b1 = Branch(vertices=[v0,v1,v2,v4,v5])
+        b2 = Branch(vertices=[v0c,v3])
+        el1 = Element(branches=[b1,b2])
+        el1Comp = el1.invisibleCompress()                 
+        b1Comp = Branch(vertices=[v0,v1,v2])
+        b2Comp = Branch(vertices=[v0c])
+        el2 = Element(branches=[b1Comp,b2Comp])
+        self.assertEqual( el1Comp == el2, True) #Elements should be equal
+        
+        #Make sure compression only happens at the end:
+        #N3 --> N1 + [nue,nue]
+        #gluino --> st_1 + [t+]/st_1 --> N3 + [t+]/N3 --> N2 + [nue]/N2 --> N1 + [e-,nue,nue,nue]
+        b1 = Branch(vertices=[v0,v1,v2,v4,v6])
+        b2 = Branch(vertices=[v0c,v3])
+        el1 = Element(branches=[b1,b2])
+        el1Comp = el1.invisibleCompress()                 
+        b1Comp = Branch(vertices=[v0,v1,v2,v4,v6])
+        b2Comp = Branch(vertices=[v0c])
+        el2 = Element(branches=[b1Comp,b2Comp])
+        self.assertEqual( el1Comp == el2, True) #Elements should be equal
             
         
 if __name__ == "__main__":

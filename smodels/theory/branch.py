@@ -242,7 +242,7 @@ class Branch(object):
         
         newBranch = self.copy()        
         for iv in range(-1,-len(self.vertices),-1):
-            v = self.vertices[iv]
+            v = self.vertices[iv]            
             qTotal = 0
             colorTotal = 0
             for p in v.outParticles:
@@ -250,14 +250,16 @@ class Branch(object):
                     qTotal += abs(p.eCharge)
                 if hasattr(p, 'qColor'):
                     colorTotal += abs(p.qColor)
-            #Check if the total charge of the final particles of the
-            # last cascade decay are zero 
+            #If the total charge of the final particles of the
+            #last cascade decay are zero
             if qTotal + colorTotal == 0:
                 #Remove last vertex
                 newBranch.vertices.pop(-1)
-                #Effective charge of last vertex is zero:                
-                newBranch.vertices[-1].outOdd[0].eCharge = 0 
-                newBranch.vertices[-1].outOdd[0].qCharge = 0
+                #Check if effective charge of last vertex is zero:
+                if not (v.inParticle.eCharge == 0 and  v.inParticle.qColor == 0):
+                    logger.error("Charge does not seem to be conserved at:\n %s" 
+                                 %v.stringRep())
+                    raise SModelSError         
             else:
                 break #If not, stop here
         
