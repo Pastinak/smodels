@@ -141,7 +141,7 @@ class Vertex(object):
         return 0   #Vertices are equal   
     
     
-    def stringRep(self):
+    def describe(self):
         """
         Extended string representation.
         :return: string represantion in the format inParticle --> oddParticle + [evenParticles]

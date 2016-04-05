@@ -54,6 +54,9 @@ class ElementTest(unittest.TestCase):
         self.assertEqual(el1 > el2,True) #Bigger by number of vertices
         self.assertEqual(el1 == el1B,True) #Just differ br branch ordering
         
+        e1Info = {"vertnumb" : [2,3], "vertparts" : [[1,3],[1,2,3]]}
+        self.assertEqual(el1.getEinfo() == e1Info, True) 
+        
         
     def testElementInclusive(self):
         
@@ -196,7 +199,7 @@ class ElementTest(unittest.TestCase):
         b2Comp = Branch(vertices=[v0c])
         el2 = Element(branches=[b1Comp,b2Comp])
         self.assertEqual( el1Comp == el2, True) #Elements should be equal
-            
+
         
 if __name__ == "__main__":
     unittest.main()

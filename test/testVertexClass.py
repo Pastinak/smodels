@@ -34,7 +34,7 @@ class VertexTest(unittest.TestCase):
         v5 = Vertex(inParticle=p3, outParticles=[sq1,u,d])
         v5b = Vertex(inParticle=p4, outParticles=[sq1,u,d])
         self.assertEqual( str(v1) == '[d,u]', True)
-        self.assertEqual( v1.stringRep().replace(' ','') == "-->squark1+[d,u]", True)
+        self.assertEqual( v1.describe().replace(' ','') == "-->squark1+[d,u]", True)
         self.assertEqual(v1 > v2, True)  #Larger by number of outgoing particles
         self.assertEqual(v2 > v3, True)  #Larger by mass of sq1
         self.assertEqual(v5b == v5, True)  #All common properties are equal

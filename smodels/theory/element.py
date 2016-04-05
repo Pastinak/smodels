@@ -92,7 +92,7 @@ class Element(object):
         st = st.replace("'", "").replace(" ", "")
         return st
     
-    def stringRep(self):
+    def describe(self):
         """
         Extended string representation.
         :return: string represantion in the format 
@@ -104,7 +104,21 @@ class Element(object):
         for ib,b in enumerate(self.branches):
             strR += "B"+str(ib)+": " + b.stringRep() +"\n" 
         
-        return strR    
+        return strR
+    
+    def getEinfo(self):
+        """
+        Get element info (list of vertices in the branches and
+        number of outgoing particles in each vertex).
+        
+        :returns: dictionary containing number vertices 
+                    and number of outgoing particles in each vertex.
+        """
+        
+        vertnumb = [len(b.vertices) for b in self.branches]
+        vertparts = [[len(v.outParticles) for v in b.vertices] for b in self.branches]
+        
+        return {"vertnumb" : vertnumb, "vertparts" : vertparts}
     
     def sortBranches(self):
         """

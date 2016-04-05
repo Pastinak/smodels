@@ -80,7 +80,7 @@ class Branch(object):
         else:
             return 0  #Branches are equal
 
-    def stringRep(self):
+    def describe(self):
         """
         Extended string representation.
         :return: string represantion in the format 

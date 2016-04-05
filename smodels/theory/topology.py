@@ -29,11 +29,12 @@ class Topology(object):
     def __init__(self, elements=None):
         """
         Constructor.
-        If elements is defined, create the topology from it. If elements it is
+        If elements is defined, create the topology from it. If elements is
         a list, all elements must share a common global topology.
         
         :parameter elements: Element object or list of Element objects
         """
+        
         self.vertnumb = []
         self.vertparts = []
         self.elementList = []
@@ -133,7 +134,7 @@ class Topology(object):
 
         For all the pre-existing elements, which match the new element, add
         weight. If no pre-existing elements match the new one, add it to the
-        list. OBS: newelement MUST ALREADY BE SORTED (see element.sort())
+        list. OBS: newelement MUST ALREADY BE SORTED (see element.sortBranches())
         
         :parameter newelement: element to be added (Element object)
         :returns: True, if the element was added. False, otherwise

@@ -63,13 +63,13 @@ class Particle(object):
                 comp = self.mass > other.mass
                 if comp: return 1
                 else: return -1
-        for key in self.__dict__:
-            if self.__dict__[key] is None: continue
+        for key,val in sorted(self.__dict__.items()):
+            if key[0] == '_': continue  #Skip non-physical properties
+            if val is None: continue
             if not key in other.__dict__: continue
-            if other.__dict__[key] is None: continue
-            if key[0] == '_': continue
-            if other.__dict__[key] != self.__dict__[key]:
-                comp = self.__dict__[key] > other.__dict__[key]
+            if other.__dict__[key] is None: continue            
+            if other.__dict__[key] != val:
+                comp = val > other.__dict__[key]
                 if comp: return 1
                 else: return -1                    
         
@@ -202,5 +202,3 @@ class ParticleList(object):
                 for p in self.particles:
                     if p > other: return +1
                 return -1
-
-
