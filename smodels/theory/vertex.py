@@ -13,7 +13,8 @@ from smodels.theory.particle import Particle, ParticleList
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 from smodels.theory.auxiliaryFunctions import stringToList
 import itertools
-from smodels.particleDefinitions import useParticlesDict
+from smodels.particleDefinitions import useParticlesNameDict,useParticlesPidDict
+import pyslha
 
 logger = logging.getLogger(__name__)
 
@@ -36,17 +37,17 @@ class Vertex(object):
           
         if (not inParticle is None) and (not isinstance(inParticle, Particle)):
             logger.error("inParticle must be a Particle object and not %s" %str(type(inParticle)))
-            raise SModelSError
+            raise SModelSError()
         self.inParticle = inParticle
         
         if not isinstance(outParticles,list):
             logger.error("outParticles must be a list and not %s" %str(type(outParticles)))
-            raise SModelSError
+            raise SModelSError()
         else:
             for p in outParticles:
                 if not isinstance(p,Particle) and not isinstance(p,ParticleList):
                     logger.error("Particle must be a Particle or ParticleList object and not %s" %str(type(p)))
-                    raise SModelSError
+                    raise SModelSError()
         self.outParticles = outParticles
 
         #Split outgoing particles into even and odd
@@ -61,7 +62,7 @@ class Vertex(object):
         self.sortParticles()
         if not self.sanityCheck():
             logger.error("Wrong vertex structure.")
-            raise SModelSError
+            raise SModelSError()
         
     def __str__(self):
         """
@@ -261,8 +262,8 @@ def createVertexFromStr(vertexStr):
     Odd-particles are created as empty Particle objects and Even-particles
     are created using the particles pre-defined (by the user) which match the corresponding
     particle label/name.
-    :branchStr: vertexStr (e.g. [e+,jet])
-    :return: Branch object
+    :parameter branchStr: vertexStr (e.g. [e+,jet])
+    :return: Vertex object
     """
     
     #Define empty incoming and outgoing odd particles
@@ -271,10 +272,40 @@ def createVertexFromStr(vertexStr):
     for pname in stringToList(vertexStr):
         if not isinstance(pname,str):
             logger.error("Error converting vertex string %s" %vertexStr)
-            raise SModelSError
-        if not pname in useParticlesDict:
+            raise SModelSError()
+        if not pname in useParticlesNameDict:
             logger.error("Particle %s has not been defined (see particleDefinitions.py)" %pname)
-            raise SModelSError
-        outParticles.append(useParticlesDict[pname])
+            raise SModelSError()
+        outParticles.append(useParticlesNameDict[pname])
     
     return Vertex(inParticle=inParticle, outParticles=outParticles)
+
+def createVertexFromDecay(pyslhaDecay,inPDG=None):
+    """
+    Creates a vertex from a pyslha Decay obj.
+    :parameter pyslhaDecay: pyslha Decay obj
+    :parameter inPDG: PDG of the vertex incoming particle
+    :return: Vertex object
+    """
+    
+    if not isinstance(pyslhaDecay,pyslha.Decay):
+        logger.error("Input is not a pyslha Decay object!")
+        raise SModelSError()
+    
+    if not inPDG:
+        inParticle = None
+    else:
+        if not inPDG in useParticlesPidDict:
+            logger.error("Particle PDG %i was not defined" %inPDG)
+            raise SModelSError()
+        inParticle = useParticlesPidDict[inPDG]
+    
+    outParticles = []
+    for pid in pyslhaDecay.ids:
+        if not pid in useParticlesPidDict:
+            logger.error("Particle PDG %i was not defined" %inPDG)
+            raise SModelSError()
+        outParticles.append(useParticlesPidDict[pid])
+    v = Vertex(inParticle=inParticle, outParticles=outParticles, br = pyslhaDecay.br)
+    
+    return v

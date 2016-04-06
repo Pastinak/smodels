@@ -33,7 +33,7 @@ class Particle(object):
             raise SModelSError
 
         for key,value in kwargs.items():
-            setattr(self,key,value)
+            self.addProperty(key,value)
 
     
     def __cmp__(self,other):
@@ -98,9 +98,22 @@ class Particle(object):
         newP = Particle(zParity = self.zParity)
         for key,val in self.__dict__.items():
             if relevantProp is None or key in relevantProp:
-                setattr(newP,key,val)
+                newP.addProperty(key,val)
         
         return newP
+    
+    def addProperty(self,label,value,overwrite=False):
+        """
+        Add property with label and value.
+        If overwrite = False and property already exists, it will not be overwritten
+        :parameter label: property label (e.g. "mass", "_name",...)
+        :parameter value: property value (e.g. 171*GeV, "t+",...)
+        """
+        
+        if overwrite:
+            setattr(self, label, value)
+        elif not hasattr(self, label) or getattr(self, label) is None:
+            setattr(self, label, value)
     
     def chargeConjugate(self):
         """
@@ -126,6 +139,8 @@ class Particle(object):
                 pConjugate._name += "*"
                 
         return pConjugate
+    
+    
     
 class ParticleList(object):
     """

@@ -10,7 +10,6 @@
 
 from smodels.tools.physicsUnits import TeV, pb
 from smodels.theory import lheReader
-import smodels.particles
 import logging
 import pyslha
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
@@ -538,14 +537,9 @@ def getXsecFromSLHAFile(slhafile, useXSecs=None, xsecUnit = pb):
     """
     # Store information about all cross-sections in the SLHA file
     xSecsInFile = XSectionList()
-    f=pyslha.readSLHAFile ( slhafile )
+    f=pyslha.read(slhafile)
     for production in f.xsections:
         useXSecs = False
-        for pid in production[2:]:
-            if not pid in smodels.particles.rOdd.keys():
-                # ignore production of R-Even Particles
-                logger.warning("Ignoring cross-section for "+str(production)+" production") 
-                break
         process = f.xsections.get ( production )
         for pxsec in process.xsecs:
             csOrder = pxsec.qcd_order

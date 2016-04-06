@@ -62,7 +62,7 @@ SMparticlesC = quarksC + leptonsC + gaugeC + [higgs.chargeConjugate()]
 SM = SMparticles + SMparticlesC
 #Define all SM particles as stable 
 #(even parity states should be treated as stable to preserve topology structures):
-for p in SM: p.width = 0.*GeV
+for p in SM: p._width = 0.*GeV
 
 
 #Inlcusive labels

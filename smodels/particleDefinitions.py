@@ -32,8 +32,14 @@ useParticles = MSSM
 #useParticles = MSSM + [new]
 
 
-useParticlesDict = {}
+useParticlesNameDict = {}
+useParticlesPidDict = {}
 for p in useParticles:
-    if p._name in useParticlesDict:
+    if p._name in useParticlesNameDict:
         logger.warning("Multiple definitions of particles with name %s" %p._name)
-    useParticlesDict[p._name] = p
+    useParticlesNameDict[p._name] = p
+    #Build PDG dictionary only with simple particles (ignore particle lists):
+    if not isinstance(p,Particle): continue
+    if p._pid in useParticlesPidDict:
+        logger.warning("Multiple definitions of particle %s with PDG %s" %(p._name,p._pid))    
+    useParticlesPidDict[p._pid] = p    

@@ -29,7 +29,7 @@ sul = Particle(zParity=-1, _name = 'su_L', _pid = 1000002, qColor = 3, eCharge =
 sdr = Particle(zParity=-1, _name = 'sd_R', _pid = 2000001, qColor = 3, eCharge = -1./3, spin = 0)
 sur = Particle(zParity=-1, _name = 'su_R', _pid = 2000002, qColor = 3, eCharge = 2./3, spin = 0)
 #2nd generation squarks and its conjugates:
-ssl = Particle(zParity=-1, _name = 'ss_L', _pid = 1000004, qColor = 3, eCharge = -1./3, spin = 0)
+ssl = Particle(zParity=-1, _name = 'ss_L', _pid = 1000003, qColor = 3, eCharge = -1./3, spin = 0)
 scl = Particle(zParity=-1, _name = 'sc_L', _pid = 1000004, qColor = 3, eCharge = 2./3, spin = 0)
 ssr = Particle(zParity=-1, _name = 'ss_R', _pid = 2000003, qColor = 3, eCharge = -1./3, spin = 0)
 scr = Particle(zParity=-1, _name = 'sc_R', _pid = 2000004, qColor = 3, eCharge = 2./3, spin = 0)

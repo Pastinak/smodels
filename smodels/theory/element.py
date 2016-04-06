@@ -254,6 +254,10 @@ class Element(object):
         :parameter other: element (Element Object)  
         """
         
+        if self.getEinfo() != other.getEinfo():
+            logger.warning("Element structures do not match and can not be combined.")
+            return
+        
         self.combineMotherElements(other)
         self.combinePIDs(other)
         self.weight.combineWith(other.weight)

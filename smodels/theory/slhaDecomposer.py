@@ -13,12 +13,12 @@ import copy
 import time
 from smodels.theory import element, topology, crossSection
 from smodels.theory.branch import Branch, decayBranches
+from smodels.theory.vertex import Vertex, createVertexFromDecay
 import pyslha
 from smodels.tools.physicsUnits import fb, GeV
-import smodels.particles
+from smodels.particleDefinitions import useParticlesPidDict
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 import logging
-import sys
 
 logger = logging.getLogger(__name__)
 
@@ -47,18 +47,12 @@ def decompose(slhafile, sigcut=.1 * fb, doCompress=False, doInvisible=False,
     if type(sigcut) == type(1.):
         sigcut = sigcut * fb
 
-    try:
-        f=pyslha.readSLHAFile ( slhafile )
-    except pyslha.ParseError,e:
-        logger.error ( "The file %s cannot be parsed as an SLHA file: %s" % (slhafile, e) )
-        raise SModelSError()
-
     # Get cross-section from file
     xSectionList = crossSection.getXsecFromSLHAFile(slhafile, useXSecs)
-    # Get BRs and masses from file
-    brDic, massDic = _getDictionariesFromSLHA(slhafile)
     # Only use the highest order cross-sections for each process
-    xSectionList.removeLowerOrder()
+    xSectionList.removeLowerOrder()    
+    # Add mass, width and decay information from SLHA file to the defined particles
+    particlesDict = _addInfoFrom(slhafile,useParticlesPidDict)
     # Order xsections by PDGs to improve performance
     xSectionList.order()
 
@@ -74,30 +68,33 @@ def decompose(slhafile, sigcut=.1 * fb, doCompress=False, doInvisible=False,
     for pids in xSectionList.getPIDpairs():
         xSectionListDict[pids] = xSectionList.getXsecsFor(pids)
 
-    # Create 1-particle branches with all possible mothers
+    # Create 1-particle branches with all primary vertices
     branchList = []
     for pid in maxWeight:
-        branchList.append(Branch())
-        branchList[-1].PIDs = [[pid]]
-        if not pid in massDic:
-            logger.error ( "pid %d does not appear in masses dictionary %s in slhafile %s" % 
-                    ( pid, massDic, slhafile ) )
-        branchList[-1].masses = [massDic[pid]]
-        branchList[-1].maxWeight = maxWeight[pid]
+        if maxWeight[pid].value < sigcut:  #Skip too low cross-sections
+            continue
+        if not pid in particlesDict:
+            logger.warning( "Particle with PDG = %i was not defined. Cross-section will be ignored" 
+                            %pid)
+            continue
+        #Create branches with production vertices
+        v = Vertex(inParticle = None, outParticles=[particlesDict[pid]])
+        b = Branch(vertices=[v])
+        b.maxWeight = maxWeight[pid]
+        branchList.append(b)
 
+    
     # Generate final branches (after all R-odd particles have decayed)    
-    finalBranchList = decayBranches(branchList, brDic, massDic, sigcut)
-    # Generate dictionary, where keys are the PIDs and values are the list of branches for the PID (for performance)
+    finalBranchList = decayBranches(branchList,sigcut)
+    # Generate dictionary, where keys are the PIDs and values are 
+    #the list of branches for the PID (for performance)
     branchListDict = {}
     for branch in finalBranchList:
-        if len(branch.PIDs) != 1:
-            logger.error("During decomposition the branches should \
-                            not have multiple PID lists!")
-            return False   
-        if branch.PIDs[0][0] in branchListDict:
-            branchListDict[branch.PIDs[0][0]].append(branch)
+        pid = branch.vertices[0].outOdd[0]._pid
+        if pid in branchListDict:
+            branchListDict[pid].append(branch)
         else:
-            branchListDict[branch.PIDs[0][0]] = [branch]
+            branchListDict[pid] = [branch]
     for pid in xSectionList.getPIDs():
         if not pid in branchListDict: branchListDict[pid] = []
 
@@ -130,7 +127,7 @@ def decompose(slhafile, sigcut=.1 * fb, doCompress=False, doInvisible=False,
                             not have multiple PID lists!")
                     return False    
 
-                newElement = element.Element([branch1, branch2])
+                newElement = element.Element(branches=[branch1.copy(), branch2.copy()])
                 newElement.weight = weightList*finalBR
                 allElements = [newElement]
                 # Perform compression
@@ -148,46 +145,36 @@ def decompose(slhafile, sigcut=.1 * fb, doCompress=False, doInvisible=False,
     return smsTopList
 
 
-def _getDictionariesFromSLHA(slhafile):
+def _addInfoFrom(slhafile, pidDict):
     """
-    Create mass and BR dictionaries from an SLHA file.
-    Ignore decay blocks with R-parity violating or unknown decays
-
+    Adds mass, width and decay info from the SLHA file to the particles
+    in pidDict.
+    :parameter slhafile: path to the SLHA file
+    :parameter pidDict: A dictionary with pid : Particle object
     """
-
-    res = pyslha.readSLHAFile(slhafile)
-
-    rOdd = smodels.particles.rOdd.keys()
-    rEven = smodels.particles.rEven.keys()
     
-    # Get mass and branching ratios for all particles
-    brDic = {}
-    for pid in res.decays.keys():
-        if pid in rEven:
-            logger.info("Ignoring %s decays",smodels.particles.rEven[pid])
+    try:
+        f=pyslha.read(slhafile)
+    except pyslha.ParseError,e:
+        logger.error ( "The file %s cannot be parsed as an SLHA file: %s" % (slhafile, e) )
+        raise SModelSError()
+
+    # Assign masses and BRs to particles in useParticles
+    for pid in f.blocks["MASS"].keys():
+        if not pid in pidDict:
+            logger.warning("Particle with PDG %i was not defined and will be ignored." %pid)
             continue
-        brs = []
-        for decay in res.decays[pid].decays:
-            nEven = nOdd = 0.
-            for pidd in decay.ids:
-                if pidd in rOdd: nOdd += 1
-                elif pidd in rEven: nEven += 1
-            if nOdd + nEven == len(decay.ids) and nOdd == 1:
-                brs.append(decay)
-            else:
-                logger.info("Ignoring decay: %i -> [%s]",pid,decay.ids)
-
-        brsConj = copy.deepcopy(brs)
-        for br in brsConj:
-            br.ids = [-x for x in br.ids]
-        brDic[pid] = brs
-        brDic[-pid] = brsConj
-    # Get mass list for all particles
-    massDic = dict(res.blocks['MASS'].items())
-    for pid in massDic.keys()[:]:
-        massDic[pid] *= GeV
-        massDic[pid] = abs(massDic[pid])
-        if not -pid in massDic: massDic[-pid] = massDic[pid]    
- 
-    return brDic, massDic
-
+        p = pidDict[pid]
+        p.addProperty('mass',f.blocks["MASS"][pid]*GeV,overwrite=False)
+        p._width = None
+        p._decayVertices = None
+        if p.zParity > 0:            
+            logger.info("Ignoring decays of even particle %s" %p._name)
+            continue
+        if pid in f.decays:
+            p.addProperty('_width',f.decays[pid].totalwidth*GeV)            
+            if f.decays[pid].totalwidth:
+                p._decayVertices = []
+                for decay in f.decays[pid].decays:
+                    p._decayVertices.append(createVertexFromDecay(decay,inPDG = p._pid))
+    return pidDict
