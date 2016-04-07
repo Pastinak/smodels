@@ -59,8 +59,10 @@ class Branch(object):
     def __cmp__(self,other):
         """
         Compares the branch with other.        
-        The comparison is made based on the number of vertices, then on the size of each vertex
-        (number of particles in the vertex, then particle masses, see vertex.__cmp__)
+        First compare the branch structures (number of vertices and
+        number of outgoing particles in the vertices). If the structures match,
+        compare the vertex lists
+        (number of particles in the vertex, then particle masses,... see vertex.__cmp__)
         OBS: The particles inside each vertex MUST BE sorted (see vertex.sortParticles())         
         :param other:  branch to be compared (Branch object)
         :return: -1 if self < other, 0 if self == other, +1, if self > other.
@@ -69,16 +71,32 @@ class Branch(object):
         if not isinstance(other,Branch):
             return +1      
         
-        if len(self) != len(other):
-            comp = len(self) >  len(other)
+        info = self.getBinfo()
+        infoB = other.getBinfo()
+        if info['vertnumb'] != infoB['vertnumb']:
+            comp = info['vertnumb'] > infoB['vertnumb']
             if comp: return 1
             else: return -1
-        elif self.vertices != other.vertices:
-            comp = self.vertices > other.vertices
+        elif info['vertparts'] != infoB['vertparts']:
+            comp = info['vertparts'] > infoB['vertparts']
             if comp: return 1
-            else: return -1
+            else: return -1            
         else:
-            return 0  #Branches are equal
+            return cmp(self.vertices,other.vertices)
+        
+    def getBinfo(self):
+        """
+        Get branch info (number of vertices in the branch and
+        number of outgoing particles in each vertex).
+        
+        :returns: dictionary containing number vertice 
+                    and number of outgoing particles in each vertex.
+        """
+        
+        vertnumb = len(self.vertices)
+        vertparts = [len(v.outParticles) for v in self.vertices]
+                
+        return {"vertnumb" : vertnumb, "vertparts" : vertparts}        
 
     def describe(self):
         """
@@ -305,6 +323,7 @@ def createBranchFromStr(branchStr):
     #Start with a simple vertex (only with one outgoing mother)
     vertices = [Vertex(outParticles=[Particle(zParity=-1, _name = 'Mother')])]
     for vertex in stringToList(branchStr):
+        if not vertex: continue #empty branch
         vertices.append(createVertexFromStr(str(vertex))) 
     
     vertices[-1].outOdd[0].eCharge = 0

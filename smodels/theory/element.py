@@ -41,7 +41,7 @@ class Element(object):
         self.covered = 0 # how many analyses cover this element?
         
         self.sortBranches()
-    
+
     def __cmp__(self,other):
         """
         Compares the element with other.        
@@ -115,8 +115,8 @@ class Element(object):
                     and number of outgoing particles in each vertex.
         """
         
-        vertnumb = [len(b.vertices) for b in self.branches]
-        vertparts = [[len(v.outParticles) for v in b.vertices] for b in self.branches]
+        vertnumb = [b.getBinfo()['vertnumb'] for b in self.branches]
+        vertparts = [b.getBinfo()['vertparts'] for b in self.branches]
         
         return {"vertnumb" : vertnumb, "vertparts" : vertparts}
     

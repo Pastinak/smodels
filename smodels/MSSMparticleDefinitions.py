@@ -63,9 +63,9 @@ c2 = Particle(zParity=-1, _name = 'C2+', _pid = 1000037, qColor = 0, eCharge = 1
 
 ##### R-even  ###############
 #Higgs
-H = Particle(zParity=-1, _name = 'H+', _pid = 37, qColor = 0, eCharge = +1, spin = 0)
-A0 = Particle(zParity=-1, _name = 'A0', _pid = 36, qColor = 0, eCharge = 0, spin = 0)
-H0 = Particle(zParity=-1, _name = 'H0', _pid = 35, qColor = 0, eCharge = 0, spin = 0)
+H = Particle(zParity=1, _name = 'H+', _pid = 37, qColor = 0, eCharge = +1, spin = 0)
+A0 = Particle(zParity=1, _name = 'A0', _pid = 36, qColor = 0, eCharge = 0, spin = 0)
+H0 = Particle(zParity=1, _name = 'H0', _pid = 35, qColor = 0, eCharge = 0, spin = 0)
 
 
 squarks = [sdl,sul,sdr,sur] + [ssl,scl,ssr,scr] + [sb1,st1,sb2,st2]

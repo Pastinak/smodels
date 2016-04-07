@@ -120,7 +120,7 @@ class Topology(object):
         """
         return self.elementList
 
-    
+
     def addElement(self, newelement):
         """
         Add an Element object to the elementList.
@@ -141,7 +141,7 @@ class Topology(object):
             self.vertnumb = newelement.getEinfo()["vertnumb"]
 
         #First check if element matches topology structure
-        info = newelement.getEinfo()        
+        info = newelement.getEinfo()
         if info != self._getTinfo():
             logger.warning('Element to be added does not match topology')
             return False

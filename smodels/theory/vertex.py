@@ -78,7 +78,7 @@ class Vertex(object):
         """
         
         return sorted([str(p) for p in self.outEven])
-    
+
     def __cmp__(self,other):
         """
         Compares the vertex with other.        
@@ -172,11 +172,11 @@ class Vertex(object):
         """
         
         if self.inParticle and not self.inParticle.zParity == -1:
-            logger.error("Vertex does not have one incoming Z2-odd particle")
+            logger.error("Vertex does not have one incoming Z2-odd particle:\n %s" %self.describe())
             return False
         
         if len(self.outOdd) != 1:
-            logger.error("Vertex does not have one outgoing Z2-odd particle")
+            logger.error("Vertex does not have one outgoing Z2-odd particle:\n %s" %self.describe())
             return False
         
         if len(self.outEven) + len(self.outOdd) != len(self.outParticles):
@@ -204,7 +204,7 @@ class Vertex(object):
         if not self.br is None:
             newV.br = self.br
         
-        return newV   
+        return newV
     
     def combinePIDs(self,other):
         """
@@ -280,7 +280,7 @@ def createVertexFromStr(vertexStr):
     
     return Vertex(inParticle=inParticle, outParticles=outParticles)
 
-def createVertexFromDecay(pyslhaDecay,inPDG=None):
+def createVertexFromDecay(pyslhaDecay):
     """
     Creates a vertex from a pyslha Decay obj.
     :parameter pyslhaDecay: pyslha Decay obj
@@ -292,18 +292,18 @@ def createVertexFromDecay(pyslhaDecay,inPDG=None):
         logger.error("Input is not a pyslha Decay object!")
         raise SModelSError()
     
-    if not inPDG:
+    if not pyslhaDecay.parentid:
         inParticle = None
     else:
-        if not inPDG in useParticlesPidDict:
-            logger.error("Particle PDG %i was not defined" %inPDG)
+        if not pyslhaDecay.parentid in useParticlesPidDict:
+            logger.error("Particle PDG %i was not defined" %pyslhaDecay.parentid)
             raise SModelSError()
-        inParticle = useParticlesPidDict[inPDG]
+        inParticle = useParticlesPidDict[pyslhaDecay.parentid]
     
     outParticles = []
     for pid in pyslhaDecay.ids:
         if not pid in useParticlesPidDict:
-            logger.error("Particle PDG %i was not defined" %inPDG)
+            logger.error("Particle PDG %i was not defined" %pyslhaDecay.parentid)
             raise SModelSError()
         outParticles.append(useParticlesPidDict[pid])
     v = Vertex(inParticle=inParticle, outParticles=outParticles, br = pyslhaDecay.br)

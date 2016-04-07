@@ -71,7 +71,7 @@ def decompose(slhafile, sigcut=.1 * fb, doCompress=False, doInvisible=False,
     # Create 1-particle branches with all primary vertices
     branchList = []
     for pid in maxWeight:
-        if maxWeight[pid].value < sigcut:  #Skip too low cross-sections
+        if maxWeight[pid] < sigcut:  #Skip too low cross-sections
             continue
         if not pid in particlesDict:
             logger.warning( "Particle with PDG = %i was not defined. Cross-section will be ignored" 
@@ -122,11 +122,6 @@ def decompose(slhafile, sigcut=.1 * fb, doCompress=False, doInvisible=False,
                     finalBR = finalBR.asNumber()
                 if finalBR < minBR: continue # Skip elements with xsec below sigcut
 
-                if len(branch1.PIDs) != 1 or len(branch2.PIDs) != 1:
-                    logger.error("During decomposition the branches should \
-                            not have multiple PID lists!")
-                    return False    
-
                 newElement = element.Element(branches=[branch1.copy(), branch2.copy()])
                 newElement.weight = weightList*finalBR
                 allElements = [newElement]
@@ -159,22 +154,43 @@ def _addInfoFrom(slhafile, pidDict):
         logger.error ( "The file %s cannot be parsed as an SLHA file: %s" % (slhafile, e) )
         raise SModelSError()
 
-    # Assign masses and BRs to particles in useParticles
+    #First assign masses and widths to particles in useParticles
     for pid in f.blocks["MASS"].keys():
         if not pid in pidDict:
             logger.warning("Particle with PDG %i was not defined and will be ignored." %pid)
             continue
+        mass = f.blocks["MASS"][pid]*GeV
         p = pidDict[pid]
-        p.addProperty('mass',f.blocks["MASS"][pid]*GeV,overwrite=False)
+        p.addProperty('mass',mass,overwrite=False)
         p._width = None
-        p._decayVertices = None
-        if p.zParity > 0:            
-            logger.info("Ignoring decays of even particle %s" %p._name)
-            continue
-        if pid in f.decays:
+        if p.zParity > 0:
+            logger.info("Ignoring decays of even particle %s" %p._name)          
+        elif pid in f.decays:
             p.addProperty('_width',f.decays[pid].totalwidth*GeV)            
-            if f.decays[pid].totalwidth:
-                p._decayVertices = []
-                for decay in f.decays[pid].decays:
-                    p._decayVertices.append(createVertexFromDecay(decay,inPDG = p._pid))
+        #Add charge conjugate info:
+        if -pid in pidDict:
+            pidDict[-pid].mass = p.mass
+            pidDict[-pid]._width = p._width             
+            
+    #Now assign the decay vertices:
+    for pid in f.decays:
+        if not pid in pidDict:
+            logger.warning("Particle with PDG %i was not defined and will be ignored." %pid)
+            continue
+        p = pidDict[pid]
+        p._decayVertices = []
+        if -pid in pidDict:
+            pidDict[-pid]._decayVertices = []
+        if p.zParity > 0:
+            continue  #Ignore even particle decays
+        if f.decays[pid].totalwidth:
+            for decay in f.decays[pid].decays:
+                decay.parentid = p._pid
+                p._decayVertices.append(createVertexFromDecay(decay))
+            #Add charge conjugate info:
+            if not -pid in pidDict: continue            
+            for decay in f.decays[pid].decays:
+                cdecay = pyslha.Decay(br=decay.br,ids= [- i for i in decay.ids],nda=decay.nda)
+                cdecay.parentid = -decay.parentid                
+                pidDict[-pid]._decayVertices.append(createVertexFromDecay(cdecay))   
     return pidDict
