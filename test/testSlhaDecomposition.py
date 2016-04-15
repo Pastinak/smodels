@@ -35,7 +35,7 @@ class SlhaDecompositionTest(unittest.TestCase):
         elStr = createElementFromStr("[[[jet,jet]],[[jet,jet]]]")
         for el in ellist:
             self.assertEqual(el,elStr)
-            
+             
         gluinoxsec = 572.1689*fb
         br = 0.5
         self.assertAlmostEqual(ellist[0].weight[0].value.asNumber(fb),
@@ -61,10 +61,9 @@ class SlhaDecompositionTest(unittest.TestCase):
         el = topos.getElements()[-1]
         elStr = createElementFromStr("[[[b+,t+],[c*,s]],[[g],[W+],[c*,s]]]")
         self.assertEqual(el, elStr)
-        w = 1.72*fb
+        w = 2.*0.86*fb
         self.assertAlmostEqual(el.weight[0].value.asNumber(fb), w.asNumber(fb), 2)
         
-        print el.getOddPIDs()
 
 if __name__ == "__main__":
     unittest.main()

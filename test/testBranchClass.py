@@ -15,18 +15,18 @@ from smodels.theory.particle import Particle
 from smodels.theory.vertex import Vertex
 from smodels.theory.branch import Branch,createBranchFromStr,decayBranches
 from smodels.tools.physicsUnits import GeV, fb
-from smodels.particleDefinitions import useParticlesDict
+from smodels.particleDefinitions import useParticlesNameDict
 
 
 
-g = Particle(mass=500.*GeV,_pid=1000021, zParity=-1)
-sq1 = Particle(mass = 150.*GeV, zParity = -1,_pid=1000005)
-sq2 = Particle(mass = 100.*GeV, zParity = -1,_pid=2000005)
-sq2b = Particle(mass = 100.*GeV, zParity = -1, _pid = 1000004)
-sn1 = Particle(_name='neutralino1', mass = 50.*GeV, zParity = -1, _pid = 1000022)
-sn1B = Particle(_name='neutralino1', zParity = -1, _pid = 1000022, eCharge = 0, qColor = 0)
-u = Particle(_name='u', zParity = 1, _pid = 3)
-d = Particle(_name='d',mass = 0.0*GeV, zParity = 1, _pid = 2)
+g = Particle(mass=500.*GeV,_pid=1000021, zParity=-1, _width = 1*GeV)
+sq1 = Particle(mass = 150.*GeV, zParity = -1,_pid=1000005, _width = 1*GeV)
+sq2 = Particle(mass = 100.*GeV, zParity = -1,_pid=2000005, _width = 1*GeV)
+sq2b = Particle(mass = 100.*GeV, zParity = -1, _pid = 1000004, _width = 1*GeV)
+sn1 = Particle(_name='neutralino1', mass = 50.*GeV, zParity = -1, _pid = 1000022, _width = 0.*GeV)
+sn1B = Particle(_name='neutralino1', zParity = -1, _pid = 1000022, eCharge = 0, qColor = 0, _width = 0.*GeV)
+u = Particle(_name='u', zParity = 1, _pid = 3, _width = 0.*GeV)
+d = Particle(_name='d',mass = 0.0*GeV, zParity = 1, _pid = 2, _width = 0.*GeV)
 
 
 
@@ -56,10 +56,10 @@ class BranchTest(unittest.TestCase):
         
     def testBranchInclusive(self):
         
-        em = useParticlesDict['e-']
-        mup = useParticlesDict['mu+']
-        L = useParticlesDict['L']
-        e = useParticlesDict['e']
+        em = useParticlesNameDict['e-']
+        mup = useParticlesNameDict['mu+']
+        L = useParticlesNameDict['L']
+        e = useParticlesNameDict['e']
         v0 = Vertex(inParticle=None, outParticles=[g])
         v1 = Vertex(inParticle=g, outParticles=[sq1,u,d])
         v2 = Vertex(inParticle=sq1, outParticles=[sq2,em,em,mup])
@@ -112,17 +112,19 @@ class BranchTest(unittest.TestCase):
         v2b = Vertex(inParticle=sq1, outParticles=[sq2,u])            
         v3 = Vertex(inParticle=sq2, outParticles=[d,u,sn1])
         
-        vDict = {1000021 : [v1,v1b], 1000005 : [v2,v2b], 2000005 : [v3]}
+        g._decayVertices = [v1,v1b]
+        sq1._decayVertices = [v2,v2b]
+        sq2._decayVertices = [v3]
         
         b0 = Branch(vertices = [v0])
         b1L = [Branch(vertices = [v0,v1]),Branch(vertices = [v0,v1b])]
         b2L = [Branch(vertices = [v0,v1,v2]),Branch(vertices = [v0,v1,v2b])]       
         
-        d1L = b0.decay(vDict)
+        d1L = b0.decay()
         self.assertEqual(len(d1L) == 2, True)
         self.assertEqual(sorted(d1L) == sorted(b1L), True)
         
-        d2L = b1L[0].decay(vDict)
+        d2L = b1L[0].decay()
         self.assertEqual(len(d2L) == 2, True)
         self.assertEqual( d2L == b2L, True)                     
         
@@ -143,11 +145,14 @@ class BranchTest(unittest.TestCase):
         v2b.br = 0.9
         v3.br = 0.3
         
-        vDict = {1000021 : [v1,v1b], 1000005 : [v2,v2b], 2000005 : [v3]}
+        g._decayVertices = [v1,v1b]
+        sq1._decayVertices = [v2,v2b]
+        sq2._decayVertices = [v3]
+        
         
         b0 =  Branch(vertices = [v0])
         b0.maxWeight = 10.*fb
-        dList = decayBranches([b0],vDict)
+        dList = decayBranches([b0])
         self.assertEqual(len(dList) == 3, True)
         
         bList = [Branch(vertices = [v0,v1,v2,v3]),Branch(vertices = [v0,v1,v2b,v3])

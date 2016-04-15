@@ -15,27 +15,27 @@ from smodels.theory.branch import Branch
 from smodels.theory.element import Element
 from smodels.theory.topology import Topology,TopologyList
 from smodels.theory.crossSection import XSection,XSectionInfo,XSectionList
-from smodels.particleDefinitions import useParticlesDict
+from smodels.particleDefinitions import useParticlesNameDict
 from smodels.tools.physicsUnits import GeV, TeV, fb
 
 
-u = useParticlesDict['u']
-d = useParticlesDict['d']
-t = useParticlesDict['t+']
-bbar = useParticlesDict['b+']
-g = useParticlesDict['g']
-em = useParticlesDict['e-']
-nue = useParticlesDict['nue']
-L = useParticlesDict['L']
-e = useParticlesDict['e']
+u = useParticlesNameDict['u']
+d = useParticlesNameDict['d']
+t = useParticlesNameDict['t+']
+bbar = useParticlesNameDict['b+']
+g = useParticlesNameDict['g']
+em = useParticlesNameDict['e-']
+nue = useParticlesNameDict['nue']
+L = useParticlesNameDict['L']
+e = useParticlesNameDict['e']
 
 
-gluino = useParticlesDict['gluino']
-st1 = useParticlesDict['st_1']
-n1 = useParticlesDict['N1']
-n2 = useParticlesDict['N2']
-n3 = useParticlesDict['N3']
-n4 = useParticlesDict['N4']
+gluino = useParticlesNameDict['gluino']
+st1 = useParticlesNameDict['st_1']
+n1 = useParticlesNameDict['N1']
+n2 = useParticlesNameDict['N2']
+n3 = useParticlesNameDict['N3']
+n4 = useParticlesNameDict['N4']
 
 w1 = XSectionList()
 w1.xSections.append(XSection())

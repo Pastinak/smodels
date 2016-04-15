@@ -13,7 +13,7 @@ import unittest
 from smodels.theory.particle import Particle
 from smodels.theory.vertex import Vertex, createVertexFromStr
 from smodels.tools.physicsUnits import GeV
-from smodels.particleDefinitions import useParticlesDict
+from smodels.particleDefinitions import useParticlesNameDict
 
 
 class VertexTest(unittest.TestCase):        
@@ -48,9 +48,9 @@ class VertexTest(unittest.TestCase):
         outP = Particle(zParity = -1)
         vstr = createVertexFromStr('[e+,L,mu-]')
         v = Vertex(inParticle=inP, outParticles=[ep,mum,L,outP])
-        vB = Vertex(inParticle=inP, outParticles=[useParticlesDict['e+'],
-                                                  useParticlesDict['mu-'],
-                                                  useParticlesDict['ta-'],outP])
+        vB = Vertex(inParticle=inP, outParticles=[useParticlesNameDict['e+'],
+                                                  useParticlesNameDict['mu-'],
+                                                  useParticlesNameDict['ta-'],outP])
         vC = v.copy()
         vD = v.copy(relevantProp=['zParity','eCharge'])
         self.assertEqual(v == vstr, True)  #Check that vertices match
