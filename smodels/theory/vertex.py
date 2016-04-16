@@ -279,33 +279,3 @@ def createVertexFromStr(vertexStr):
         outParticles.append(useParticlesNameDict[pname])
     
     return Vertex(inParticle=inParticle, outParticles=outParticles)
-
-def createVertexFromDecay(pyslhaDecay):
-    """
-    Creates a vertex from a pyslha Decay obj.
-    :parameter pyslhaDecay: pyslha Decay obj
-    :parameter inPDG: PDG of the vertex incoming particle
-    :return: Vertex object
-    """
-    
-    if not isinstance(pyslhaDecay,pyslha.Decay):
-        logger.error("Input is not a pyslha Decay object!")
-        raise SModelSError()
-    
-    if not pyslhaDecay.parentid:
-        inParticle = None
-    else:
-        if not pyslhaDecay.parentid in useParticlesPidDict:
-            logger.error("Particle PDG %i was not defined" %pyslhaDecay.parentid)
-            raise SModelSError()
-        inParticle = useParticlesPidDict[pyslhaDecay.parentid]
-    
-    outParticles = []
-    for pid in pyslhaDecay.ids:
-        if not pid in useParticlesPidDict:
-            logger.error("Particle PDG %i was not defined" %pyslhaDecay.parentid)
-            raise SModelSError()
-        outParticles.append(useParticlesPidDict[pid])
-    v = Vertex(inParticle=inParticle, outParticles=outParticles, br = pyslhaDecay.br)
-    
-    return v

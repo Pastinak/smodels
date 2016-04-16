@@ -10,7 +10,7 @@
 
 import sys
 sys.path.insert(0,"../")
-from smodels.theory import slhaDecomposer
+from smodels.theory import decomposer
 from smodels.tools.physicsUnits import GeV, fb
 from smodels.theory.element import createElementFromStr
 import unittest
@@ -24,7 +24,7 @@ class SlhaDecompositionTest(unittest.TestCase):
         self.logger.info ( "test a simple decomposition, no compression" )
         """ test the decomposition with no compression """
         slhafile="../inputFiles/slha/simplyGluino.slha"
-        topos = slhaDecomposer.decompose( slhafile, .1*fb, False, False, 5.*GeV )
+        topos = decomposer.decompose( slhafile, .1*fb, False, False, 5.*GeV )
         self.assertEqual( len(topos), 1 )
         #print len(topos),"topologies."
         topo=topos[0]
@@ -49,7 +49,7 @@ class SlhaDecompositionTest(unittest.TestCase):
         self.logger.info ( "test a complex decomposition, no compression" )
         """ test the decomposition with no compression """
         slhafile="../inputFiles/slha/lightEWinos.slha"
-        topos = slhaDecomposer.decompose( slhafile, .5*fb, False, False, 5.*GeV )
+        topos = decomposer.decompose( slhafile, .5*fb, False, False, 5.*GeV )
         self.assertEqual(len(topos), 17)
         self.assertEqual(len(topos.getElements()), 364)
         #print len(topos),"topologies."

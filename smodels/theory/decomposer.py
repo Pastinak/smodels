@@ -1,32 +1,32 @@
 #!/usr/bin/env python
 
 """
-.. module:: theory.slhaDecomposer
-   :synopsis: Decomposition of SLHA events and creation of TopologyLists.
-
+.. module:: theory.decomposer
+   :synopsis: Decompose a model: build elements from model input and add them to a TopolofyList.
+              Uses lheReader for a LHE input file or slhaReader for a SLHA input file.
 .. moduleauthor:: Andre Lessa <lessa.a.p@gmail.com>
 .. moduleauthor:: Wolfgang Waltenberger <wolfgang.waltenberger@gmail.com>
 
 """
 
-import copy
 import time
-from smodels.theory import element, topology, crossSection
+from smodels.theory import element, topology
 from smodels.theory.branch import Branch, decayBranches
-from smodels.theory.vertex import Vertex, createVertexFromDecay
-import pyslha
+from smodels.theory.vertex import Vertex
 from smodels.tools.physicsUnits import fb, GeV
 from smodels.particleDefinitions import useParticlesPidDict
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
+from smodels.theory import lheReader, slhaReader
 import logging
 
 logger = logging.getLogger(__name__)
 
-def decompose(slhafile, sigcut=.1 * fb, doCompress=False, doInvisible=False,
+def decompose(inputfile, sigcut=.1 * fb, doCompress=False, doInvisible=False,
               minmassgap=-1.*GeV, useXSecs=None):
     """
-    Perform SLHA-based decomposition.
+    Perform decomposition using the model input (either LHE or SLHA).
     
+    :param inputfile: A SLHA or LHE input file.
     :param sigcut: minimum sigma*BR to be generated, by default sigcut = 0.1 fb
     :param doCompress: turn mass compression on/off
     :param doInvisible: turn invisible compression on/off
@@ -46,15 +46,18 @@ def decompose(slhafile, sigcut=.1 * fb, doCompress=False, doInvisible=False,
 
     if type(sigcut) == type(1.):
         sigcut = sigcut * fb
+        
+    #Get cross-sections and particle information from input file:
+    try:
+        inputData = lheReader.getInputData(inputfile)
+    except:    
+        try:
+            inputData = slhaReader.getInputData(inputfile)
+        except:
+                logger.error("Could not read input as SLHA  or LHE file.")
+                raise SModelSError()
 
-    # Get cross-section from file
-    xSectionList = crossSection.getXsecFromSLHAFile(slhafile, useXSecs)
-    # Only use the highest order cross-sections for each process
-    xSectionList.removeLowerOrder()    
-    # Add mass, width and decay information from SLHA file to the defined particles
-    particlesDict = _addInfoFrom(slhafile,useParticlesPidDict)
-    # Order xsections by PDGs to improve performance
-    xSectionList.order()
+    xSectionList, particlesDict = inputData
 
     # Get maximum cross-sections (weights) for single particles (irrespective
     # of sqrtS)
@@ -138,59 +141,3 @@ def decompose(slhafile, sigcut=.1 * fb, doCompress=False, doInvisible=False,
 
     logger.debug("slhaDecomposer done in " + str(time.time() - t1) + " s.")
     return smsTopList
-
-
-def _addInfoFrom(slhafile, pidDict):
-    """
-    Adds mass, width and decay info from the SLHA file to the particles
-    in pidDict.
-    :parameter slhafile: path to the SLHA file
-    :parameter pidDict: A dictionary with pid : Particle object
-    """
-    
-    try:
-        f=pyslha.read(slhafile)
-    except pyslha.ParseError,e:
-        logger.error ( "The file %s cannot be parsed as an SLHA file: %s" % (slhafile, e) )
-        raise SModelSError()
-
-    #First assign masses and widths to particles in useParticles
-    for pid in f.blocks["MASS"].keys():
-        if not pid in pidDict:
-            logger.warning("Particle with PDG %i was not defined and will be ignored." %pid)
-            continue
-        mass = f.blocks["MASS"][pid]*GeV
-        p = pidDict[pid]
-        p.addProperty('mass',mass,overwrite=False)
-        p._width = None
-        if p.zParity > 0:
-            logger.info("Ignoring decays of even particle %s" %p._name)          
-        elif pid in f.decays:
-            p.addProperty('_width',f.decays[pid].totalwidth*GeV)            
-        #Add charge conjugate info:
-        if -pid in pidDict:
-            pidDict[-pid].mass = p.mass
-            pidDict[-pid]._width = p._width             
-            
-    #Now assign the decay vertices:
-    for pid in f.decays:
-        if not pid in pidDict:
-            logger.warning("Particle with PDG %i was not defined and will be ignored." %pid)
-            continue
-        p = pidDict[pid]
-        p._decayVertices = []
-        if -pid in pidDict:
-            pidDict[-pid]._decayVertices = []
-        if p.zParity > 0:
-            continue  #Ignore even particle decays
-        if f.decays[pid].totalwidth:
-            for decay in f.decays[pid].decays:
-                decay.parentid = p._pid
-                p._decayVertices.append(createVertexFromDecay(decay))
-            #Add charge conjugate info:
-            if not -pid in pidDict: continue            
-            for decay in f.decays[pid].decays:
-                cdecay = pyslha.Decay(br=decay.br,ids= [- i for i in decay.ids],nda=decay.nda)
-                cdecay.parentid = -decay.parentid                
-                pidDict[-pid]._decayVertices.append(createVertexFromDecay(cdecay))   
-    return pidDict

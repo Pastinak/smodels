@@ -5,14 +5,198 @@
    :synopsis: Provides a class that creates SMSEvents from LHE files.
 
 .. moduleauthor:: Wolfgang Waltenberger <wolfgang.waltenberger@gmail.com>
+.. moduleauthor:: Andre Lessa <lessa.a.p@gmail.com>
 
 """
 
-from smodels.tools.physicsUnits import TeV, pb
 import logging
+from smodels.theory.auxiliaryFunctions import index_bisect
+from smodels.theory.crossSection import XSectionList, XSection
+from smodels.theory.vertex import Vertex
+from smodels.tools.physicsUnits import TeV, pb, GeV
+from smodels.particleDefinitions import useParticlesPidDict
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 
 logger = logging.getLogger(__name__)
+
+def getInputData(lhefile):
+    """
+    Get model information from LHE file.
+    
+    :returns: XSectionList and particles dictionary
+    """
+    
+    try:
+        reader = LheReader(lhefile)
+    except:
+        logger.info("The file %s cannot be parsed as a LHE file: %s" % (lhefile) )
+        raise SModelSError()
+
+    # Get cross-section from LHE file
+    xSectionList = getXsecsFrom(reader, addEvents=False)
+    # Only use the highest order cross-sections for each process
+    xSectionList.removeLowerOrder()
+    # Order xsections by PDGs to improve performance
+    xSectionList.order()    
+    # Add mass, width and decay information from SLHA file to the defined particles
+    particlesDict = getParticleInfoFrom(reader,useParticlesPidDict)
+    reader.close()
+    
+    return xSectionList,particlesDict
+
+def getXsecsFrom(lheInput, addEvents=True):
+    """
+    Obtain cross-sections from input LHE file.
+    
+    :parameter lheInput: LHE input file with unweighted MC events or a LheReader object
+    :parameter addEvents: if True, add cross-sections with the same mothers,
+                      otherwise return the event weight for each pair of mothers
+    :returns: a XSectionList object
+    
+    """
+    
+    if isinstance(lheInput,LheReader):
+        reader = lheInput
+        reader.reset()
+    elif isinstance(lheInput,str):
+        reader = LheReader(lheInput)
+    else:
+        logger.error("Wrong input format")
+        raise SModelSError()
+        
+    # Store information about all cross-sections in the LHE file
+    xSecsInFile = XSectionList()
+    
+    if not type ( reader.metainfo["totalxsec"] ) == type ( pb) :
+        logger.error("Cross-section information not found in LHE file.")        
+        raise SModelSError()
+    elif not reader.metainfo["nevents"]:
+        logger.error("Total number of events information not found in LHE " +
+                     "file.")
+        raise SModelSError()
+    elif not type ( reader.metainfo["sqrts"] ) == type ( TeV ):
+        logger.error("Center-of-mass energy information not found in LHE " +
+                     "file.")
+        raise SModelSError()
+
+    # Common cross-section info
+    totxsec = reader.metainfo["totalxsec"]
+    nevts = reader.metainfo["nevents"]
+    sqrtS = reader.metainfo["sqrts"]
+    eventCs = totxsec / float(nevts)
+
+
+    # Get all mom pids
+    allpids = []
+    for event in reader:
+        allpids.append(tuple(sorted(event.getMom())))
+    pids = set(allpids)
+    # Generate zero cross-sections for all independent pids
+    for pid in pids:
+        xsec = XSection()
+        xsec.info.sqrts = sqrtS
+        if 'cs_order' in reader.metainfo:
+            xsec.info.order = reader.metainfo["cs_order"]
+        else:
+            # Assume LO xsecs, if not defined in the reader
+            xsec.info.order = 0
+        wlabel = str( sqrtS / TeV ) + ' TeV'
+        if xsec.info.order == 0:
+            wlabel += ' (LO)'
+        elif xsec.info.order == 1:
+            wlabel += ' (NLO)'
+        elif xsec.info.order == 2:
+            wlabel += ' (NLL)'
+        xsec.info.label = wlabel
+        xsec.value = 0. * pb
+        xsec.pid = pid
+        # If addEvents = False, set cross-section value to event weight
+        if not addEvents:
+            xsec.value = eventCs
+        xSecsInFile.add(xsec)
+    # If addEvents = True, sum up event weights with same mothers
+    if addEvents:
+        for pid in allpids:
+            for ixsec, xsec in enumerate(xSecsInFile.xSections):
+                if xsec.pid == pid:
+                    xSecsInFile.xSections[ixsec].value += eventCs
+
+    return xSecsInFile
+
+
+def getParticleInfoFrom(lheInput, pidDict):
+    """
+    Adds mass, width and decay info from the LHE file to the particles
+    in pidDict.
+    :parameter slhaInput: path to the LHE file or LheReader object
+    :parameter pidDict: A dictionary with pid : Particle object
+    
+    :return: the lheParticle dictionary with added info
+    """
+    
+    if isinstance(lheInput,LheReader):
+        reader = lheInput
+        reader.reset()
+    elif isinstance(lheInput,str):
+        reader = LheReader(lheInput)
+    else:
+        logger.error("Wrong input format")
+        raise SModelSError()
+    
+    for event in reader:
+        vertexDict  = {}
+        for lheParticle in event.particles:
+            if not lheParticle.pdg in pidDict:
+                logger.error("Particle PDG %i was not define. Please add it to the lheParticle definitions" %lheParticle.pdg)
+                raise SModelSError()
+            #Get the lheParticle and add the mass info:
+            p = pidDict[lheParticle.pdg]
+            p.addProperty('mass',lheParticle.mass*GeV)            
+            #Check where the lheParticle comes from:
+            if lheParticle.status == -1:  #Skip initial state
+                continue
+            #Loop through mothers
+            for ip in lheParticle.moms:                
+                ip -= 1 #Convert position in event to position in list
+                if ip < 0: continue #Skip initial state
+                if event.particles[ip].status == -1:
+                    continue
+                #Now add decay info to the corresponding vertex (indexed by the mother position):
+                if not ip in vertexDict:
+                    momp = pidDict[event.particles[ip].pdg]
+                    vertexDict[ip] = {'inParticle' : momp, 'outParticles' : [p]}
+                else:
+                    vertexDict[ip]['outParticles'].append(p)
+        
+        #Now add the vertices from the event to the particles dictionary
+        #If vertex already exists, simply add the branching ratio
+        for vInfo in vertexDict.values():
+            mom = vInfo['inParticle']
+            if mom.zParity > 0:  #Ignore decays of even particles
+                continue
+            v = Vertex(inParticle=mom, outParticles=vInfo['outParticles'], br = 1.)
+            if not hasattr(mom,'_decayVertices') or not mom._decayVertices:
+                mom._decayVertices = [v]
+            else:
+                index = index_bisect(mom._decayVertices,v)
+                if index != len(mom._decayVertices) and mom._decayVertices[index] == v:
+                    mom._decayVertices[index].br += v.br
+                else:
+                    mom._decayVertices.insert(index,v)
+    
+    #Now renormalize the BRs and add "fake" widths (equal to the number of decaying events in GeV):
+    for p in pidDict.values():
+        brTotal = 0.
+        if not hasattr(p,'_decayVertices'):
+            p._decayVertices = []
+        for v in p._decayVertices:
+            brTotal += v.br
+        width = brTotal*GeV
+        p.addProperty('_width',width,overwrite=True)
+        for v in p._decayVertices:
+            v.br = v.br/brTotal
+
+    return pidDict
 
 
 class LheReader(object):
@@ -28,8 +212,7 @@ class LheReader(object):
         :param nmax: When using the iterator, then nmax is the maximum number
         of events to be reader, nmax=None means read till the end of the file.
         If filename is not a string, assume it is already a file object and do
-        not open it.
-        
+        not open it.        
         """
         self.filename = filename
         self.nmax = nmax
@@ -38,7 +221,8 @@ class LheReader(object):
             self.file = open(filename, 'r')
         else: self.file = filename
         self.metainfo = {"nevents" : None, "totalxsec" : None, "sqrts" : None}
-
+        
+        
         # Get global information from file (cross-section sqrts, total
         # cross-section, total number of events)
         self.file.seek(0)
@@ -67,6 +251,7 @@ class LheReader(object):
         self.metainfo["nevents"] = nevts
         # Return file to initial reader position
         self.file.seek(0)
+                
 
 
     def next(self):
@@ -123,7 +308,7 @@ class LheReader(object):
             if len(line) == 0:
                 line = self.file.readline()
                 continue
-            particle = Particle()
+            particle = LHEParticle()
             linep = [float(x) for x in line.split()]
             if len(linep) < 11:
                 logger.error("Line >>%s<< in %s cannot be parsed",
@@ -143,6 +328,14 @@ class LheReader(object):
             line = self.file.readline()
         return ret
 
+
+    def reset(self):
+        """
+        Restores the reader to its initial state
+        """
+        
+        self.file.seek(0)
+        self.ctr = 0
 
     def close(self):
         """
@@ -213,7 +406,7 @@ class SmsEvent(object):
         return ret
 
 
-class Particle(object):
+class LHEParticle(object):
     """
     An instance of this class represents a particle.
     

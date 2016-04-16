@@ -260,7 +260,11 @@ def index_bisect(inlist, el):
     inlist is assumed to be sorted and a comparison function (lt or cmp)
     must exist for el and the other elements of the list.
     If el already appears in the list, inlist.insert(el) will
-    insert just before the leftmost el already there.  
+    insert just before the leftmost el already there.
+    
+    :parameter inlist: list object
+    :parameter el: element  
+    :return: element index in the list
     """
 
     lo = 0    
