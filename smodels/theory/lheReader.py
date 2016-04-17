@@ -33,7 +33,7 @@ def getInputData(lhefile):
         raise SModelSError()
 
     # Get cross-section from LHE file
-    xSectionList = getXsecsFrom(reader, addEvents=False)
+    xSectionList = getXsecsFrom(reader)
     # Only use the highest order cross-sections for each process
     xSectionList.removeLowerOrder()
     # Order xsections by PDGs to improve performance
@@ -44,13 +44,11 @@ def getInputData(lhefile):
     
     return xSectionList,particlesDict
 
-def getXsecsFrom(lheInput, addEvents=True):
+def getXsecsFrom(lheInput):
     """
     Obtain cross-sections from input LHE file.
     
     :parameter lheInput: LHE input file with unweighted MC events or a LheReader object
-    :parameter addEvents: if True, add cross-sections with the same mothers,
-                      otherwise return the event weight for each pair of mothers
     :returns: a XSectionList object
     
     """
@@ -86,13 +84,11 @@ def getXsecsFrom(lheInput, addEvents=True):
     eventCs = totxsec / float(nevts)
 
 
-    # Get all mom pids
-    allpids = []
+    # Loop over events, create a XSection for each event corresponding
+    #to its weight and add it to the list (if the xsec already is in the list its weight
+    #will be combined)
     for event in reader:
-        allpids.append(tuple(sorted(event.getMom())))
-    pids = set(allpids)
-    # Generate zero cross-sections for all independent pids
-    for pid in pids:
+        pids = tuple(sorted(event.getMom()))
         xsec = XSection()
         xsec.info.sqrts = sqrtS
         if 'cs_order' in reader.metainfo:
@@ -108,18 +104,9 @@ def getXsecsFrom(lheInput, addEvents=True):
         elif xsec.info.order == 2:
             wlabel += ' (NLL)'
         xsec.info.label = wlabel
-        xsec.value = 0. * pb
-        xsec.pid = pid
-        # If addEvents = False, set cross-section value to event weight
-        if not addEvents:
-            xsec.value = eventCs
-        xSecsInFile.add(xsec)
-    # If addEvents = True, sum up event weights with same mothers
-    if addEvents:
-        for pid in allpids:
-            for ixsec, xsec in enumerate(xSecsInFile.xSections):
-                if xsec.pid == pid:
-                    xSecsInFile.xSections[ixsec].value += eventCs
+        xsec.value = eventCs
+        xsec.pid = pids
+        xSecsInFile._addValue(xsec)
 
     return xSecsInFile
 
@@ -143,15 +130,16 @@ def getParticleInfoFrom(lheInput, pidDict):
         logger.error("Wrong input format")
         raise SModelSError()
     
+    vertexPidDict = {}
     for event in reader:
-        vertexDict  = {}
+        vertexInfo  = {}
         for lheParticle in event.particles:
             if not lheParticle.pdg in pidDict:
                 logger.error("Particle PDG %i was not define. Please add it to the lheParticle definitions" %lheParticle.pdg)
                 raise SModelSError()
             #Get the lheParticle and add the mass info:
             p = pidDict[lheParticle.pdg]
-            p.addProperty('mass',lheParticle.mass*GeV)            
+            p.addProperty('mass',lheParticle.mass*GeV,overwrite=True)
             #Check where the lheParticle comes from:
             if lheParticle.status == -1:  #Skip initial state
                 continue
@@ -162,39 +150,47 @@ def getParticleInfoFrom(lheInput, pidDict):
                 if event.particles[ip].status == -1:
                     continue
                 #Now add decay info to the corresponding vertex (indexed by the mother position):
-                if not ip in vertexDict:
+                if not ip in vertexInfo:
                     momp = pidDict[event.particles[ip].pdg]
-                    vertexDict[ip] = {'inParticle' : momp, 'outParticles' : [p]}
+                    vertexInfo[ip] = {'inParticle' : momp, 'outParticles' : [p]}
                 else:
-                    vertexDict[ip]['outParticles'].append(p)
+                    vertexInfo[ip]['outParticles'].append(p)
         
-        #Now add the vertices from the event to the particles dictionary
+        #Now add the vertices from the event to the vertex dictionary
         #If vertex already exists, simply add the branching ratio
-        for vInfo in vertexDict.values():
+        for vInfo in vertexInfo.values():
             mom = vInfo['inParticle']
             if mom.zParity > 0:  #Ignore decays of even particles
                 continue
             v = Vertex(inParticle=mom, outParticles=vInfo['outParticles'], br = 1.)
-            if not hasattr(mom,'_decayVertices') or not mom._decayVertices:
-                mom._decayVertices = [v]
+            if not mom._pid in vertexPidDict:
+                vertexPidDict[mom._pid] = [v]
             else:
-                index = index_bisect(mom._decayVertices,v)
-                if index != len(mom._decayVertices) and mom._decayVertices[index] == v:
-                    mom._decayVertices[index].br += v.br
+                index = index_bisect(vertexPidDict[mom._pid],v)
+                if index != len(vertexPidDict[mom._pid]) and vertexPidDict[mom._pid][index] == v:
+                    vertexPidDict[mom._pid][index].br += v.br
                 else:
-                    mom._decayVertices.insert(index,v)
-    
-    #Now renormalize the BRs and add "fake" widths (equal to the number of decaying events in GeV):
-    for p in pidDict.values():
+                    vertexPidDict[mom._pid].insert(index,v)
+
+
+    #First clear previously defined decays
+    for pid,p in pidDict.items():
+        p._decayVertices = []
+        p._width = None
+   
+    #Now renormalize the BRs, compute "fake" widths (equal to the number of decaying events in GeV)
+    #and add the vertices to the respective pre-defined particles            
+    for pid,vertices in vertexPidDict.items():
         brTotal = 0.
-        if not hasattr(p,'_decayVertices'):
-            p._decayVertices = []
-        for v in p._decayVertices:
+        p = pidDict[pid]
+        for v in vertices:
             brTotal += v.br
         width = brTotal*GeV
         p.addProperty('_width',width,overwrite=True)
-        for v in p._decayVertices:
+        for v in vertices:
             v.br = v.br/brTotal
+        p._decayVertices = vertices
+        
 
     return pidDict
 

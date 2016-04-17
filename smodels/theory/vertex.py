@@ -14,7 +14,6 @@ from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 from smodels.theory.auxiliaryFunctions import stringToList
 import itertools
 from smodels.particleDefinitions import useParticlesNameDict,useParticlesPidDict
-import pyslha
 
 logger = logging.getLogger(__name__)
 
@@ -70,14 +69,10 @@ class Vertex(object):
         :return: list of outgoing even particle names
         """
         
-        return str(self.getEvenNameList()).replace("'","").replace(" ","")
-    
-    def getEvenNameList(self):
-        """
-        Returns a sorted list with the names of outgoing even particles  
-        """
+        st = str([str(p) for p in self.outEven]).replace("'","").replace(" ","")
         
-        return sorted([str(p) for p in self.outEven])
+        return st
+
 
     def __cmp__(self,other):
         """

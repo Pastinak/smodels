@@ -296,6 +296,7 @@ class XSectionList(object):
         append the object.
         
         """
+        
         if type(newxsec) != type(XSection()):
             logger.error("Input object must be a XSection() object")
             raise SModelSError()
@@ -305,6 +306,7 @@ class XSectionList(object):
                 if xSec.info == newxsec.info \
                         and sorted(xSec.pid) == sorted(newxsec.pid):
                     self.xSections[iXSec].value = xSec.value + newxsec.value
+                    exists = True
                     break
             if not exists:
                 self.add(newxsec)

@@ -70,7 +70,7 @@ def decompose(inputfile, sigcut=.1 * fb, doCompress=False, doInvisible=False,
     xSectionListDict = {}    
     for pids in xSectionList.getPIDpairs():
         xSectionListDict[pids] = xSectionList.getXsecsFor(pids)
-
+        
     # Create 1-particle branches with all primary vertices
     branchList = []
     for pid in maxWeight:
@@ -133,7 +133,6 @@ def decompose(inputfile, sigcut=.1 * fb, doCompress=False, doInvisible=False,
                     allElements += newElement.compressElement(doCompress,
                                                                   doInvisible,
                                                                   minmassgap)
-
                 for el in allElements:
                     el.sortBranches()  #Make sure elements are sorted BEFORE adding them                    
                     smsTopList.addElement(el)                    

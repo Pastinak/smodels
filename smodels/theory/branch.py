@@ -215,6 +215,8 @@ class Branch(object):
         nUnstable = 0
         newVertices = None
         for p in self.vertices[-1].outParticles:
+            if not hasattr(p,'_width') or not hasattr(p,'_decayVertices'):
+                continue  #Particle does not contain decay info, treat it as stable 
             if p._width is None or not p._width.asNumber():
                 continue  #Particle is stable
             nUnstable += 1
