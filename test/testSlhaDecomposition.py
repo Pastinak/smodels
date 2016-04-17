@@ -31,7 +31,7 @@ class SlhaDecompositionTest(unittest.TestCase):
         #print topo
         ellist=topo.elementList
         self.assertEqual( len(ellist), 3 )
-        self.assertEqual( str(ellist[0]), "[[[u,u*]],[[u,u*]]]" )
+        self.assertEqual( str(ellist[0]), "[[[u*,u]],[[u*,u]]]" )
         elStr = createElementFromStr("[[[jet,jet]],[[jet,jet]]]")
         for el in ellist:
             self.assertEqual(el,elStr)

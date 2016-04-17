@@ -25,14 +25,15 @@ class VertexTest(unittest.TestCase):
         
         sq1 = Particle(_name='squark1', mass = 110.*GeV, zParity = -1)
         sq2 = Particle(_name='squark1', mass = 100.*GeV, zParity = -1)
-        u = Particle(_name='u', zParity = 1)
-        d = Particle(_name='d',mass = 0.01*GeV, zParity = 1)
+        u = Particle(_name='u', zParity = 1, eCharge = 2./3.)
+        d = Particle(_name='d',mass = 0.01*GeV, zParity = 1, eCharge = -1./3.)
         
         v1 = Vertex(inParticle=p1, outParticles=[sq1,u,d])
         v2 = Vertex(inParticle=p1, outParticles=[sq1,d])
         v3 = Vertex(inParticle=p1, outParticles=[sq2,d])
         v5 = Vertex(inParticle=p3, outParticles=[sq1,u,d])
         v5b = Vertex(inParticle=p4, outParticles=[sq1,u,d])
+        
         self.assertEqual( str(v1) == '[d,u]', True)
         self.assertEqual( v1.describe().replace(' ','') == "-->squark1+[d,u]", True)
         self.assertEqual(v1 > v2, True)  #Larger by number of outgoing particles

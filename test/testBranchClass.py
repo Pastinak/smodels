@@ -25,8 +25,8 @@ sq2 = Particle(mass = 100.*GeV, zParity = -1,_pid=2000005, _width = 1*GeV)
 sq2b = Particle(mass = 100.*GeV, zParity = -1, _pid = 1000004, _width = 1*GeV)
 sn1 = Particle(_name='neutralino1', mass = 50.*GeV, zParity = -1, _pid = 1000022, _width = 0.*GeV)
 sn1B = Particle(_name='neutralino1', zParity = -1, _pid = 1000022, eCharge = 0, qColor = 0, _width = 0.*GeV)
-u = Particle(_name='u', zParity = 1, _pid = 3, _width = 0.*GeV)
-d = Particle(_name='d',mass = 0.0*GeV, zParity = 1, _pid = 2, _width = 0.*GeV)
+u = Particle(_name='u', zParity = 1, _pid = 3, _width = 0.*GeV, eCharge = 2./3.)
+d = Particle(_name='d',mass = 0.0*GeV, zParity = 1, _pid = 2, _width = 0.*GeV, eCharge = -1./3.)
 
 
 

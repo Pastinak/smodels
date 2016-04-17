@@ -16,7 +16,6 @@ from smodels.tools.physicsUnits import GeV, fb,pb
 from smodels.theory.element import createElementFromStr
 from smodels.theory import decomposer
 import unittest
-from smodels.particleDefinitions import useParticlesNameDict
 
 
 class LheDecompositionTest(unittest.TestCase):
