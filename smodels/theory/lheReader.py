@@ -66,14 +66,14 @@ def getXsecsFrom(lheInput):
     xSecsInFile = XSectionList()
     
     if not type ( reader.metainfo["totalxsec"] ) == type ( pb) :
-        logger.error("Cross-section information not found in LHE file.")        
+        logger.info("Cross-section information not found in LHE file.")        
         raise SModelSError()
     elif not reader.metainfo["nevents"]:
-        logger.error("Total number of events information not found in LHE " +
+        logger.info("Total number of events information not found in LHE " +
                      "file.")
         raise SModelSError()
     elif not type ( reader.metainfo["sqrts"] ) == type ( TeV ):
-        logger.error("Center-of-mass energy information not found in LHE " +
+        logger.info("Center-of-mass energy information not found in LHE " +
                      "file.")
         raise SModelSError()
 

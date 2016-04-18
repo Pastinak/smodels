@@ -321,6 +321,8 @@ def createElementFromStr(branchStr):
     :return: Element object
     """
     
+    print 'bstr=',branchStr
+    
     branches = []
     for br in stringToList(branchStr):
         branches.append(createBranchFromStr(str(br))) 

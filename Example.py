@@ -48,7 +48,7 @@ def main():
     
     # Load all analyses from database
     listOfExpRes = database.getExpResults(dataTypes=['efficiencyMap'])
-
+    sys.exit()
     # Compute the theory predictions for each analysis
     for expResult in listOfExpRes:
         predictions = theoryPredictionsFor(expResult, smstoplist)

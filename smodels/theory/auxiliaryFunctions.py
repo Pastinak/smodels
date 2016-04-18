@@ -293,7 +293,7 @@ def stringToList(instring):
         if c == '[' and instring[i+1] != '[':
             newStr += c+"'"            
         elif  c == ']' and instring[i-1] != ']':
-            newStr += "'"+c
+            newStr += "'"+c                
         elif c ==',' and  instring[i-1] != ']' and  instring[i+1] != '[':
             newStr += "'"+c+"'"
         else:
@@ -302,10 +302,42 @@ def stringToList(instring):
         pList = eval(newStr)
     except:
         logger.error("Error converting string %s to list" %instring)
-        raise SModelSError
+        raise SModelSError()
     
     if not isinstance(pList,list):
         logger.error("Conversion of string %s did not generate a list" %instring)
-        raise SModelSError
+        raise SModelSError()
     
     return pList
+
+def breakStringExpr(instring):
+    """
+    Converts a string expression elements in bracket notation   
+    (e.g. [[[e+,jet],[mu]],[[g],[g],[L]]] + [[[e+,jet]],[[mu]]] ...)
+    to a list of simple strings containing only the elements
+    :parameter instring: string containing bracket notation
+    :return: list of strings        
+    """
+    
+    if not isinstance(instring,str):
+        logger.error("Input must be a string")
+
+    
+    instring = instring.replace(' ','')
+    instring = instring[instring.find('['):]
+    lists = []
+    nbrackets = 0
+    istart = 0
+    iend = -1
+    for i,c in enumerate(instring):
+        if c == '[':
+            nbrackets += 1
+        elif  c == ']':
+            nbrackets -= 1
+        if nbrackets == 0:
+            istart = iend+1
+            iend = i
+            if '[' and ']' in instring[istart:iend+1]:
+                lists.append(instring[istart:iend+1])
+    
+    return lists    
