@@ -59,7 +59,7 @@ class IntegrationTest(unittest.TestCase):
     def testIntegration(self):
         from smodels.installation import installDirectory
         from smodels.tools.physicsUnits import fb, GeV
-        from smodels.theory import slhaDecomposer
+        from smodels.theory import decomposer
         from smodels.experiment.databaseObj import Database
         #from smodels.experiment import smsAnalysisFactory, smsHelpers
         #smsHelpers.base = installDirectory() + 'test/database/'
@@ -69,7 +69,7 @@ class IntegrationTest(unittest.TestCase):
         slhafile = '../inputFiles/slha/simplyGluino.slha'
         ## slhafile = '../inputFiles/slha/compression.slha'
         self.configureLogger()
-        smstoplist = slhaDecomposer.decompose(slhafile, .1*fb, doCompress=True,
+        smstoplist = decomposer.decompose(slhafile, .1*fb, doCompress=True,
                 doInvisible=True, minmassgap=5.*GeV)
         database = Database ( "./database/" )
         listofanalyses = database.getExpResults( analysisIDs= [ "ATLAS-SUSY-2013-02" ], txnames = [ "T1" ] )

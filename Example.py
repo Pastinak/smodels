@@ -13,12 +13,11 @@ from __future__ import print_function
 """ Import basic functions (this file must be executed in the installation folder) """
 
 import sys
-from smodels.theory import slhaDecomposer
-from smodels.theory import lheDecomposer
+from smodels.theory import decomposer
 from smodels.tools.physicsUnits import fb, GeV
 from smodels.tools.printer import printout
 from smodels.theory.theoryPrediction import theoryPredictionsFor
-from smodels.experiment.databaseObjects import Database
+from smodels.experiment.databaseObj import Database
 
 #Set the address of the database folder
 database = Database("../smodels-database/")
@@ -39,7 +38,7 @@ def main():
     mingap = 5. * GeV
 
     """ Decompose model (use slhaDecomposer for SLHA input or lheDecomposer for LHE input) """
-    smstoplist = slhaDecomposer.decompose(slhafile, sigmacut, doCompress=True, doInvisible=True, minmassgap=mingap)
+    smstoplist = decomposer.decompose(slhafile, sigmacut, doCompress=True, doInvisible=True, minmassgap=mingap)
     # smstoplist = lheDecomposer.decompose(lhefile, doCompress=True,doInvisible=True, minmassgap=mingap)
     
     # Print decomposition summary. Set outputLevel=0 (no output), 1 (simple output), 2 (extended output)    

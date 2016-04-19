@@ -6,7 +6,7 @@
         
 """
 
-from smodels.tools.physicsUnits import fb
+from smodels.tools.physicsUnits import fb,GeV
 from smodels.theory.vertex import createVertexFromStr, Vertex
 from smodels.theory.particle import Particle
 from smodels.theory.auxiliaryFunctions import stringToList
@@ -256,7 +256,9 @@ class Branch(object):
                 return None                            
             massDiff = v.inParticle.mass - v.outOdd[0].mass
             if massDiff.asNumber() < 0.:
-                logger.error("Odd masses in vertex dot not decrease monotonically")
+                print self.describe()
+                logger.error("Odd masses in vertex dot not decrease monotonically:\n %s"
+                              %str(self.getOddMasses()))
                 raise SModelSError()                
             elif massDiff < minmassgap:
                 #Vertex to be added is ~ degenerate
@@ -276,7 +278,7 @@ class Branch(object):
         Perform invisible compression.
         
         :returns: compressed copy of the branch, if the branch ends with invisible
-                  particles (zero eCharge and zero qColor);
+                  stable particles (zero eCharge, zero qColor);
                   None, if compression is not possible
         """
         
@@ -286,6 +288,7 @@ class Branch(object):
             qTotal = 0
             colorTotal = 0
             for p in v.outParticles:
+                if p.zParity > 0 and not p.stable(): continue  #Ignore unstable even particles
                 if hasattr(p, 'eCharge'):
                     qTotal += abs(p.eCharge)
                 if hasattr(p, 'qColor'):

@@ -124,7 +124,7 @@ def getParticleInfoFrom(slhaInput, pidDict):
         if not pid in pidDict:
             logger.warning("Particle with PDG %i was not defined and will be ignored." %pid)
             continue
-        mass = f.blocks["MASS"][pid]*GeV
+        mass = abs(f.blocks["MASS"][pid])*GeV
         p = pidDict[pid]
         p.addProperty('mass',mass,overwrite=False)
         p._width = None

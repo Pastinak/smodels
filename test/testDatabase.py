@@ -12,8 +12,8 @@ import sys
 sys.path.insert(0,"../")
 from smodels.experiment.databaseObj import Database
 import unittest
-import logging
 import logging.config
+import logging
 import os
 
 class DatabaseTest(unittest.TestCase):

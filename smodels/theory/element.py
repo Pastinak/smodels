@@ -193,7 +193,7 @@ class Element(object):
                 for element in newElements:
                     newel = element.invisibleCompress()
                     # Avoids double counting (conservative)
-                    if newel and not newel.hasTopInList(newElements):
+                    if newel and not newel in newElements:
                         newElements.append(newel)
                         added = True
 
@@ -320,8 +320,6 @@ def createElementFromStr(branchStr):
     :branchStr: string (e.g. [[[e+],[jet]], [[mu+,L],[e-]]])
     :return: Element object
     """
-    
-    print 'bstr=',branchStr
     
     branches = []
     for br in stringToList(branchStr):

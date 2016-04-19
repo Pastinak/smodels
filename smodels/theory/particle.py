@@ -10,6 +10,7 @@
 
 import logging
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
+from smodels.tools.physicsUnits import GeV
 logger = logging.getLogger(__name__)
 
 
@@ -140,6 +141,20 @@ class Particle(object):
                 
         return pConjugate
     
+    def stable(self):
+        """
+        Return True if particle is stable, false otherwise.
+        A particle is considered stable if it has zero width or if
+        the width has not been defined
+        :return: True/False
+        """
+        
+        if not hasattr(self, '_width'):
+            return True
+        elif type(self._width) == type(1.*GeV) and self._width > 0.*GeV:
+            return False
+        else:
+            return True
     
     
 class ParticleList(object):

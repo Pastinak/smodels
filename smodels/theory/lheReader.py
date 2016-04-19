@@ -175,8 +175,10 @@ def getParticleInfoFrom(lheInput, pidDict):
 
     #First clear previously defined decays
     for pid,p in pidDict.items():
+        if p.zParity > 0:  #Does not modify decays of even particles
+            continue
         p._decayVertices = []
-        p._width = None
+        p._witdh = None        
    
     #Now renormalize the BRs, compute "fake" widths (equal to the number of decaying events in GeV)
     #and add the vertices to the respective pre-defined particles            
