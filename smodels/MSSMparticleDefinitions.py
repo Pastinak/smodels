@@ -73,9 +73,8 @@ sleptons = [sel,snel,ser] + [smul,snmul,smur] + [sta1,sntal,sta2]
 inos = [gluino] + [n1,n2,n3,n4] + [c1,c2]
 higgs = [H,A0,H0]
 #R-even particles should be treated as stable to preserve topology structures
-for p in higgs: p.width = 0.*GeV
+for p in higgs: p._decayVertices = []
 
 sparticles = squarks + sleptons + inos + higgs
 sparticlesC = [p.chargeConjugate() for p in sparticles]  #Define the charge conjugates
 MSSM = SM + sparticles + sparticlesC
-

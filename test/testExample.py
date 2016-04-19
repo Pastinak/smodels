@@ -14,7 +14,8 @@ from smodels.tools.physicsUnits import GeV, fb
 from smodels.theory import decomposer
 from smodels.theory.theoryPrediction import theoryPredictionsFor
 from smodels.experiment.databaseObj import Database
-from smodels.particleDefinitions import useParticlesNameDict
+from smodels.theory.slhaReader import getInputData
+import pickle
 
 class ExampleTest(unittest.TestCase):        
     def testExample(self):
@@ -22,16 +23,19 @@ class ExampleTest(unittest.TestCase):
         Main program. Displays basic use case.
     
         """
-        
+        #Load particles
+        f = open("particleDefinitions.pcl","rb")
+        modelParticles = pickle.load(f)
+        f.close()        
         #Path to input file name (either a SLHA or LHE file)
         slhafile = '../inputFiles/slha/lightEWinos.slha'
+        xSectionDict,particlesList = getInputData(slhafile,modelParticles)        
     
         #Set main options for decomposition:
         sigmacut = 0.3 * fb
-        mingap = 5. * GeV
-    
+        mingap = 5. * GeV    
         """ Decompose model (use slhaDecomposer for SLHA input or lheDecomposer for LHE input) """
-        smstoplist = decomposer.decompose(slhafile, sigmacut, doCompress=True, 
+        smstoplist = decomposer.decompose(xSectionDict,particlesList, sigmacut, doCompress=True, 
                                           doInvisible=True, minmassgap=mingap)
         # smstoplist = lheDecomposer.decompose(lhefile, doCompress=True,doInvisible=True, minmassgap=mingap)
         for top in smstoplist:
@@ -39,10 +43,6 @@ class ExampleTest(unittest.TestCase):
             print top.getElements()[0]
             print top.getElements()[0].describe()
             print top.getElements()[0].weight[0].value
-        N3 = useParticlesNameDict['N3']
-        print  N3._width
-        for v in  N3._decayVertices:
-            print v.describe()
         self.assertEqual(len(smstoplist), 23)        
         self.assertEqual(len(smstoplist.getElements()), 586)
         # Load all analyses from database

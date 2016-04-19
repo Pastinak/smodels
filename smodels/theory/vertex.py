@@ -13,7 +13,6 @@ from smodels.theory.particle import Particle, ParticleList
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 from smodels.theory.auxiliaryFunctions import stringToList
 import itertools
-from smodels.particleDefinitions import useParticlesNameDict,useParticlesPidDict
 
 logger = logging.getLogger(__name__)
 
@@ -251,13 +250,16 @@ class Vertex(object):
         else:
             return None                   
 
-def createVertexFromStr(vertexStr):
+def createVertexFromStr(vertexStr,particleNameDict):
     """
     Creates a vertex from a string in bracket notation (e.g. [e+,jet])
     Odd-particles are created as empty Particle objects and Even-particles
-    are created using the particles pre-defined (by the user) which match the corresponding
+    are created using the particles defined in particleNameDict (by the user) which match the corresponding
     particle label/name.
     :parameter branchStr: vertexStr (e.g. [e+,jet])
+    :parameter particleNameDict: Dictionary containing as keys the particle names/labels
+                                and as labels the corresponding Particle objects
+                                (e.g. {'e-' : Particle(..), 'e+': Particle(..), ...})
     :return: Vertex object
     """
     
@@ -268,9 +270,9 @@ def createVertexFromStr(vertexStr):
         if not isinstance(pname,str):
             logger.error("Error converting vertex string %s" %vertexStr)
             raise SModelSError()
-        if not pname in useParticlesNameDict:
+        if not pname in particleNameDict:
             logger.error("Particle %s has not been defined (see particleDefinitions.py)" %pname)
             raise SModelSError()
-        outParticles.append(useParticlesNameDict[pname])
+        outParticles.append(particleNameDict[pname])
     
     return Vertex(inParticle=inParticle, outParticles=outParticles)

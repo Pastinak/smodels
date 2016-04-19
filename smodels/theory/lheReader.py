@@ -12,18 +12,21 @@
 import logging
 from smodels.theory.auxiliaryFunctions import index_bisect
 from smodels.theory.crossSection import XSectionList, XSection
+from smodels.theory.particle import ParticleList
 from smodels.theory.vertex import Vertex
 from smodels.tools.physicsUnits import TeV, pb, GeV
-from smodels.particleDefinitions import useParticlesPidDict
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 
 logger = logging.getLogger(__name__)
 
-def getInputData(lhefile):
+def getInputData(lhefile, modelParticles):
     """
     Get model information from LHE file.
+    :param lhefile: path to the LHE file 
+    :param modelParticles: a list with all the model particles. Each
+                           particle must contain a _pid property.
     
-    :returns: XSectionList and particles dictionary
+    :returns: XSection dictionary and particles list
     """
     
     try:
@@ -31,6 +34,18 @@ def getInputData(lhefile):
     except:
         logger.info("The file %s cannot be parsed as a LHE file: %s" % (lhefile) )
         raise SModelSError()
+    
+    #Create a PID dictionary of single particles
+    pidDict = {}
+    for p in modelParticles:
+        if isinstance(p,ParticleList): continue
+        if not hasattr(p,'_pid'):
+            logger.error("Particle %s does not have a _pid" %str(p))
+            raise SModelSError()
+        if p._pid in pidDict:
+            logger.error("Multiple definitions of particle PID %i" %p._pid)
+            raise SModelSError()
+        pidDict[p._pid] = p    
 
     # Get cross-section from LHE file
     xSectionList = getXsecsFrom(reader)
@@ -39,10 +54,21 @@ def getInputData(lhefile):
     # Order xsections by PDGs to improve performance
     xSectionList.order()    
     # Add mass, width and decay information from SLHA file to the defined particles
-    particlesDict = getParticleInfoFrom(reader,useParticlesPidDict)
+    particlesDict = getParticleInfoFrom(reader,pidDict)
     reader.close()
     
-    return xSectionList,particlesDict
+    #Generate cross-section dictionary
+    xSectionDict = {}
+    for xsec in xSectionList:
+        pids = sorted(xsec.pid)
+        ppair = (particlesDict[pids[0]],particlesDict[pids[1]])
+        if not ppair in xSectionDict:
+            xSectionDict[ppair] = XSectionList()
+        xSectionDict[ppair].add(xsec)
+    
+    particleList = particlesDict.values()
+    
+    return xSectionDict,particleList
 
 def getXsecsFrom(lheInput):
     """
@@ -182,7 +208,7 @@ def getParticleInfoFrom(lheInput, pidDict):
    
     #Now renormalize the BRs, compute "fake" widths (equal to the number of decaying events in GeV)
     #and add the vertices to the respective pre-defined particles            
-    for pid,vertices in vertexPidDict.items():
+    for pid,vertices in vertexPidDict.items():        
         brTotal = 0.
         p = pidDict[pid]
         for v in vertices:

@@ -309,20 +309,24 @@ class Element(object):
         
         return pids
 
-def createElementFromStr(branchStr):
+def createElementFromStr(elementStr,particleNameDict):
     """
     Creates an element from a string in bracket notation (e.g. [[[e+],[jet]], [[mu+,L],[e-]]]).
     Odd-particles are created as empty Particle objects and Even-particles are
-    created using the particles pre-defined (by the user) which match the corresponding
-    particle label/name.
+    created using the particles defined in particleNameDict (by the user) 
+    which match the corresponding particle label/name.
     The last odd particle in the cascade branches are assumed to be neutral
-    (missing ET signature).
-    :branchStr: string (e.g. [[[e+],[jet]], [[mu+,L],[e-]]])
+    (elementStr ET signature).
+    :parameter branchStr: string (e.g. [[[e+],[jet]], [[mu+,L],[e-]]])
+    :parameter particleNameDict: Dictionary containing as keys the particle names/labels
+                                and as labels the corresponding Particle objects
+                                (e.g. {'e-' : Particle(..), 'e+': Particle(..), ...})    
+    
     :return: Element object
     """
     
     branches = []
-    for br in stringToList(branchStr):
-        branches.append(createBranchFromStr(str(br))) 
+    for br in stringToList(elementStr):
+        branches.append(createBranchFromStr(str(br),particleNameDict)) 
 
     return Element(branches=branches)

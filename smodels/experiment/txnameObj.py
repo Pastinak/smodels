@@ -16,10 +16,11 @@ import logging,os,sys
 from smodels.tools.physicsUnits import GeV, fb, TeV, pb
 from smodels.theory.particleNames import elementsInStr
 from smodels.tools.stringTools import concatenateLines
-from smodels.theory.element import Element, createElementFromStr
+from smodels.theory.element import createElementFromStr
 from smodels.theory.topology import TopologyList
 from smodels.experiment.exceptions import SModelSExperimentError as SModelSError
 from smodels.theory.auxiliaryFunctions import _memoize, breakStringExpr
+from smodels.particleDefinitions import useParticlesNameDict
 # from scipy.interpolate import griddata
 from scipy.linalg import svd
 import scipy.spatial.qhull as qhull
@@ -78,13 +79,13 @@ class TxName(object):
         #Builds up a list of elements appearing in constraints:
         elements = []     
         if hasattr(self,'constraint'):          
-            elements += [createElementFromStr(el) for el in breakStringExpr(self.constraint)]
+            elements += [createElementFromStr(el,useParticlesNameDict) for el in breakStringExpr(self.constraint)]
         if hasattr(self,'condition') and self.condition:
             conds = self.condition
             if not isinstance(conds,list): conds = [conds]
             for cond in conds:                
                 for el in breakStringExpr(cond):
-                    newEl = createElementFromStr(el)
+                    newEl = createElementFromStr(el,useParticlesNameDict)
                     if not newEl in elements: elements.append(newEl)
         
         # Builds up TopologyList with all the elements appearing in constraints

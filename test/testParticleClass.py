@@ -12,7 +12,13 @@ sys.path.insert(0,"../")
 import unittest
 from smodels.theory.particle import Particle, ParticleList
 from smodels.tools.physicsUnits import GeV
-from smodels.particleDefinitions import useParticlesNameDict
+import pickle
+
+#Load the particle dictionaries
+f = open("particleDefinitions.pcl","rb")
+modelParticles = pickle.load(f)
+particlesDict = dict([[p._name,p] for p in modelParticles])
+f.close()
 
 
 p1 = Particle(mass=100.*GeV, zParity=-1)
@@ -27,8 +33,8 @@ sq2 = Particle(_name='squark1', mass = 100.*GeV, zParity = -1)
 sq3 = Particle(_name='squark2', mass = 110.*GeV, zParity = -1)
 A = Particle(_name='A', zParity = 1)
 B = Particle(_name='B',mass = 0.01*GeV, zParity = 1)
-u = useParticlesNameDict['u']
-d = useParticlesNameDict['d']
+u = particlesDict['u']
+d = particlesDict['d']
 
 
 
@@ -53,8 +59,8 @@ class ParticleTest(unittest.TestCase):
 
     def testParticleList(self):
         l1 = ParticleList(particles=[A,B],label='Alist')
-        L = useParticlesNameDict['L']
-        l = useParticlesNameDict['l']
+        L = particlesDict['L']
+        l = particlesDict['l']
         self.assertEqual( str(l1) == 'Alist', True)
         self.assertEqual( l1.mass == B.mass, True)
         self.assertEqual( l > L, False) #L is longer

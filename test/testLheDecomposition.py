@@ -13,23 +13,32 @@
 import sys
 sys.path.insert(0,"../")
 from smodels.tools.physicsUnits import GeV, fb,pb
+from smodels.theory.lheReader import getInputData
 from smodels.theory.element import createElementFromStr
 from smodels.theory import decomposer
 import unittest
+import pickle
+
 
 
 class LheDecompositionTest(unittest.TestCase):
     def testSimpleDecomposition(self):
         """ test the Decomposition """
  
-        filename = "../inputFiles/lhe/simplyGluino.lhe" 
-        toplist = decomposer.decompose(filename)
-        self.assertEqual(len(toplist),1)
-        self.assertEqual(len(toplist.getElements()),3)
-        el0 = createElementFromStr('[[[d,d*]],[[d,d*]]]')
-        el1 = createElementFromStr('[[[u,u*]],[[d,d*]]]')
-        el2 = createElementFromStr('[[[u,u*]],[[u,u*]]]')
-        els = toplist.getElements()
+        #Load particles
+        f = open("particleDefinitions.pcl","rb")
+        modelParticles = pickle.load(f)
+        particlesDict = dict([[p._name,p] for p in modelParticles])
+        f.close() 
+        lhefile = "../inputFiles/lhe/simplyGluino.lhe" 
+        xSectionDict,particlesList = getInputData(lhefile,modelParticles)
+        topos = decomposer.decompose(xSectionDict,particlesList)        
+        self.assertEqual(len(topos),1)
+        self.assertEqual(len(topos.getElements()),3)
+        el0 = createElementFromStr('[[[d,d*]],[[d,d*]]]',particlesDict)
+        el1 = createElementFromStr('[[[u,u*]],[[d,d*]]]',particlesDict)
+        el2 = createElementFromStr('[[[u,u*]],[[u,u*]]]',particlesDict)
+        els = topos.getElements()
          
         self.assertEqual(el0, els[0])
         self.assertEqual(el1, els[1])
@@ -41,15 +50,20 @@ class LheDecompositionTest(unittest.TestCase):
             
     def testComplexDecomposition(self):
         """ test the Decomposition """
- 
-        filename = "../inputFiles/lhe/gluino_squarks.lhe" 
-        toplist = decomposer.decompose(filename)         
-        self.assertEqual(len(toplist),15)
-        self.assertEqual(len(toplist.getElements()),225)
+        #Load particles
+        f = open("particleDefinitions.pcl","rb")
+        modelParticles = pickle.load(f)
+        particlesDict = dict([[p._name,p] for p in modelParticles])
+        f.close() 
+        lhefile = "../inputFiles/lhe/gluino_squarks.lhe" 
+        xSectionDict,particlesList = getInputData(lhefile,modelParticles)
+        topos = decomposer.decompose(xSectionDict,particlesList)         
+        self.assertEqual(len(topos),15)
+        self.assertEqual(len(topos.getElements()),225)
 
         
-        el0 = createElementFromStr('[[[u]],[[s,s*]]]')
-        el = toplist.topos[2].elementList[-1]
+        el0 = createElementFromStr('[[[u]],[[s,s*]]]',particlesDict)
+        el = topos.topos[2].elementList[-1]
         self.assertEqual(el0, el)
         self.assertEqual(el.getOddMasses(), [[991.299127*GeV,128.961570*GeV],[865.035125*GeV,128.961570*GeV]])
         self.assertAlmostEqual(el.weight[0].value.asNumber(fb),0.1739,3)

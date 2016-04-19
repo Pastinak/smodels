@@ -6,7 +6,7 @@
         
 """
 
-from smodels.tools.physicsUnits import fb,GeV
+from smodels.tools.physicsUnits import fb
 from smodels.theory.vertex import createVertexFromStr, Vertex
 from smodels.theory.particle import Particle
 from smodels.theory.auxiliaryFunctions import stringToList
@@ -217,8 +217,8 @@ class Branch(object):
         for p in self.vertices[-1].outParticles:
             if not hasattr(p,'_width') or not hasattr(p,'_decayVertices'):
                 continue  #Particle does not contain decay info, treat it as stable 
-            if p._width is None or not p._width.asNumber():
-                continue  #Particle is stable
+            if not p._decayVertices:
+                continue  #Particle is to be treated as stable
             nUnstable += 1
             newVertices = p._decayVertices
 
@@ -284,11 +284,12 @@ class Branch(object):
         
         newBranch = self.copy()        
         for iv in range(-1,-len(self.vertices),-1):
-            v = self.vertices[iv]            
+            v = self.vertices[iv]
+            if max([not p.stable() for p in v.outEven]):
+                break  #Ignore vertices with unstable even particles
             qTotal = 0
             colorTotal = 0
-            for p in v.outParticles:
-                if p.zParity > 0 and not p.stable(): continue  #Ignore unstable even particles
+            for p in v.outParticles:  
                 if hasattr(p, 'eCharge'):
                     qTotal += abs(p.eCharge)
                 if hasattr(p, 'qColor'):
@@ -312,16 +313,19 @@ class Branch(object):
             return newBranch
 
 
-def createBranchFromStr(branchStr):
+def createBranchFromStr(branchStr,particleNameDict):
     """
     Creates a branch from a string in bracket notation (e.g. [[e+],[jet]]).
     The cascade decay is assumed to follow a proper topology (e.g. odd_A -> odd_B + e+ -> odd_C + jet).  
     Odd-particles are created as empty Particle objects and Even-particles are
-    created using the particles pre-defined (by the user) which match the corresponding
-    particle label.
+    created using the particles defined in particleNameDict (by the user) 
+    which match the corresponding particle label/name.
     The last odd particle in the cascade (e.g. odd_C) is assumed to be neutral
     (missing ET signature).
-    :branchStr: string (e.g. [[e+],[jet]])
+    :parameter branchStr: string (e.g. [[e+],[jet]])
+    :parameter particleNameDict: Dictionary containing as keys the particle names/labels
+                                and as labels the corresponding Particle objects
+                                (e.g. {'e-' : Particle(..), 'e+': Particle(..), ...})    
     :return: Branch object
     """
     
@@ -329,7 +333,7 @@ def createBranchFromStr(branchStr):
     vertices = [Vertex(outParticles=[Particle(zParity=-1, _name = 'Mother')])]
     for vertex in stringToList(branchStr):
         if not vertex: continue #empty branch
-        vertices.append(createVertexFromStr(str(vertex))) 
+        vertices.append(createVertexFromStr(str(vertex),particleNameDict)) 
     
     vertices[-1].outOdd[0].eCharge = 0
     vertices[-1].outOdd[0].qCharge = 0  #Assumes the last odd particle is neutral

@@ -13,27 +13,32 @@ import unittest
 from smodels.theory.vertex import Vertex
 from smodels.theory.branch import Branch
 from smodels.theory.element import Element,createElementFromStr
-from smodels.particleDefinitions import useParticlesNameDict
 from smodels.tools.physicsUnits import GeV
+import pickle
+
+#Load the particle dictionaries
+f = open("particleDefinitions.pcl","rb")
+modelParticles = pickle.load(f)
+particlesDict = dict([[p._name,p] for p in modelParticles])
+f.close()
+
+u = particlesDict['u']
+d = particlesDict['d']
+t = particlesDict['t+']
+bbar = particlesDict['b+']
+g = particlesDict['g']
+em = particlesDict['e-']
+nue = particlesDict['nue']
+L = particlesDict['L']
+e = particlesDict['e']
 
 
-u = useParticlesNameDict['u']
-d = useParticlesNameDict['d']
-t = useParticlesNameDict['t+']
-bbar = useParticlesNameDict['b+']
-g = useParticlesNameDict['g']
-em = useParticlesNameDict['e-']
-nue = useParticlesNameDict['nue']
-L = useParticlesNameDict['L']
-e = useParticlesNameDict['e']
-
-
-gluino = useParticlesNameDict['gluino']
-st1 = useParticlesNameDict['st_1']
-n1 = useParticlesNameDict['N1']
-n2 = useParticlesNameDict['N2']
-n3 = useParticlesNameDict['N3']
-n4 = useParticlesNameDict['N4']
+gluino = particlesDict['gluino']
+st1 = particlesDict['st_1']
+n1 = particlesDict['N1']
+n2 = particlesDict['N2']
+n3 = particlesDict['N3']
+n4 = particlesDict['N4']
 
 class ElementTest(unittest.TestCase):
         
@@ -91,9 +96,9 @@ class ElementTest(unittest.TestCase):
         
         el1 = Element(branches=[b1,b2])
                         
-        elstrA = createElementFromStr('[[[t+],[b+,t+]],[[b+,t+]]]')
-        elstrB = createElementFromStr('[[[b+,t+]],[[t+],[b+,t+]]]')
-        elstrC = createElementFromStr('[[[b,t+]],[[t],[b+,t]]]')
+        elstrA = createElementFromStr('[[[t+],[b+,t+]],[[b+,t+]]]',particlesDict)
+        elstrB = createElementFromStr('[[[b+,t+]],[[t+],[b+,t+]]]',particlesDict)
+        elstrC = createElementFromStr('[[[b,t+]],[[t],[b+,t]]]',particlesDict)
                 
         self.assertEqual( el1 == elstrA, True) #Elements should be equal
         self.assertEqual( el1 == elstrB, True) #Elements should be equal (just switch branches)

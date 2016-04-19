@@ -15,27 +15,33 @@ from smodels.theory.branch import Branch
 from smodels.theory.element import Element
 from smodels.theory.topology import Topology,TopologyList
 from smodels.theory.crossSection import XSection,XSectionInfo,XSectionList
-from smodels.particleDefinitions import useParticlesNameDict
 from smodels.tools.physicsUnits import GeV, TeV, fb
+import pickle
+
+#Load the particle dictionaries
+f = open("particleDefinitions.pcl","rb")
+modelParticles = pickle.load(f)
+particlesDict = dict([[p._name,p] for p in modelParticles])
+f.close()
 
 
-u = useParticlesNameDict['u']
-d = useParticlesNameDict['d']
-t = useParticlesNameDict['t+']
-bbar = useParticlesNameDict['b+']
-g = useParticlesNameDict['g']
-em = useParticlesNameDict['e-']
-nue = useParticlesNameDict['nue']
-L = useParticlesNameDict['L']
-e = useParticlesNameDict['e']
+u = particlesDict['u']
+d = particlesDict['d']
+t = particlesDict['t+']
+bbar = particlesDict['b+']
+g = particlesDict['g']
+em = particlesDict['e-']
+nue = particlesDict['nue']
+L = particlesDict['L']
+e = particlesDict['e']
 
 
-gluino = useParticlesNameDict['gluino']
-st1 = useParticlesNameDict['st_1']
-n1 = useParticlesNameDict['N1']
-n2 = useParticlesNameDict['N2']
-n3 = useParticlesNameDict['N3']
-n4 = useParticlesNameDict['N4']
+gluino = particlesDict['gluino']
+st1 = particlesDict['st_1']
+n1 = particlesDict['N1']
+n2 = particlesDict['N2']
+n3 = particlesDict['N3']
+n4 = particlesDict['N4']
 
 w1 = XSectionList()
 w1.xSections.append(XSection())

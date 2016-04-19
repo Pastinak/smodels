@@ -13,7 +13,13 @@ import unittest
 from smodels.theory.particle import Particle
 from smodels.theory.vertex import Vertex, createVertexFromStr
 from smodels.tools.physicsUnits import GeV
-from smodels.particleDefinitions import useParticlesNameDict
+import pickle
+
+#Load the particle dictionaries
+f = open("particleDefinitions.pcl","rb")
+modelParticles = pickle.load(f)
+particlesDict = dict([[p._name,p] for p in modelParticles])
+f.close()
 
 
 class VertexTest(unittest.TestCase):        
@@ -47,11 +53,11 @@ class VertexTest(unittest.TestCase):
         mum = Particle(_name='mu-', eCharge = -1, mass = 0.106*GeV, zParity = 1)
         inP = Particle(zParity = -1)
         outP = Particle(zParity = -1)
-        vstr = createVertexFromStr('[e+,L,mu-]')
+        vstr = createVertexFromStr('[e+,L,mu-]',particlesDict)
         v = Vertex(inParticle=inP, outParticles=[ep,mum,L,outP])
-        vB = Vertex(inParticle=inP, outParticles=[useParticlesNameDict['e+'],
-                                                  useParticlesNameDict['mu-'],
-                                                  useParticlesNameDict['ta-'],outP])
+        vB = Vertex(inParticle=inP, outParticles=[particlesDict['e+'],
+                                                  particlesDict['mu-'],
+                                                  particlesDict['ta-'],outP])
         vC = v.copy()
         vD = v.copy(relevantProp=['zParity','eCharge'])
         self.assertEqual(v == vstr, True)  #Check that vertices match

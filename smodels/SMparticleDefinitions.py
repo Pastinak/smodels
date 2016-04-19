@@ -77,9 +77,9 @@ SMparticles = quarks + leptons + gauge + [higgs]
 SMparticlesC = quarksC + leptonsC + gaugeC + [higgs.chargeConjugate()]
 
 SM = SMparticles + SMparticlesC
-#Define all SM particles as stable 
+#Ignore all decays of even particles: 
 #(even parity states should be treated as stable to preserve topology structures):
-for p in SM: p._width = 0.*GeV
+for p in SM: p._decayVertices = []
 
 
 #Inlcusive labels

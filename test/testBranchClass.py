@@ -15,8 +15,13 @@ from smodels.theory.particle import Particle
 from smodels.theory.vertex import Vertex
 from smodels.theory.branch import Branch,createBranchFromStr,decayBranches
 from smodels.tools.physicsUnits import GeV, fb
-from smodels.particleDefinitions import useParticlesNameDict
+import pickle
 
+#Load the particle dictionaries
+f = open("particleDefinitions.pcl","rb")
+modelParticles = pickle.load(f)
+particlesDict = dict([[p._name,p] for p in modelParticles])
+f.close()
 
 
 g = Particle(mass=500.*GeV,_pid=1000021, zParity=-1, _width = 1*GeV)
@@ -55,11 +60,11 @@ class BranchTest(unittest.TestCase):
         self.assertEqual(len(b1) == 4, True)
         
     def testBranchInclusive(self):
-        
-        em = useParticlesNameDict['e-']
-        mup = useParticlesNameDict['mu+']
-        L = useParticlesNameDict['L']
-        e = useParticlesNameDict['e']
+
+        em = particlesDict['e-']
+        mup = particlesDict['mu+']
+        L = particlesDict['L']
+        e = particlesDict['e']
         v0 = Vertex(inParticle=None, outParticles=[g])
         v1 = Vertex(inParticle=g, outParticles=[sq1,u,d])
         v2 = Vertex(inParticle=sq1, outParticles=[sq2,em,em,mup])
@@ -79,7 +84,7 @@ class BranchTest(unittest.TestCase):
         v3 = Vertex(inParticle=sq2, outParticles=[d,u,sn1B])
         b1 = Branch(vertices = [v0,v1,v2,v3])
                         
-        bstr = createBranchFromStr('[[u,d],[d],[u,d]]')
+        bstr = createBranchFromStr('[[u,d],[d],[u,d]]',particlesDict)
         
         self.assertEqual( b1 == bstr, True)
         
@@ -99,7 +104,7 @@ class BranchTest(unittest.TestCase):
         
         b2 = b1._addVertex(v3)
         
-        bstr = createBranchFromStr('[[u,d],[d],[u,d]]')
+        bstr = createBranchFromStr('[[u,d],[d],[u,d]]',particlesDict)
         self.assertEqual( b2 == bstr, True)
         
 
