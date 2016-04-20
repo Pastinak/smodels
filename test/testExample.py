@@ -62,7 +62,6 @@ class ExampleTest(unittest.TestCase):
         # Compute the theory predictions for each analysis
         for expResult in listOfExpRes:
             predictions = theoryPredictionsFor(expResult, smstoplist)
-            continue
             if not predictions: continue
             print('\n',expResult.getValuesFor('id')[0])
             for theoryPrediction in predictions:
