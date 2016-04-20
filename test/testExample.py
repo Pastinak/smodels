@@ -10,7 +10,7 @@
 import sys
 sys.path.insert(0,"../")
 import unittest
-from smodels.tools.physicsUnits import GeV, fb
+from smodels.tools.physicsUnits import GeV, fb, pb
 from smodels.theory import decomposer
 from smodels.theory.theoryPrediction import theoryPredictionsFor
 from smodels.experiment.databaseObj import Database
@@ -37,25 +37,32 @@ class ExampleTest(unittest.TestCase):
         """ Decompose model (use slhaDecomposer for SLHA input or lheDecomposer for LHE input) """
         smstoplist = decomposer.decompose(xSectionDict,particlesList, sigmacut, doCompress=True, 
                                           doInvisible=True, minmassgap=mingap)
-        # smstoplist = lheDecomposer.decompose(lhefile, doCompress=True,doInvisible=True, minmassgap=mingap)
-        for top in smstoplist:
-            if str(top) != '[1,2][1,3,3]': continue
-            print top.getElements()[0]
-            print top.getElements()[0].describe()
-            print top.getElements()[0].weight[0].value
-        self.assertEqual(len(smstoplist), 23)        
-        self.assertEqual(len(smstoplist.getElements()), 586)
-        # Load all analyses from database
         
+        
+        topweights = [0.45069449699999997, 0.8060860593513246, 303.2711905718159, 
+                      0.3637955190752928, 15.339097274505018, 3358.5703119038644, 
+                      2.160128693731249, 4.5031659201699235, 9.486866215694839, 
+                      17.980093334558738, 2.164988614601289, 147.823524958894, 
+                      0.8102285793970079, 39.61814354617472, 16.436088764209956, 
+                      9.291691094022376, 299.60965243794095, 46.34557917490008, 
+                      15.658947303819541, 7.991672275037888, 158.71034751774343, 
+                      56.78304329128415, 15.597472309381796]
+       
+        self.assertEqual(len(smstoplist), 23)        
+        self.assertEqual(len(smstoplist.getElements()), 669)
+        for itop,top in enumerate(smstoplist):
+            self.assertAlmostEqual(top.getTotalWeight()[0].value.asNumber(fb), 
+                                   topweights[itop],4)
+
+        # Load all analyses from database
         database = Database("./database/")
         listOfExpRes = database.getExpResults()
         self.assertEqual(len(listOfExpRes), 4)
         
-        
-        sys.exit()
         # Compute the theory predictions for each analysis
         for expResult in listOfExpRes:
             predictions = theoryPredictionsFor(expResult, smstoplist)
+            continue
             if not predictions: continue
             print('\n',expResult.getValuesFor('id')[0])
             for theoryPrediction in predictions:

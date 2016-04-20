@@ -12,15 +12,14 @@
 
 """
 
-import logging,os,sys
+import logging,os
 from smodels.tools.physicsUnits import GeV, fb, TeV, pb
-from smodels.theory.particleNames import elementsInStr
 from smodels.tools.stringTools import concatenateLines
 from smodels.theory.element import createElementFromStr
 from smodels.theory.topology import TopologyList
 from smodels.experiment.exceptions import SModelSExperimentError as SModelSError
 from smodels.theory.auxiliaryFunctions import _memoize, breakStringExpr
-from smodels.particleDefinitions import useParticlesNameDict
+from smodels.SMparticleDefinitions import SM
 # from scipy.interpolate import griddata
 from scipy.linalg import svd
 import scipy.spatial.qhull as qhull
@@ -33,6 +32,8 @@ FORMAT = '%(levelname)s in %(module)s.%(funcName)s() in %(lineno)s: %(message)s'
 logging.basicConfig(format=FORMAT)
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.ERROR)
+
+SMdict = dict([[p._name,p] for p in SM])
 
 class TxName(object):
     """Holds the information related to one txname in the Txname.txt
@@ -79,13 +80,13 @@ class TxName(object):
         #Builds up a list of elements appearing in constraints:
         elements = []     
         if hasattr(self,'constraint'):          
-            elements += [createElementFromStr(el,useParticlesNameDict) for el in breakStringExpr(self.constraint)]
+            elements += [createElementFromStr(el,SMdict) for el in breakStringExpr(self.constraint)]
         if hasattr(self,'condition') and self.condition:
             conds = self.condition
             if not isinstance(conds,list): conds = [conds]
             for cond in conds:                
                 for el in breakStringExpr(cond):
-                    newEl = createElementFromStr(el,useParticlesNameDict)
+                    newEl = createElementFromStr(el,SMdict)
                     if not newEl in elements: elements.append(newEl)
         
         # Builds up TopologyList with all the elements appearing in constraints

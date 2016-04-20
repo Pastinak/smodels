@@ -285,27 +285,19 @@ class Branch(object):
         newBranch = self.copy()        
         for iv in range(-1,-len(self.vertices),-1):
             v = self.vertices[iv]
-            if max([not p.stable() for p in v.outEven]):
-                break  #Ignore vertices with unstable even particles
-            qTotal = 0
-            colorTotal = 0
-            for p in v.outParticles:  
-                if hasattr(p, 'eCharge'):
-                    qTotal += abs(p.eCharge)
-                if hasattr(p, 'qColor'):
-                    colorTotal += abs(p.qColor)
-            #If the total charge of the final particles of the
-            #last cascade decay are zero
-            if qTotal + colorTotal == 0:
-                #Remove last vertex
-                newBranch.vertices.pop(-1)
-                #Check if effective charge of last vertex is zero:
-                if not (v.inParticle.eCharge == 0 and  v.inParticle.qColor == 0):
-                    logger.error("Charge does not seem to be conserved at:\n %s" 
-                                 %v.stringRep())
-                    raise SModelSError()         
-            else:
-                break #If not, stop here
+            if max([not p.isStable() for p in v.outEven]):
+                break  #Stop at vertices with unstable even particles
+            if max([not p.isInvisible() for p in v.outParticles]):
+                break  #Stop at vertices with visible particles
+            
+            #Last vertex has only invisible and stable particles
+            #Remove last vertex
+            newBranch.vertices.pop(-1)
+            #Check if effective charge of last vertex is zero:
+            if not (v.inParticle.eCharge == 0 and  v.inParticle.qColor == 0):
+                logger.error("Charge does not seem to be conserved at:\n %s" 
+                             %v.stringRep())
+                raise SModelSError()
         
         if len(newBranch) == len(self):  #Branch could not be compressed
             return None

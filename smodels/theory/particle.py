@@ -141,7 +141,7 @@ class Particle(object):
                 
         return pConjugate
     
-    def stable(self):
+    def isStable(self):
         """
         Return True if particle is stable, false otherwise.
         A particle is considered stable if it has zero width or if
@@ -155,6 +155,25 @@ class Particle(object):
             return False
         else:
             return True
+        
+    def isInvisible(self):
+        """
+        Return True if particle is invisible, false otherwise.
+        A particle is considered invisible if it has zero eCharge,
+        zero qCharge and it is not a photon (_pid = 22).
+        the width has not been defined.
+        If eCharge or qColor have not been defined, return False
+        :return: True/False
+        """
+        
+        if not hasattr(self, 'eCharge') or not hasattr(self, 'qColor'):
+            return False
+        elif self.eCharge != 0 or self.qColor != 0:
+            return False
+        elif hasattr(self,'_pid') and self._pid == 22:
+            return False
+        else:
+            return True        
     
     
 class ParticleList(object):
