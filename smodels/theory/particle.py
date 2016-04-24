@@ -55,15 +55,16 @@ class Particle(object):
         if isinstance(other,ParticleList):
             return other.__cmp__(self)
         
-        #Use _internalID, if defined for both particles
-        if hasattr(self,'_internalID') and not self._internalID is None:
-            if hasattr(other,'_internalID') and not other._internalID is None:
-                if self._internalID == other._internalID:
+        #Use _internalID, if defined for both particles or particle lists
+        if hasattr(self,'_internalID') and self._internalID:
+            if hasattr(other,'_internalID') and other._internalID:
+                if self._internalID.intersection(other._internalID):
                     return 0
                 else:
-                    comp = self._internalID > other._internalID
+                    comp = max(self._internalID) > max(other._internalID)
                     if comp: return 1
                     else: return -1
+
         
         if self.zParity != other.zParity:
             comp = self.zParity > other.zParity
@@ -248,22 +249,14 @@ class ParticleList(object):
         """
         
         #Use _internalID, if defined for both particles or particle lists
-        if hasattr(self,'_internalID') and not self._internalID is None:
-            if hasattr(other,'_internalID') and not other._internalID is None:
-                if isinstance(other,Particle):
-                    if other._internalID in self._internalID:
-                        return 0
-                    else:
-                        comp = max(self._internalID) > other._internalID
-                        if comp: return 1
-                        else: return -1
-                elif isinstance(other,ParticleList):
-                    if sorted(other._internalID) == sorted(self._internalID):
-                        return 0
-                    else:
-                        comp = max(self._internalID) > max(other._internalID)
-                        if comp: return 1
-                        else: return -1
+        if hasattr(self,'_internalID') and self._internalID:
+            if hasattr(other,'_internalID') and other._internalID:
+                if self._internalID.intersection(other._internalID):
+                    return 0
+                else:
+                    comp = max(self._internalID) > max(other._internalID)
+                    if comp: return 1
+                    else: return -1
         
         
         if isinstance(other,ParticleList):
@@ -298,21 +291,32 @@ def setInternalID(particlesList):
         if not isinstance(p,Particle) and not isinstance(p,ParticleList):
             logger.error("The input must be a list of Particle or ParticleList objects")
             raise SModelSError()
-        p._internalID = set([]) 
+        
+    #First split list into Particle and ParticleList objects:    
+    particles = sorted([p for p in particlesList if isinstance(p,Particle)])
+    plists = sorted([p for p in particlesList if isinstance(p,ParticleList)])
     
-    plist = sorted(particlesList)
-    pID = 0    
-    for ip,p in enumerate(plist):
-        if p._internalID: continue #ID has already been set, continue
+    #Compare all particles and store results:
+    comps = []
+    for ip,p in enumerate(particles):
+        #Reset internal ID properties
+        p._internalID = None
+        comps.append([p.__cmp__(pB) for pB in particles])
+    #Now assign integer IDs to single particles:
+    pID = 0
+    for ip,p in enumerate(particles):
+        if not p._internalID is None: continue #ID has already been set, continue
         pID += 1
-        p._internalID = set([pID])            
-        for pB in plist[ip+1:]:
-            if isinstance(pB,Particle):    
-                if pB._internalID: continue #ID has already been set, continue
-                elif p == pB:
-                    pB._internalID = p._internalID
-            elif isinstance(pB,ParticleList):
-                
-                if not pID in pB._internalID:
-                    pB._internalID.append(pID)
-                
+        p._internalID = set([pID])
+        for jp,c in enumerate(comps[ip]):
+            if c == 0: #Particles match
+                particles[jp]._internalID = p._internalID
+   
+    #Now assign IDs to particle lists:
+    for pL in plists:
+        pL._internalID = None
+        matchingIDs = []
+        for p in particles:
+            if p == pL:
+                matchingIDs.append(p._internalID)
+        pL._internalID = set(matchingIDs)
