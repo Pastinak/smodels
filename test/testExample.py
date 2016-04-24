@@ -29,7 +29,9 @@ class ExampleTest(unittest.TestCase):
         f.close()        
         #Path to input file name (either a SLHA or LHE file)
         slhafile = '../inputFiles/slha/lightEWinos.slha'
-        xSectionDict,particlesList = getInputData(slhafile,modelParticles)        
+        xSectionDict,particlesList = getInputData(slhafile,modelParticles)
+        #Set internal IDs to identify the particles (improves performance):
+        setInternalID(modelParticles)        
     
         #Set main options for decomposition:
         sigmacut = 0.3 * fb

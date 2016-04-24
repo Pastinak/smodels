@@ -10,7 +10,7 @@
 import sys
 sys.path.insert(0,"../")
 import unittest
-from smodels.theory.particle import Particle, ParticleList
+from smodels.theory.particle import Particle, ParticleList, setInternalID
 from smodels.tools.physicsUnits import GeV
 import pickle
 
@@ -66,6 +66,24 @@ class ParticleTest(unittest.TestCase):
         self.assertEqual( l > L, False) #L is longer
         self.assertEqual( l1 == A, True) #l1 contains A
         self.assertEqual( l1 == B, True) #l1 contains A
+        
+    def testParticleID(self):
+        import smodels.particleDefinitions
+        
+        plist = smodels.particleDefinitions.MSSM
+        setInternalID(plist)
+        pNameDict = dict([[p._name,p] for p in plist])
+        nue = pNameDict['nue']
+        nueC = pNameDict['nue*']
+        numu = pNameDict['numu']
+        self.AssertNotEqual(nue._internalID,None)
+        self.AssertEqual(nue._internalID,nueC._internalID)
+        self.AssertEqual(nue._internalID,numu._internalID)
+        self.AssertEqual(nue,numu)
+        
+        
+        
+        
         
             
 if __name__ == "__main__":

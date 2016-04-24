@@ -40,9 +40,10 @@ class Particle(object):
     def __cmp__(self,other):
         """
         Compares the particle with other.
-        Only compares physics attributes/properties (ignore properties starting with "_",
-        such as _pid).
-        First compare masses (if it exists) then other properties.
+        If the _internalID property exists for both objects, use it as comparison,
+        otherwise compares physics attributes/properties (ignore properties starting with "_",
+        such as _pid, _name,...).
+        First compare zParity, then compare masses (if it exists), then other properties.
         If other is a ParticleList, uses the ParticleList comparison method.
         :param other:  particle to be compared (Particle object)
         :return: -1 if self < other, 0 if self == other, +1, if self > other.        
@@ -53,6 +54,16 @@ class Particle(object):
         
         if isinstance(other,ParticleList):
             return other.__cmp__(self)
+        
+        #Use _internalID, if defined for both particles
+        if hasattr(self,'_internalID') and not self._internalID is None:
+            if hasattr(other,'_internalID') and not other._internalID is None:
+                if self._internalID == other._internalID:
+                    return 0
+                else:
+                    comp = self._internalID > other._internalID
+                    if comp: return 1
+                    else: return -1
         
         if self.zParity != other.zParity:
             comp = self.zParity > other.zParity
@@ -236,6 +247,25 @@ class ParticleList(object):
                 -1 if self < other, 0 if self == other, +1, if self > other.     
         """
         
+        #Use _internalID, if defined for both particles or particle lists
+        if hasattr(self,'_internalID') and not self._internalID is None:
+            if hasattr(other,'_internalID') and not other._internalID is None:
+                if isinstance(other,Particle):
+                    if other._internalID in self._internalID:
+                        return 0
+                    else:
+                        comp = max(self._internalID) > other._internalID
+                        if comp: return 1
+                        else: return -1
+                elif isinstance(other,ParticleList):
+                    if sorted(other._internalID) == sorted(self._internalID):
+                        return 0
+                    else:
+                        comp = max(self._internalID) > max(other._internalID)
+                        if comp: return 1
+                        else: return -1
+        
+        
         if isinstance(other,ParticleList):
             if self.particles != other.particles:
                 comp = self.particles > other.particles
@@ -251,3 +281,38 @@ class ParticleList(object):
                 for p in self.particles:
                     if p > other: return +1
                 return -1
+
+def setInternalID(particlesList):
+    """
+    Attributes an internal ID property for each particle to be used
+    when comparing two particles, so the full comparison does not have to
+    be performed each time. This function should only be used when no further
+    changes will be made to the particles.
+    :parameter particlesList: a list of Particle or ParticleList objects
+    """
+    
+    if not isinstance(particlesList,list):
+        logger.error("The input must be a list.")
+        raise SModelSError()        
+    for p in particlesList:
+        if not isinstance(p,Particle) and not isinstance(p,ParticleList):
+            logger.error("The input must be a list of Particle or ParticleList objects")
+            raise SModelSError()
+        p._internalID = set([]) 
+    
+    plist = sorted(particlesList)
+    pID = 0    
+    for ip,p in enumerate(plist):
+        if p._internalID: continue #ID has already been set, continue
+        pID += 1
+        p._internalID = set([pID])            
+        for pB in plist[ip+1:]:
+            if isinstance(pB,Particle):    
+                if pB._internalID: continue #ID has already been set, continue
+                elif p == pB:
+                    pB._internalID = p._internalID
+            elif isinstance(pB,ParticleList):
+                
+                if not pID in pB._internalID:
+                    pB._internalID.append(pID)
+                
