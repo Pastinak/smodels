@@ -247,8 +247,9 @@ class Element(object):
     def combineWith(self,other):
         """
         Combined the element with other.
-        Combine the elements weights, their mothers and PIDs.
-        
+        Combine the particles appearing in the element 
+        (replace the particle objects by particles lists).
+        Combine the weights and the mother elements
         :parameter other: element (Element Object)  
         """
         
@@ -257,7 +258,7 @@ class Element(object):
             return
         
         self.combineMotherElements(other)
-        self.combinePIDs(other)
+        self.combineParticles(other)
         self.weight.combineWith(other.weight)
 
 
@@ -279,10 +280,12 @@ class Element(object):
             self.motherElements.append ( ("combine", tmp) )
 
 
-    def combinePIDs(self,other):
+    def combineParticles(self,other):
         """
-        Combine the PIDs of both elements (_pid property of the odd particles).
-        If the PIDs already appear in self,  do not add them to the list.
+        Combine the particles of both elements 
+        (replaces the particle by a particle list containing its particles 
+        and the particles of other).
+        If the new particles already appear in self,  do not add them to the list.
         
         :parameter other: element (Element Object) 
         """
@@ -292,7 +295,7 @@ class Element(object):
             return
 
         for ib,br in enumerate(self.branches):
-            br.combinePIDs(other.branches[ib])
+            br.combineParticles(other.branches[ib])
             
     def getOddPIDs(self):
         """

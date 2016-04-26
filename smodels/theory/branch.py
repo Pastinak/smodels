@@ -146,10 +146,12 @@ class Branch(object):
         return massarray
     
     
-    def combinePIDs(self,other):
+    def combineParticles(self,other):
         """
-        Combine the PIDs of both branches (_pid property of the odd particles).
-        If the PIDs already appear in self,  do not add them to the list.
+        Combine the particles of both branches 
+        (replaces the particle by a particle list containing its particles 
+        and the particles of other).
+        If the new particles already appear in self,  do not add them to the list.
         
         :parameter other: branch (Branch Object) 
         """
@@ -159,7 +161,7 @@ class Branch(object):
             return
 
         for iv,v in enumerate(self.vertices):
-            v.combinePIDs(other.vertices[iv])
+            v.combineParticles(other.vertices[iv])
             
     def getOddPIDs(self):
         """

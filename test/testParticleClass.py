@@ -97,6 +97,7 @@ class ParticleTest(unittest.TestCase):
         #Set ID by hand and see if comparison works:
         N2C._internalID = N1._internalID
         self.assertEqual(N1,N2C)
+
             
 if __name__ == "__main__":
     unittest.main()

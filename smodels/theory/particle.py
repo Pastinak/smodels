@@ -29,6 +29,7 @@ class Particle(object):
         :parameter zParity: Z2-Parity. -1 for odd particles (neutralino, gluino,...)
                                         and +1 for even particles (quarks, Higgs,...)
         """
+        
         if kwargs is None or not 'zParity' in kwargs:
             logger.error("The Z2-Parity (zParity) of a particle must always be defined")
             raise SModelSError
@@ -126,7 +127,7 @@ class Particle(object):
             setattr(self, label, value)
         elif not hasattr(self, label) or getattr(self, label) is None:
             setattr(self, label, value)
-    
+            
     def chargeConjugate(self):
         """
         Returns the charge conjugate particle (flips the sign of eCharge).
@@ -193,17 +194,19 @@ class ParticleList(object):
     It can be used to group particles (e.g. L+ = [e+,mu+,ta+]).
     """
 
-    def __init__(self, particles=[], label=None):
+    def __init__(self, particles=[], label=None, internalID=None):
         """
         Initializes the particle list. Particles can be a list of Particle objects
         and/or ParticleList objects. For the later all the particles in the ParticleList
         are included.
         All the common (shared) properties for all particles in the list are automatically
         attributed to the ParticleList. Properties which are not shared by all the particles
-        are set to None.
+        are set to None, except for the _internalID attribute, which is combined.
         The ParticleList name is set to label.
         :param particles: list of single particles or ParticleLists
         :param label: name of the list
+        :param internalID: internalID for the list (set object). If defined, should be a set
+                           containing the internalIDs of its particles.
         """
                 
         self.particles = []
@@ -227,6 +230,8 @@ class ParticleList(object):
                     setattr(self,key,None)
         
         self._name = label
+        if internalID:
+            self._internalID = internalID
         
     def __str__(self):
         """
@@ -257,7 +262,6 @@ class ParticleList(object):
                     if comp: return 1
                     else: return -1
         
-        
         if isinstance(other,ParticleList):
             if self.particles != other.particles:
                 comp = self.particles > other.particles
@@ -273,6 +277,7 @@ class ParticleList(object):
                 for p in self.particles:
                     if p > other: return +1
                 return -1
+
 
 def setInternalID(particlesList):
     """

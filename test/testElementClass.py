@@ -13,7 +13,8 @@ import unittest
 from smodels.theory.vertex import Vertex
 from smodels.theory.branch import Branch
 from smodels.theory.element import Element,createElementFromStr
-from smodels.tools.physicsUnits import GeV
+from smodels.tools.physicsUnits import GeV, TeV, fb
+from smodels.theory.crossSection import XSection,XSectionInfo,XSectionList
 import pickle
 
 #Load the particle dictionaries
@@ -205,6 +206,50 @@ class ElementTest(unittest.TestCase):
         el2 = Element(branches=[b1Comp,b2Comp])
         self.assertEqual( el1Comp == el2, True) #Elements should be equal
 
+    def testElementCombine(self):
+        
+        gluino.mass = 500.*GeV
+        st1.mass = 400.*GeV
+        n1.mass = 300.*GeV
+        n2.mass = 300.*GeV
+        n3.mass = 320.*GeV 
+        
+        w1 = XSectionList()
+        w1.xSections.append(XSection())
+        w1.xSections[0].info = XSectionInfo()
+        w1.xSections[0].info.sqrts = 8.*TeV
+        w1.xSections[0].info.label = '8 TeV'
+        w1.xSections[0].info.order = 0
+        w1.xSections[0].value = 10.*fb
+        w2 = w1.copy()
+        w2.xSections[0].value = 22.*fb
+        w3 = w1.copy()
+        w3.xSections[0].value = 2.*fb
+        
+         
+        v0 = Vertex(inParticle=None, outParticles=[gluino])
+        v1 = Vertex(inParticle=gluino, outParticles=[g,n1])
+        v2 = Vertex(inParticle=gluino, outParticles=[g,n2])
+         
+        #Compress one step:
+        #N3 --> N1 + [nue,nue]
+        #gluino --> st_1 + [t+]/st_1 --> N3 + [t+]/N3 --> N1 + [nue,nue]
+        b1 = Branch(vertices=[v0,v1])
+        b2 = Branch(vertices=[v0,v2])
+        el1 = Element(branches=[b1,b1])
+        el1.weight = w1
+        el2 = Element(branches=[b2,b2])
+        el2.weight = w2
+        el3 = Element(branches=[b1,b2])
+        el3.weight = w3
+        print el1.getOddPIDs()
+        print el2.getOddPIDs()
+        el1.combineWith(el2)
+        self.assertEqual(el1.weight[0].value,32.*fb)
+        print el1.getOddPIDs()
+#         self.assertEqual(el1.getOddPIDs(),[[1000021,[1000022,1000023]],[1000021,[1000022,1000023]]])
+        
+                
         
 if __name__ == "__main__":
     unittest.main()

@@ -191,41 +191,48 @@ class Vertex(object):
         
         return newV
     
-    def combinePIDs(self,other):
+    def combineParticles(self,other):
         """
-        Combine the PIDs of both vertices (_pid property of the odd particles).
-        If the PIDs already appear in self,  do not add them to the list.
+        Combine the particles of both vertices 
+        (replaces the particle by a particle list containing its particles 
+        and the particles of other).
+        If the new particles already appear in self,  do not add them to the list.
         
         :parameter other: vertex (Vertex Object) 
         """
-                
-        if len(self.outOdd) != 1 or len(other.outOdd) != 1:
-            logger.warning("Unusual vertex structure. Can not combine PIDs")
-            return
         
-        partsA = [self.inParticle] + self.outParticles
-        partsB = [other.inParticle] + other.outParticles
+        if len(self.outParticles) != len(other.outParticles):
+            logger.error("Error combining elements: number of outParticles differ")
+            raise SModelSError()
+
+        for ip,p in enumerate(self.outParticles):
+            pB = other.outParticles[ip]
+            print p._name,pB._name
+            if pB is p:
+                continue  #Skip if particles are the same object
+            internalIDs = None
+            if hasattr(p,'_internalID') and hasattr(pB,'_internalID'):
+                internalIDs = set(list(p._internalID)+list(pB._internalID))
+            self.outParticles[ip] = ParticleList(particles=[p,pB],internalID=internalIDs)
+
+        if not other.inParticle is self.inParticle:
+            internalIDs = None
+            if hasattr(other.inParticle,'_internalID') and hasattr(self.inParticle,'_internalID'):
+                internalIDs = set(list(other.inParticle._internalID)
+                                  + list(self.inParticle._internalID))            
+            self.inParticle = ParticleList(particles=[self.inParticle,other.inParticle]
+                                           ,internalID=internalIDs)
+
+        #Split outgoing particles into even and odd
+        self.outEven = []
+        self.outOdd = []
+        for p in self.outParticles:
+            if p.zParity == +1:
+                self.outEven.append(p)
+            elif p.zParity == -1:
+                self.outOdd.append(p)
         
-        for ip,pA in enumerate(partsA):            
-            pB = partsB[ip]
-            if not pA or not pB:
-                continue
-            if pA.zParity > 0 or pB.zParity > 0:
-                continue #Skip even particles            
-            if not hasattr(pB,'_pid') or not pB._pid:
-                continue  #PIDs are not defined
-            else:
-                newPIDs = pB._pid
-                if isinstance(newPIDs,int): newPIDs = [newPIDs]
-                if not hasattr(pA,'_pid'): #No previous PID defined
-                    partsA._pid = newPIDs
-                elif isinstance(pA._pid,int): #Only a single PID previously defined
-                    pA._pid = [pA._pid] + newPIDs[:] 
-                elif isinstance(pA._pid,list): #Already contains a list
-                    pA._pid += newPIDs            
-            pA._pid = list(set(pA._pid)) #Removed repeated instances
-            if len(pA._pid) == 1:
-                pA._pid = pA._pid[0]
+        self.sortParticles()
                 
     def getOddPIDs(self):
         """
@@ -236,10 +243,19 @@ class Vertex(object):
                 (e.g. [pidA1,pidA2,..] for a combined vertex) 
         """
         
-        if hasattr(self.outOdd[0], '_pid'):
-            return self.outOdd[0]._pid
-        else:
-            return None                   
+        if isinstance(self.outOdd[0],Particle):            
+            if hasattr(self.outOdd[0], '_pid'):
+                return self.outOdd[0]._pid
+            else:
+                return None
+        elif isinstance(self.outOdd[0],ParticleList): #Combined vertex
+            pids = [p._pid for p in self.outOdd[0].particles if hasattr(p,'_pid')]
+            pids = list(set(pids))
+            if len(pids) == 1:
+                return pids[0]
+            else:
+                return pids 
+            
 
 def createVertexFromStr(vertexStr,particleNameDict):
     """
