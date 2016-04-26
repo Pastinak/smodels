@@ -90,19 +90,16 @@ class Vertex(object):
             return +1
         
         #First check overall number of total, even and odd outgoing particles
-        if len(self.outParticles) != len(other.outParticles):
-            comp = len(self.outParticles) > len(other.outParticles)
-            if comp: return 1
-            else: return -1
-        elif len(self.outEven) != len(other.outEven):
-            comp = len(self.outEven) > len(other.outEven)
-            if comp: return 1
-            else: return -1
-        elif len(self.outOdd) != len(other.outOdd):
-            comp = len(self.outOdd) > len(other.outOdd)
-            if comp: return 1
-            else: return -1
-            
+        cmpOut = cmp(len(self.outParticles),len(other.outParticles))
+        if cmpOut:
+            return cmpOut #Number of total particles do not match
+        cmpEven = cmp(len(self.outEven),len(other.outEven))
+        if cmpEven:
+            return cmpEven #Number of even particles do not match
+        cmpOdd = cmp(len(self.outOdd),len(other.outOdd))
+        if cmpOdd:
+            return cmpOdd #Number of odd particles do not match
+
         #Compare outgoing even particles (irrespective of order)
         evenList = [list(v) for v in itertools.permutations(self.outEven)]
         match = False
@@ -111,9 +108,7 @@ class Vertex(object):
                 match = True
                 break
         if not match:
-            comp = self.outEven > other.outEven
-            if comp: return 1
-            else: return -1
+            return cmp(self.outEven,other.outEven)
         
         #Compare outgoing odd particles (irrespective of order)
         oddList = [list(v) for v in itertools.permutations(self.outOdd)]
@@ -123,15 +118,11 @@ class Vertex(object):
                 match = True
                 break
         if not match:
-            comp = self.outOdd > other.outOdd
-            if comp: return 1
-            else: return -1
+            return cmp(self.outOdd,other.outOdd)
         
         #Compare incoming particle   
         if self.inParticle != other.inParticle:   
-            comp = self.inParticle > other.inParticle
-            if comp: return 1
-            else: return -1  
+            return cmp(self.inParticle,other.inParticle)
                  
         return 0   #Vertices are equal   
     

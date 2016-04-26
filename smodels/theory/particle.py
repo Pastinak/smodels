@@ -52,9 +52,6 @@ class Particle(object):
         if not isinstance(other,ParticleList) and not isinstance(other,Particle):
             return +1
         
-        if isinstance(other,ParticleList):
-            return other.__cmp__(self)
-        
         #Use _internalID, if defined for both particles or particle lists
         if hasattr(self,'_internalID') and self._internalID:
             if hasattr(other,'_internalID') and other._internalID:
@@ -65,6 +62,8 @@ class Particle(object):
                     if comp: return 1
                     else: return -1
 
+        if isinstance(other,ParticleList):
+            return other.__cmp__(self)
         
         if self.zParity != other.zParity:
             comp = self.zParity > other.zParity
@@ -318,5 +317,5 @@ def setInternalID(particlesList):
         matchingIDs = []
         for p in particles:
             if p == pL:
-                matchingIDs.append(p._internalID)
+                matchingIDs += list(p._internalID)
         pL._internalID = set(matchingIDs)

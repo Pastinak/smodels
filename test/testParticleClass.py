@@ -71,20 +71,32 @@ class ParticleTest(unittest.TestCase):
         import smodels.particleDefinitions
         
         plist = smodels.particleDefinitions.MSSM
+        #Set IDs without masses
         setInternalID(plist)
         pNameDict = dict([[p._name,p] for p in plist])
         nue = pNameDict['nue']
         nueC = pNameDict['nue*']
         numu = pNameDict['numu']
-        self.AssertNotEqual(nue._internalID,None)
-        self.AssertEqual(nue._internalID,nueC._internalID)
-        self.AssertEqual(nue._internalID,numu._internalID)
-        self.AssertEqual(nue,numu)
+        em = pNameDict['e-']
+        N1 = pNameDict['N1']
+        N2C = pNameDict['N2*']
+        self.assertEqual(nue._internalID,nueC._internalID)
+        self.assertEqual(nue._internalID,numu._internalID)
+        self.assertEqual(nue,numu)
+        self.assertEqual(N1,N2C)
+        self.assertNotEqual(nue,em)
+        self.assertNotEqual(nue._internalID,None)
+        self.assertNotEqual(nue._internalID,em._internalID)        
+
         
-        
-        
-        
-        
+        #Now add some masses and re-set IDs
+        N1.mass = 100.*GeV
+        N2C.mass = 200.*GeV
+        setInternalID(plist)
+        self.assertNotEqual(N1,N2C)
+        #Set ID by hand and see if comparison works:
+        N2C._internalID = N1._internalID
+        self.assertEqual(N1,N2C)
             
 if __name__ == "__main__":
     unittest.main()

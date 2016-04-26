@@ -68,11 +68,9 @@ class Element(object):
             if branches == other.branches:
                 match = True
                 break
-        #There is at one branch ordering which matches: 
+        #There is no branch ordering which matches: 
         if not match:
-            comp = self.branches > other.branches
-            if comp: return 1
-            else: return -1
+            return cmp(self.branches,other.branches)
         else:
             return 0     
 
