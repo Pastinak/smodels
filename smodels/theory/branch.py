@@ -112,7 +112,7 @@ class Branch(object):
         
         return strR[:-1]
 
-    def copy(self,relevantProp=None):
+    def copy(self):
         """
         Generate an independent copy of self.        
         Faster than deepcopy.
@@ -122,7 +122,7 @@ class Branch(object):
         :returns: Branch object
         """
         
-        newbranch = Branch(vertices = [v.copy(relevantProp) for v in self.vertices])
+        newbranch = Branch(vertices = [v.copy() for v in self.vertices])
         if not self.maxWeight is None:
             newbranch.maxWeight = self.maxWeight.copy()
         return newbranch

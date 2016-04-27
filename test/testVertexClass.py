@@ -59,7 +59,6 @@ class VertexTest(unittest.TestCase):
                                                   particlesDict['mu-'],
                                                   particlesDict['ta-'],outP])
         vC = v.copy()
-        vD = v.copy(relevantProp=['zParity','eCharge'])
         self.assertEqual(v == vstr, True)  #Check that vertices match
         self.assertEqual(vB == vstr, True)  #Check that vertices match
         self.assertEqual(vB == vC, True)  #Check that vertices match
@@ -67,8 +66,6 @@ class VertexTest(unittest.TestCase):
             if p._name != 'mu-': continue
             self.assertEqual(hasattr(p,'mass'), True)  #Mass has been kept
         
-        for p in vD.outEven:
-            self.assertEqual(hasattr(p,'mass'), False)  #Mass has not been kept
         
         
 if __name__ == "__main__":

@@ -13,6 +13,7 @@ from smodels.theory.particle import Particle, ParticleList
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 from smodels.theory.auxiliaryFunctions import stringToList
 import itertools
+import copy
 
 logger = logging.getLogger(__name__)
 
@@ -170,25 +171,18 @@ class Vertex(object):
         
         return True
     
-    def copy(self,relevantProp=None):
+    def copy(self):
         """
-        Generates a copy of the vertex.
-        :param relevantProp: List of the relevant properties to be kept when
-                            copying the particles (e.g. ['_name','mass','eCharge',...]).
-                            If None, keep all properties.
+        Generates a new Vertex objected with the same particles 
+        (the particle objects are not copied);
         :return: copy of itself (Vertex object)
         """
         
-        if self.inParticle:
-            newInParticle = self.inParticle.copy(relevantProp=relevantProp)
-        else:
-            newInParticle = None
-        newOutParticles = [p.copy(relevantProp=relevantProp) for p in self.outParticles]
         
-        newV = Vertex(inParticle=newInParticle, outParticles=newOutParticles)
+        newV = Vertex(inParticle=self.inParticle, outParticles=self.outParticles[:])
         if not self.br is None:
-            newV.br = self.br
-        
+            newV.br = copy.deepcopy(self.br)
+                    
         return newV
     
     def combineParticles(self,other):
@@ -204,24 +198,20 @@ class Vertex(object):
         if len(self.outParticles) != len(other.outParticles):
             logger.error("Error combining elements: number of outParticles differ")
             raise SModelSError()
+        
+        #Make sure vertices are sorted
+        self.sortParticles()
+        other.sortParticles()
 
+        #Combine particles (generate a ParticleList if particles are not the same):
         for ip,p in enumerate(self.outParticles):
-            pB = other.outParticles[ip]
-            print p._name,pB._name
-            if pB is p:
-                continue  #Skip if particles are the same object
-            internalIDs = None
-            if hasattr(p,'_internalID') and hasattr(pB,'_internalID'):
-                internalIDs = set(list(p._internalID)+list(pB._internalID))
-            self.outParticles[ip] = ParticleList(particles=[p,pB],internalID=internalIDs)
-
-        if not other.inParticle is self.inParticle:
-            internalIDs = None
-            if hasattr(other.inParticle,'_internalID') and hasattr(self.inParticle,'_internalID'):
-                internalIDs = set(list(other.inParticle._internalID)
-                                  + list(self.inParticle._internalID))            
-            self.inParticle = ParticleList(particles=[self.inParticle,other.inParticle]
-                                           ,internalID=internalIDs)
+            self.outParticles[ip] = p.combineWith(other.outParticles[ip])
+        
+        if self.inParticle and other.inParticle:
+            self.inParticle = self.inParticle.combineWith(other.inParticle)
+        elif self.inParticle != other.inParticle:
+            logger.error("Both incoming particles should be None.")
+            raise SModelSError()
 
         #Split outgoing particles into even and odd
         self.outEven = []

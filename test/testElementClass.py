@@ -231,23 +231,20 @@ class ElementTest(unittest.TestCase):
         v1 = Vertex(inParticle=gluino, outParticles=[g,n1])
         v2 = Vertex(inParticle=gluino, outParticles=[g,n2])
          
-        #Compress one step:
-        #N3 --> N1 + [nue,nue]
-        #gluino --> st_1 + [t+]/st_1 --> N3 + [t+]/N3 --> N1 + [nue,nue]
         b1 = Branch(vertices=[v0,v1])
         b2 = Branch(vertices=[v0,v2])
-        el1 = Element(branches=[b1,b1])
+        el1 = Element(branches=[b1.copy(),b1.copy()])
         el1.weight = w1
-        el2 = Element(branches=[b2,b2])
+        el2 = Element(branches=[b2.copy(),b2.copy()])
         el2.weight = w2
-        el3 = Element(branches=[b1,b2])
+        el3 = Element(branches=[b1.copy(),b2.copy()])
         el3.weight = w3
-        print el1.getOddPIDs()
-        print el2.getOddPIDs()
         el1.combineWith(el2)
         self.assertEqual(el1.weight[0].value,32.*fb)
-        print el1.getOddPIDs()
-#         self.assertEqual(el1.getOddPIDs(),[[1000021,[1000022,1000023]],[1000021,[1000022,1000023]]])
+        self.assertEqual(el1.getOddPIDs(),[[1000021,[1000022,1000023]],[1000021,[1000022,1000023]]])
+        el1.combineWith(el3)
+        self.assertEqual(el1.weight[0].value,34.*fb)
+        self.assertEqual(el1.getOddPIDs(),[[1000021,[1000022,1000023]],[1000021,[1000022,1000023]]])
         
                 
         

@@ -128,6 +128,27 @@ class Particle(object):
         elif not hasattr(self, label) or getattr(self, label) is None:
             setattr(self, label, value)
             
+            
+    def combineWith(self,other):
+        """
+        Combines the particle with another particle or with a list.
+        If the particles are the same, return self.
+        Otherwise return a particle list
+        :parameter other: a Particle or ParticleList object
+        :return: a Particle or ParticleList object containing other
+        """
+        
+        if isinstance(other,ParticleList):
+            return other.combineWith(self)
+        elif(other,Particle):
+            if other is self:
+                return self
+            else:
+                return ParticleList(particles=[self,other])
+        else:
+            logger.error("Input should be a Particle or ParticleList object.")
+            
+            
     def chargeConjugate(self):
         """
         Returns the charge conjugate particle (flips the sign of eCharge).
@@ -194,7 +215,7 @@ class ParticleList(object):
     It can be used to group particles (e.g. L+ = [e+,mu+,ta+]).
     """
 
-    def __init__(self, particles=[], label=None, internalID=None):
+    def __init__(self, particles, label=None):
         """
         Initializes the particle list. Particles can be a list of Particle objects
         and/or ParticleList objects. For the later all the particles in the ParticleList
@@ -210,6 +231,7 @@ class ParticleList(object):
         """
                 
         self.particles = []
+        internalIDs = []
         for p in particles:
             if isinstance(p,Particle):
                 self.particles.append(p)
@@ -218,6 +240,9 @@ class ParticleList(object):
             else:
                 logger.error("Input must be a list of Particle objs or ParticleList objs")
                 raise SModelSError
+            if hasattr(p,'_internalID'):
+                internalIDs += list(p._internalID)
+
             
         self.particles = sorted(self.particles)
         for p in self.particles:
@@ -230,8 +255,8 @@ class ParticleList(object):
                     setattr(self,key,None)
         
         self._name = label
-        if internalID:
-            self._internalID = internalID
+        if internalIDs:
+            self._internalID = set(internalIDs)
         
     def __str__(self):
         """
@@ -277,6 +302,38 @@ class ParticleList(object):
                 for p in self.particles:
                     if p > other: return +1
                 return -1
+            
+    def combineWith(self,other):
+        """
+        Combines the list with another list or with a particle.
+        If the lists contain exactly the same particles or if the particle
+        to be added already appears in self, return self.
+        :parameter other: a Particle or ParticleList object
+        :return: a ParticleList object containing other
+        """
+        
+        newparticles = []
+        if isinstance(other,Particle):
+            for p in self.particles:
+                if other is p: return self  #Particle already appears in list            
+            newparticles = self.particles[:] + [other] #Include particle in list
+            
+        elif isinstance(other,ParticleList):
+            if len(other.particles) == len(self.particles):
+                for ip,p in self.particles:
+                    if other.particles[ip] is p:
+                        continue
+                    else:
+                        newparticles.append(other.particles[ip])
+        
+            if not newparticles:
+                return self  #Lists are equal
+            else:
+                newparticles += self.particles
+        
+        newparticles = list(set(newparticles))
+        newList = ParticleList(particles=newparticles)
+        return newList
 
 
 def setInternalID(particlesList):

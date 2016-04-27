@@ -97,7 +97,34 @@ class ParticleTest(unittest.TestCase):
         #Set ID by hand and see if comparison works:
         N2C._internalID = N1._internalID
         self.assertEqual(N1,N2C)
+        
+    def testParticleCombine(self):
+        import smodels.particleDefinitions
+        
+        plist = smodels.particleDefinitions.MSSM
+        #Set IDs without masses
+        setInternalID(plist)
+        pNameDict = dict([[p._name,p] for p in plist])
+        nue = pNameDict['nue']
+        numu = pNameDict['numu']
+        em = pNameDict['e-']
+        nue._internalID = set([1])
+        numu._internalID = set([2])
+        em._internalID = set([3])
 
+        newP = nue.combineWith(nue)
+        self.assertEqual(newP is nue,True)
+        self.assertEqual(newP._name,'nue')
+        newP = nue.combineWith(numu)
+        self.assertEqual(newP.eCharge,0)
+        self.assertEqual(isinstance(newP,ParticleList), True)
+        self.assertEqual(newP._name, None)
+        self.assertEqual(newP.particles,sorted([nue,numu]))
+        self.assertEqual(newP._internalID,set([1,2]))
+        newP = newP.combineWith(em)
+        self.assertEqual(isinstance(newP,ParticleList), True)
+        self.assertEqual(newP.particles,sorted([nue,numu,em]))
+        self.assertEqual(newP._internalID,set([1,2,3]))
             
 if __name__ == "__main__":
     unittest.main()
