@@ -328,6 +328,8 @@ def createElementFromStr(elementStr,particleNameDict):
     
     branches = []
     for br in stringToList(elementStr):
-        branches.append(createBranchFromStr(str(br),particleNameDict)) 
+        branches.append(createBranchFromStr(str(br),particleNameDict))
 
-    return Element(branches=branches)
+    el =  Element(branches=branches)
+    el._createdFromStr = elementStr
+    return el

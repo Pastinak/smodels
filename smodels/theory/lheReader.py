@@ -12,7 +12,7 @@
 import logging
 from smodels.theory.auxiliaryFunctions import index_bisect
 from smodels.theory.crossSection import XSectionList, XSection
-from smodels.theory.particle import ParticleList
+from smodels.theory.particle import ParticleList,setInternalID
 from smodels.theory.vertex import Vertex
 from smodels.tools.physicsUnits import TeV, pb, GeV
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
@@ -67,6 +67,8 @@ def getInputData(lhefile, modelParticles):
         xSectionDict[ppair].add(xsec)
     
     particleList = particlesDict.values()
+    #Define internal IDs to the particles to speed up comparison    
+    setInternalID(modelParticles)    
     
     return xSectionDict,particleList
 

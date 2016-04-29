@@ -208,13 +208,9 @@ class TopologyList(object):
         """
                 
         if len(self.topos) != len(other.topos):
-            comp = len(self.topos) > len(other.topos)
-            if comp: return 1
-            else: return -1  
+            return cmp(len(self.topos),len(other.topos))
         else:
-            comp = self.topos > other.topos
-            if comp: return 1
-            else: return -1  
+            return cmp(self.topos,other.topos)
         return 0        
 
     def __len__(self):

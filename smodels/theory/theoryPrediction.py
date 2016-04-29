@@ -8,8 +8,8 @@
 """
 
 from smodels.theory import clusterTools, crossSection, element
-from smodels.theory.particleNames import elementsInStr
-from smodels.theory.auxiliaryFunctions import cSim, cGtr  #DO NOT REMOVE
+from smodels.theory.element import createElementFromStr
+from smodels.theory.auxiliaryFunctions import cSim, cGtr, breakStringExpr  #DO NOT REMOVE
 import logging,sys
 from smodels.tools.physicsUnits import TeV,fb
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
@@ -209,8 +209,8 @@ def _getDataSetPredictions(dataset,smsTopList,maxMassDist):
         theoryPrediction.value = _evalConstraint(cluster)            
         theoryPrediction.conditions = _evalConditions(cluster)
         theoryPrediction.mass = cluster.getAvgMass()
-        theoryPrediction.PIDs = cluster.getPIDs()
-        theoryPrediction.IDs = cluster.getIDs()
+#         theoryPrediction.PIDs = cluster.getPIDs()
+#         theoryPrediction.IDs = cluster.getIDs()
         predictionList._theoryPredictions.append(theoryPrediction)
         
 
@@ -229,17 +229,20 @@ def _getElementsFrom(smsTopList, dataset):
     :parameter smsTopList: list of topologies containing elements (TopologyList object)
     :returns: list of elements (Element objects)    
     """
-    
+
     elements = []
+    if not 'ANA6-CUT3' in dataset.getValuesFor('dataId'): return elements
     for txname in dataset.txnameList:
+        if not txname.txName == 'T1bbbb':continue
         for top in smsTopList:
             itop = txname._topologyList.index(top)  #Check if the topology appear in txname
-            if itop is None: continue   
+            if itop is None: continue
             for el in top.getElements():
+                if not str(el) == '[[[b-,b+]],[[b-,b+]]]':continue                
                 newEl = txname.hasElementAs(el)  #Check if element appears in txname
                 if not newEl: continue
                 el.covered += 1
-                eff = txname.getEfficiencyFor(newEl.getMasses())
+                eff = txname.getEfficiencyFor(newEl.getOddMasses())
                 if not eff: continue
                 newEl.eff = eff
                 newEl.weight *= eff
@@ -303,11 +306,23 @@ def _evalConstraint(cluster):
         txname = cluster.txnames[0]
         if not txname.constraint or txname.constraint == "not yet assigned":
             return txname.constraint
-        exprvalue = _evalExpression(txname.constraint,cluster)
-        return exprvalue
-    else:
-        logger.error("Unknown data type %s" %(str(cluster.getDataType())))
-        raise SModelSError()
+        
+        #Zero txname elements xsecs: 
+        for el in txname._topologyList.getElements():
+            el.weight._zeroXSecs()
+        valsDict = {'cSim': cSim,'cGtr' : cGtr}
+        constraint = txname.constraint     
+        for iel,el in enumerate(txname._topologyList.getElements()):
+            for elB in cluster:
+                if elB == el: el.weight.combineWith(elB.weight)  
+            constraint = constraint.replace(el._createdFromStr,'w'+str(iel))     
+            valsDict['w'+str(iel)] = el.weight
+
+        try:        
+            return eval(constraint,valsDict)
+        except:
+            logger.error("Error evaluating constraint %s" %(txname.constraint))
+            raise SModelSError()
     
 
 def _evalConditions(cluster):
@@ -333,12 +348,22 @@ def _evalConditions(cluster):
             
         # Loop over conditions
         for cond in conditions:
-            exprvalue = _evalExpression(cond,cluster)
-            if type(exprvalue) == type(crossSection.XSectionList()):
-                conditionVals[cond] = exprvalue[0].value
-            else:
-                conditions[cond] = exprvalue
-    
+            #Zero txname elements xsecs: 
+            for el in txname._topologyList.getElements():
+                el.weight._zeroXSecs()
+            valsDict = {'cSim': cSim,'cGtr' : cGtr,'Csim': cSim,'Cgtr' : cGtr}
+            newcond = cond              
+            for iel,el in enumerate(txname._topologyList.getElements()):
+                for elB in cluster:
+                    if elB == el: el.weight.combineWith(elB.weight)  
+                newcond = newcond.replace(el._createdFromStr,'w'+str(iel))     
+                valsDict['w'+str(iel)] = el.weight    
+            try:        
+                conditionVals[cond] =  eval(newcond,valsDict)
+            except:
+                logger.error("Error evaluating condition %s" %(cond))
+                raise SModelSError()            
+     
     if not conditionVals:
         return None
     else:            
@@ -364,7 +389,7 @@ def _evalExpression(stringExpr,cluster):
     infoList = cluster.elements[0].weight.getInfo()    
 #Generate elements appearing in the string expression with zero cross-sections:
     elements = []
-    for elStr in elementsInStr(stringExpr):
+    for elStr in createElementFromStr(stringExpr):
         el = element.Element(elStr)
         el.weight = crossSection.XSectionList(infoList)
         elements.append(el)

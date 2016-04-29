@@ -15,7 +15,6 @@ from smodels.theory import decomposer
 from smodels.theory.theoryPrediction import theoryPredictionsFor
 from smodels.experiment.databaseObj import Database
 from smodels.theory.slhaReader import getInputData
-from smodels.theory.particle import setInternalID
 import pickle
 
 class ExampleTest(unittest.TestCase):        
@@ -27,12 +26,12 @@ class ExampleTest(unittest.TestCase):
         #Load particles
         f = open("particleDefinitions.pcl","rb")
         modelParticles = pickle.load(f)
-        f.close()        
+        f.close()     
         #Path to input file name (either a SLHA or LHE file)
         slhafile = '../inputFiles/slha/lightEWinos.slha'
         xSectionDict,particlesList = getInputData(slhafile,modelParticles)
         #Set internal IDs to identify the particles (improves performance):
-        setInternalID(modelParticles)        
+           
     
         #Set main options for decomposition:
         sigmacut = 0.3 * fb
@@ -57,15 +56,15 @@ class ExampleTest(unittest.TestCase):
             self.assertAlmostEqual(top.getTotalWeight()[0].value.asNumber(fb), 
                                    topweights[itop],4)
 
-        return
+        
         # Load all analyses from database
-        database = Database("./database/")
+        database = Database("./database/",force_load = "txt")
         listOfExpRes = database.getExpResults()
         self.assertEqual(len(listOfExpRes), 4)
-        
+                
         # Compute the theory predictions for each analysis
-        for expResult in listOfExpRes:
-            predictions = theoryPredictionsFor(expResult, smstoplist)
+        for expResult in listOfExpRes[1:2]:
+            predictions = theoryPredictionsFor(expResult, smstoplist, useBestDataset=False)            
             if not predictions: continue
             print('\n',expResult.getValuesFor('id')[0])
             for theoryPrediction in predictions:
@@ -73,13 +72,13 @@ class ExampleTest(unittest.TestCase):
                 datasetID = dataset.getValuesFor('dataId')[0]            
                 mass = theoryPrediction.mass
                 txnames = [str(txname) for txname in theoryPrediction.txnames]
-                PIDs =  theoryPrediction.PIDs         
+#                 PIDs =  theoryPrediction.PIDs         
                 print("------------------------")
                 print("Dataset = ",datasetID)   #Analysis name
                 print("TxNames = ",txnames)   
                 print("Prediction Mass = ",mass)    #Value for average cluster mass (average mass of the elements in cluster)
-                print("Prediction PIDs = ",PIDs)    #Value for average cluster mass (average mass of the elements in cluster)
-                print("Theory Prediction = ",theoryPrediction.value)   #Value for the cluster signal cross-section
+#                 print("Prediction PIDs = ",PIDs)    #Value for average cluster mass (average mass of the elements in cluster)
+                print("Theory Prediction = ",theoryPrediction.value[0].value)   #Value for the cluster signal cross-section
                 print("Condition Violation = ",theoryPrediction.conditions)  #Condition violation values
                   
                 #Get upper limit for the respective prediction:
@@ -90,7 +89,6 @@ class ExampleTest(unittest.TestCase):
                 else: print('weird:',expResult.getValuesFor('dataType'))
                 print("Theory Prediction UL = ",ul)
                 print("R = ",theoryPrediction.value[0].value/ul)
-          
         
 
         

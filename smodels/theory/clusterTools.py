@@ -56,9 +56,9 @@ class ElementCluster(object):
         
         if self.getDataType() == 'efficiencyMap':
             if len(self.elements) > 1: return None
-            else: return self.elements[0].getMasses()
+            else: return self.elements[0].getOddMasses()
         elif self.getDataType() == 'upperLimit':
-            massList = [el.getMasses() for el in self.elements]
+            massList = [el.getOddMasses() for el in self.elements]
             weights = [el.weight.getMaxXsec() / fb for el in self.elements]        
             return massAvg(massList,weights=weights)
 
@@ -319,12 +319,12 @@ def _doCluster(elements, txdata, maxDist):
     posMap = {}
     weightMap = {}
     for iel, el in enumerate(elements):
-        if not el.getMasses() in massMap.values():
-            massMap[iel] = el.getMasses()
+        if not el.getOddMasses() in massMap.values():
+            massMap[iel] = el.getOddMasses()
             posMap[iel] = massPosition(massMap[iel], txdata)
             weightMap[iel] = el.weight.getMaxXsec() / fb
         else:
-            j = massMap.keys()[massMap.values().index(el.getMasses())] 
+            j = massMap.keys()[massMap.values().index(el.getOddMasses())] 
             weightMap[j] += el.weight.getMaxXsec() / fb
 
     # Start with maximal clusters
@@ -393,7 +393,7 @@ def _doCluster(elements, txdata, maxDist):
         cluster = ElementCluster()
         masses = [massMap[iel] for iel in indexCluster]
         for el in elements:
-            if el.getMasses() in masses:
+            if el.getOddMasses() in masses:
                 cluster.elements.append(el)
         clusterList.append(cluster)
 

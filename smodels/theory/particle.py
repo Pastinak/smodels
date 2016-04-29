@@ -107,12 +107,12 @@ class Particle(object):
                             If None, keep all properties.
         :return: copy of itself (Particle object)
         """
-        
+         
         newP = Particle(zParity = self.zParity)
         for key,val in self.__dict__.items():
             if relevantProp is None or key in relevantProp:
                 newP.addProperty(key,val)
-        
+         
         return newP
     
     def addProperty(self,label,value,overwrite=False):

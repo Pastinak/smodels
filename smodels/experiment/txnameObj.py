@@ -19,7 +19,6 @@ from smodels.theory.element import createElementFromStr
 from smodels.theory.topology import TopologyList
 from smodels.experiment.exceptions import SModelSExperimentError as SModelSError
 from smodels.theory.auxiliaryFunctions import _memoize, breakStringExpr
-from smodels.SMparticleDefinitions import SM
 # from scipy.interpolate import griddata
 from scipy.linalg import svd
 import scipy.spatial.qhull as qhull
@@ -27,13 +26,13 @@ import numpy as np
 import unum
 import copy
 import math
+import itertools
 
 FORMAT = '%(levelname)s in %(module)s.%(funcName)s() in %(lineno)s: %(message)s'
 logging.basicConfig(format=FORMAT)
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.ERROR)
 
-SMdict = dict([[p._name,p] for p in SM])
 
 class TxName(object):
     """Holds the information related to one txname in the Txname.txt
@@ -131,19 +130,22 @@ class TxName(object):
     def hasElementAs(self,element):
         """
         Verify if the conditions or constraint in Txname contains the element.
-        Check both branch orderings.
+        Check all branch orderings.
         :param element: Element object        
         :return: A copy of the element on the correct branch ordering appearing
                 in the Txname constraint or condition.
         """
-                
+            
         for el in self._topologyList.getElements():
-            if element.particlesMatch(el,branchOrder=True):
-                return element.copy()
-            else:
-                elementB = element.switchBranches()
-                if elementB.particlesMatch(el,branchOrder=True):
-                    return elementB
+            branchLists = [list(br) for br in itertools.permutations(element.branches)]
+            print 'comp:'
+            print el.branches[0].vertices[1].outEven[0],element.branches[0].vertices[1].outEven[0]            
+            print el.branches[0].vertices[1].outEven[0]._internalID,element.branches[0].vertices[1].outEven[0]._internalID        
+            for branches in branchLists:
+                if branches == el.branches:
+                    newEl = element.copy()
+                    newEl.branches = branches
+                    return newEl
         return False
         
 
