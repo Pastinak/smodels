@@ -45,7 +45,7 @@ class Element(object):
     def __cmp__(self,other):
         """
         Compares the element with other.        
-        The comparison is made based on branches irrespect of branch ordering.
+        The comparison is made based on branches irrespective of branch ordering.
         OBS: The elements and the branches must be sorted in order for the > (<)
         comparison to make sense. 
         :param other:  element to be compared (Element object)
