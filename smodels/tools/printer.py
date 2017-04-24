@@ -19,12 +19,13 @@ from smodels.experiment.expResultObj import ExpResult
 from smodels.experiment.databaseObj import ExpResultList
 from smodels.tools.ioObjects import OutputStatus, ResultList
 from smodels.tools.coverage import UncoveredList, Uncovered
-from smodels.tools.physicsUnits import GeV, fb, TeV
+from smodels.tools.physicsUnits import GeV, pb, fb, TeV
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 from smodels.tools.smodelsLogging import logger
 from collections import OrderedDict
 from xml.dom import minidom
 from xml.etree import ElementTree
+from math import floor, log10
 
 
 
@@ -488,6 +489,11 @@ class TxTPrinter(BasicPrinter):
                 else:
                     output += "No contributions outside the mass grid\n"
             else:
+                #print( "Here comes my missing sms dict\n")
+                #print(str(missing_sms_dict(uncovEntry, obj.missingTopos.sqrts)))
+                #output += "Here comes my missing sms dict\n"
+                #output += str(missing_sms_dict(uncovEntry, obj.missingTopos.sqrts))
+                #print("added dicto to output")
                 for topo in uncovEntry.topos:
                     if topo.value > 0.: continue
                     for el in topo.contributingElements:
@@ -503,8 +509,25 @@ class TxTPrinter(BasicPrinter):
                     if hasattr(self, "addcoverageid") and self.addcoverageid:
                         contributing = []
                         for el in topo.contributingElements:
+                            output += str(el.getPIDs())
+                            output += str([xsec.value.asNumber(pb) for xsec in el.weight.getXsecsFor(obj.missingTopos.sqrts)]) + '\n'
                             contributing.append(el.elID)
-                        output += "Contributing elements %s\n" % str(contributing)            
+
+                        miss_el_dict = missing_elem_dict(topo.contributingElements, obj.missingTopos.sqrts)
+                        for elt in miss_el_dict[:3]:
+                            for k in elt:
+                                output += str(elt['branch'])
+                                #output += str(elt['ELweightPB'])
+                                # output += '\t\t' + str(k) + ": " + str(elt[k]) + '\n'
+
+                        #root = ElementTree.Element('smodelsOutput')
+                        #convertToXMLstyle(miss_el_dict, root))
+
+                        #rough_xml = ElementTree.tostring(root, 'utf-8')
+                        #nice_xml = minidom.parseString(rough_xml).toprettyxml(indent="    ")
+                        #output += nice_xml
+                        #output += str(miss_el_dict)
+                        #output += "Contributing elements %s\n" % str(contributing)            
             output += "================================================================================\n"
         for ix, uncovEntry in enumerate([obj.longCascade, obj.asymmetricBranches]):
             if ix==0: output += "Long cascade decay by produced mothers (up to " + str(nprint) + "):\n"
@@ -515,6 +538,26 @@ class TxTPrinter(BasicPrinter):
                 if hasattr(self, "addcoverageid") and self.addcoverageid:
                     contributing = []
                     for el in ent.contributingElements:
+                        # this is what formatElement does:
+                        # elDic["ID"] = obj.elID
+                        # elDic["Particles"] = str(obj.getParticles())
+                        # elDic["Masses (GeV)"] = [[m.asNumber(GeV) for m in br] for br in obj.getMasses()]
+                        # elDic["PIDs"] = obj.getPIDs()
+                        # elDic["Weights (fb)"] = {}
+                        # sqrts = [info.sqrts for info in obj.weight.getInfo()]
+                        # allsqrts = sorted(list(set(sqrts)))
+                        # for sqrts in allsqrts:
+                        #     xsecs = [xsec.value.asNumber(fb) for xsec in obj.weight.getXsecsFor(sqrts)]
+                        #     if len(xsecs) != 1:
+                        #         logger.warning("Element cross sections contain multiple values for %s .\
+                        #         Only the first cross section will be printed" %str(sqrt))
+                        #     xsecs = xsecs[0]
+                        #     sqrtsStr = 'xsec '+str(sqrts.asNumber(TeV))+' TeV'
+                        #     elDic["Weights (fb)"][sqrtsStr] = xsecs
+                        # return elDic
+
+                        #output += self._formatElement(el) + "\n"
+                        #output += str(el.weight.getXsecsFor(obj.missingTopos.sqrts)[0].value.asNumber(fb))
                         contributing.append(el.elID)
                     output += "Contributing elements %s\n" % str(contributing)
             if ix==0:
@@ -991,3 +1034,218 @@ class XmlPrinter(PyPrinter):
 
         self.toPrint = [None]*len(self.printingOrder)
         return root
+
+
+
+def round_to_sign(x, sig=3):
+    """
+    Round the given number to the significant number of digits.
+    """
+    rounding = sig - int(floor(log10(x))) - 1
+    if rounding == 0:
+        return int(x)
+    else:
+        return round(x, rounding)
+
+
+
+def missing_elem_dict(missing_elements, mistop_sqrts):
+    """
+    """
+    missing_elts = []
+    elementdict = {}
+    for elem in missing_elements:
+        #print("looking at element:", elem.elID)
+        pids = elem.getPIDs()
+        #print("pids are:", pids)
+
+        # We do not keep track of antiparticles:
+        pids_no_minus = str(pids).replace('-', '')
+
+        # Get the cross section * branching ratio:
+        wt = elem.weight.getXsecsFor(mistop_sqrts)[0].value
+        #print("weight is:", wt)
+        # Get the particle names (final state):
+        parts = elem.getParticles()
+        # Get the particle masses:
+        masses = elem.getMasses()
+        # Keep track of only unique particles for each branch.
+        # Again, here the antiparticles are ignored:
+        branches = unique_particles(pids, parts, masses)
+        #print("branches are:", branches)
+
+        # Add weight if it only concerns antiparticles:
+        if pids_no_minus in elementdict:
+            elementdict[pids_no_minus]['ELweightPB'] += wt.asNumber(pb)
+        # Add new element otherwise:
+        else:
+            elt = {'pids': str(pids_no_minus),
+                    'ELweightPB': wt.asNumber(pb),
+                    'branch': branches}
+            elementdict[pids_no_minus] = elt
+    for elt in sorted(elementdict.values(), key=lambda x: x['ELweightPB'], reverse=True):
+        missing_elts.append(elt)
+    return missing_elts
+
+
+def missing_sms_dict(missing_topos, sqrts):
+    """(MissingTopo)-> [list]
+
+    Given a missing topology, which can be quite general
+    in the sense that it only gives a certain final state,
+    return the specific particle IDs and weights of what can
+    be called missing simplified models.
+
+    >>> 
+    """
+        # elDic["ID"] = obj.elID
+        # elDic["Particles"] = str(obj.getParticles())
+        # elDic["Masses (GeV)"] = [[m.asNumber(GeV) for m in br] for br in obj.getMasses()]
+        # elDic["PIDs"] = obj.getPIDs()
+        # elDic["Weights (fb)"] = {}
+        # sqrts = [info.sqrts for info in obj.weight.getInfo()]
+        # allsqrts = sorted(list(set(sqrts)))
+        # for sqrts in allsqrts:
+        #     xsecs = [xsec.value.asNumber(fb) for xsec in obj.weight.getXsecsFor(sqrts)]
+        #     if len(xsecs) != 1:
+        #         logger.warning("Element cross sections contain multiple values for %s .\
+        #         Only the first cross section will be printed" %str(sqrt))
+        #     xsecs = xsecs[0]
+        #     sqrtsStr = 'xsec '+str(sqrts.asNumber(TeV))+' TeV'
+        #     elDic["Weights (fb)"][sqrtsStr] = xsecs
+            #for ent in uncovEntry.getSorted(obj.sqrts)[:nprint]:
+            #    output += "%s %s %10.3E # %s\n" %(ent.motherPIDs[0], ent.motherPIDs[1], ent.getWeight(obj.sqrts).asNumber(fb), str(ent.motherPIDs))
+            #    if hasattr(self, "addcoverageid") and self.addcoverageid:
+            #        contributing = []
+            #        for el in ent.contributingElements:
+    #print("in missing sms dict")
+    #allsqrts = sorted(list(set([info.sqrts for info in missing_topos.weight.getInfo()])))
+    #print("allsqrts", allsqrts)
+    mistop_sqrts = sqrts
+    missing_topo_dict = {'topology': []}
+    #mistop_sqrts = missing_elements.sqrts
+    for mistop in sorted(missing_topos.topos, key=lambda x: x.value, reverse=True):
+        #print("looking at mistop:")
+        #print(mistop.topo)
+        #for mistop in uncovEntry.getSorted(obj.sqrts)[:nprint]:
+        topname = mistop.topo
+
+        topweight = 0
+        for el in mistop.contributingElements:
+            if not el.weight.getXsecsFor(mistop_sqrts): continue
+            topweight += el.weight.getXsecsFor(mistop_sqrts)[0].value.asNumber(pb)
+            #print("looking at element:", el.elID)
+        #print("topweight", topweight)
+        #topweight = mistop.weights.getXsecsFor(mistop_sqrts)[0].value.asNumber(pb)
+        ##topweight = str(mistop.getWeight(obj.sqrts).asNumber(pb))
+        missing = {'name': topname, 'TOPweightPB': topweight, 'sqrts': str(mistop_sqrts)}
+        missing['elem'] = missing_elem_dict(mistop.contributingElements, mistop_sqrts)
+        #missing['elem'] = []
+        #elementdict = {}
+        #for elem in mistop.contributingElements:
+        #    #print("looking at element:", elem.elID)
+        #    pids = elem.getPIDs()
+        #    #print("pids are:", pids)
+
+        #    # We do not keep track of antiparticles:
+        #    pids_no_minus = str(pids).replace('-', '')
+
+        #    # Get the cross section * branching ratio:
+        #    wt = elem.weight.getXsecsFor(mistop_sqrts)[0].value
+        #    #print("weight is:", wt)
+        #    # Get the particle names (final state):
+        #    parts = elem.getParticles()
+        #    # Get the particle masses:
+        #    masses = elem.getMasses()
+        #    # Keep track of only unique particles for each branch.
+        #    # Again, here the antiparticles are ignored:
+        #    branches = unique_particles(pids, parts, masses)
+        #    #print("branches are:", branches)
+
+        #    # Add weight if it only concerns antiparticles:
+        #    if pids_no_minus in elementdict:
+        #        elementdict[pids_no_minus]['ELweightPB'] += wt.asNumber(pb)
+        #    # Add new element otherwise:
+        #    else:
+        #        elt = {'pids': str(pids_no_minus),
+        #                'ELweightPB': wt.asNumber(pb),
+        #                'branch': branches}
+        #        elementdict[pids_no_minus] = elt
+        #for elt in sorted(elementdict.values(), key=lambda x: x['ELweightPB'], reverse=True):
+        #    missing['elem'].append(elt)
+        missing_topo_dict['topology'].append(missing)
+
+    #print("returning missing sms dict")
+    return missing_topo_dict
+
+
+
+
+def unique_particles(pids, final_states, masses):
+    """([int], [str], [unum.Unum]) -> list of dicts
+    Given the masses, final state particles and pids
+    of a certain element, build a dictionary for each
+    branch with the unique particles per mass.
+
+    >>> pids = [[[1000002, 1000024, 1000022], [1000002, 1000024, -1000022]],\
+               [[1000002, 1000024, 1000022], [1000004, 1000024, 1000022]],\
+               [[1000002, 1000024, 1000022], [1000002, 1000024, 1000022]],\
+               [[1000002, 1000024, 1000022], [1000004, 1000024, 1000022]]]
+    >>> masses = [[9.92E+02*GeV, 2.69E+02*GeV, 1.29E+02*GeV], [9.92E+02*GeV,\
+               2.69E+02*GeV, 1.29E+02*GeV]]
+    >>> print(masses)
+    [[9.92E+02 [GeV], 2.69E+02 [GeV], 1.29E+02 [GeV]], [9.92E+02 [GeV], 2.69E+02 [GeV], 1.29E+02 [GeV]]]
+    >>> final_states = [[['q'], ['W+']], [['q'], ['W+']]]
+    >>> unique_particles(pids, final_states, masses)
+    [{'finalstate': [['q'], ['W']], 'particles': [{'massGeV': 992, 'pid':
+        [1000002]}, {'massGeV': 269, 'pid': [1000024]}, {'massGeV': 129, 'pid':
+            [1000022]}]}, {'finalstate': [['q'], ['W']], 'particles':
+                [{'massGeV': 992, 'pid': [1000002, 1000004]}, {'massGeV':  269,
+                    'pid': [1000024]}, {'massGeV': 129, 'pid': [1000022]}]}]
+
+
+    """
+    branches = []
+
+    for branchno in range(len(final_states)):
+        branchname = str(final_states[branchno]).replace('-', '').replace('+', '')
+        particles = []
+        for particlemassno in range(len(masses[branchno])):
+            particlemass = masses[branchno][particlemassno]
+            massGeV = round_to_sign(particlemass.asNumber(GeV), 3)
+            degenerate_particles = []
+            for degenerates in pids:
+                particle = abs(degenerates[branchno][particlemassno])
+                if particle not in degenerate_particles:
+                    degenerate_particles.append(particle)
+            particles.append({'massGeV': massGeV, 'pid':
+                degenerate_particles})
+        branches.append({'finalstate': branchname, 'particle':
+                particles})
+    return branches
+
+def convertToXMLstyle(pyObj,parent,tag=""):
+        """
+        Convert a python object (list,dict,string,...)
+        to a nested XML element tree.
+        :param pyObj: python object (list,dict,string...)
+        :param parent: XML Element parent
+        :param tag: tag for the daughter element
+        """
+
+        tag = tag.replace(" ","_").replace("(","").replace(")","")
+        if not isinstance(pyObj,list) and not isinstance(pyObj,dict):
+            parent.text = str(pyObj).lstrip().rstrip()
+        elif isinstance(pyObj,dict):
+            for key,val in sorted(pyObj.items()):
+                key = key.replace(" ","_").replace("(","").replace(")","")
+                newElement = ElementTree.Element(key)
+                convertToXMLstyle(val,newElement,tag=key)
+                parent.append(newElement)
+        elif isinstance(pyObj,list):
+            parent.tag += '_List'
+            for val in pyObj:
+                newElement = ElementTree.Element(tag)
+                convertToXMLstyle(val,newElement,tag)
+                parent.append(newElement)
+        return parent
