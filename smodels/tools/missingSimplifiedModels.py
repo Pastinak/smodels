@@ -15,8 +15,10 @@ from smodels.tools import tdict
 #from smodels.tools.physicsUnits import GeV
 from physicsUnits import GeV, pb
 from math import floor, log10
-from smodels_utils.helper import txNames
-from smodels_utils.helper import txDecays
+from smodels.tools import txNames
+from smodels.tools import txDecays
+#from smodels_utils.helper import txNames
+#from smodels_utils.helper import txDecays
 from smodels import particles
 
 
