@@ -8,7 +8,7 @@
 .. moduleauthor:: Suchita Kulkarni <suchita.kulkarni@gmail.com>
 
 """
-import sys
+import copy
 from smodels.tools.physicsUnits import fb
 
 class Uncovered(object):
@@ -17,9 +17,16 @@ class Uncovered(object):
     :ivar topoList: sms topology list
     :ivar sumL: if true, sum up electron and muon to lepton, for missing topos
     :ivar sumJet: if true, sum up jets, for missing topos
+    :ivar sqrts: Center of mass energy. If defined it will only consider cross-sections
+                for this value. Otherwise the highest sqrts value will be used.
     """
-    def __init__(self, topoList, sumL=True, sumJet=True):
-        self.sqrts = max([xsec.info.sqrts for xsec in topoList.getTotalWeight()])
+    def __init__(self, topoList, sumL=True, sumJet=True, sqrts=None):
+        
+        
+        if sqrts is None:
+            self.sqrts = max([xsec.info.sqrts for xsec in topoList.getTotalWeight()])
+        else:
+            self.sqrts = sqrts
         self.missingTopos = UncoveredList(sumL, sumJet, self.sqrts)
         self.outsideGrid = UncoveredList(sumL, sumJet, self.sqrts) # FIXME change this to derived objects for printout
         self.longCascade = UncoveredClassifier()
@@ -27,6 +34,8 @@ class Uncovered(object):
         self.motherIDs = []
         self.getAllMothers(topoList)
         self.fill(topoList)
+        self.asymmetricBranches.combine()
+        self.longCascade.combine()
 
     def getAllMothers(self, topoList):
         """
@@ -148,11 +157,38 @@ class UncoveredClassifier(object):
         If no corresponding class in self.classes, add new UncoveredClass
         :ivar el: Element
         """
-        motherPIDs = [abs(pid) for pid in el.getMothers()[0]]
-        motherPIDs.sort()
+        motherPIDs = self.getMotherPIDs(el)
         for entry in self.classes:
             if entry.add(motherPIDs, el): return
         self.classes.append(UncoveredClass(motherPIDs, el))
+
+    def getMotherPIDs(self, el):
+        allPIDs = []
+        for pids in el.getMothers():
+            cPIDs = []
+            for pid in pids:
+              cPIDs.append(abs(pid))
+            cPIDs.sort()
+            if not cPIDs in allPIDs:
+                allPIDs.append(cPIDs)
+        allPIDs.sort()
+        return allPIDs
+
+    def combine(self):
+        for ecopy in copy.deepcopy(self.classes):
+            for e in self.classes:
+                if e.isSubset(ecopy):
+                    e.combine(ecopy)
+                    self.remove(ecopy)
+
+    def remove(self, cl):
+        """
+        Remove element where mother pids match exactly
+        """
+        for i, o in enumerate(self.classes):
+            if o.motherPIDs == cl.motherPIDs:
+                del self.classes[i]
+                break
 
     def getSorted(self,sqrts):
         """
@@ -168,7 +204,7 @@ class UncoveredClass(object):
     :ivar el: Element
     """
     def __init__(self, motherPIDs, el):
-        self.motherPIDs = motherPIDs # holds list of mother PIDs as given by element.getMothers
+        self.motherPIDs = motherPIDs # holds nested list of mother PIDs as given by element.getMothers
         self.contributingElements = [el] # collect all contributing elements, to keep track of weights as well
     def add(self, motherPIDs, el):
         """
@@ -179,6 +215,11 @@ class UncoveredClass(object):
         if not motherPIDs == self.motherPIDs: return False
         self.contributingElements.append(el)
         return True
+
+    def combine(self, other):
+        for el in other.contributingElements:
+            self.contributingElements.append(el)
+
     def getWeight(self, sqrts):
         """
         Calculate weight at sqrts
@@ -191,6 +232,14 @@ class UncoveredClass(object):
             xsec += elxsec[0].value            
         return xsec
 
+    def isSubset(self, other):
+        """
+        True if motherPIDs of others are subset of the motherPIDs of this UncoveredClass
+        """
+        if len(other.motherPIDs) >= len(self.motherPIDs): return False
+        for mothers in other.motherPIDs:
+            if not mothers in self.motherPIDs: return False
+        return True
   
 class UncoveredTopo(object):
     """

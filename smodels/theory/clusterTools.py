@@ -310,11 +310,11 @@ def groupAll(elements):
     allmothers = []
     #Collect the list of all mothers:
     for el in elements:
-        allmothers += [elMom for tp,elMom in el.motherElements]
+        allmothers += [elMom[1].elID for elMom in el.motherElements]
         
     for el in elements:
         #Skip the element if it is a mother of another element in the list
-        if any((elMom is el) for elMom in allmothers):
+        if any((elMom is el.elID) for elMom in allmothers):
             continue
         cluster.elements.append(el) 
     
@@ -370,7 +370,7 @@ def _doCluster(elements, txdata, maxDist):
             posMap[iel] = massPosition(massMap[iel], txdata)
             weightMap[iel] = el.weight.getMaxXsec() / fb
         else:
-            j = massMap.keys()[massMap.values().index(el.getMasses())] 
+            j = list(massMap.keys())[list(massMap.values()).index(el.getMasses())] 
             weightMap[j] += el.weight.getMaxXsec() / fb
 
     # Start with maximal clusters

@@ -18,12 +18,13 @@ def getVersion():
     Obtain the smodels version """
     sys.path.insert(0,"../")
     from smodels import installation
+    # return "1.1.0"
     return installation.version()
 
 dummyRun=False ## True
 version = getVersion()
 dirname = "smodels-v%s" % version
-fastlimdir = "smodels-v%s-fastlim-1.0" % version[:3]
+# fastlimdir = "smodels-v%s-fastlim-1.0" % version[:3]
 
 RED = "\033[31;11m"
 GREEN = "\033[32;11m"
@@ -133,7 +134,7 @@ def rmdir():
     """
     Remove the temporary directories
     """
-    for i in ( dirname, fastlimdir ):
+    for i in ( dirname, ): ## fastlimdir ):
         if os.path.exists(i):
             comment ( "Removing temporary directory %s" % i )
             run ("rm -rf %s" % i )
@@ -193,9 +194,11 @@ def clearGlobalInfo ( filename ):
     f=open(filename)
     lines=f.readlines()
     f.close()
-    g=open("/tmp/globalInfo.txt","w")
-    skip = [ "publishedData", "validated", "axes", "comment", "private", \
+    g=open("/tmp/tmp.txt","w")
+    skip = [ "publishedData", "comment", "private", \
              "prettyName" ]
+    #skip.append ( "validated" )
+    #skip.append ( "axes" )
     for line in lines:
         to_skip = False
         for s in skip:
@@ -204,7 +207,7 @@ def clearGlobalInfo ( filename ):
         if not to_skip:
             g.write ( line )
     g.close()
-    cmd = "cp /tmp/globalInfo.txt %s" % filename
+    cmd = "cp /tmp/tmp.txt %s" % filename
     run ( cmd )
 
 def cleanDatabase():
@@ -229,12 +232,16 @@ def cleanDatabase():
             fullpath = os.path.join ( File, rf )
             if os.path.exists ( fullpath):
                 os.unlink ( fullpath )
-    # clearGlobalInfos ( fullpath )
 
 def clearGlobalInfos( path ):
     walker = os.walk ( path )
     for record in walker:
         File=record[0]
+        # print ( "record=",record )
+        for i in record[2]:
+            if i[0]=="T" and i[-4:]==".txt":        
+                fullpath = os.path.join ( File, i )
+                clearGlobalInfo ( fullpath )
         gIpath = os.path.join ( File, "globalInfo.txt" )
         if os.path.exists ( gIpath ):
             clearGlobalInfo ( gIpath )
@@ -253,9 +260,10 @@ def splitDatabase():
     cmd = "mv ./smodels-fastlim.tgz %s/smodels-v%s-fastlim-1.0.tgz" % \
           ( cwd, version[:3] )
     run ( cmd )
-    clearGlobalInfos ( "%s/smodels-database/" % dirname )
 
-    # sys.exit()
+def clearTxtFiles():
+    clearGlobalInfos ( "%s/smodels-database/" % dirname )
+    clearGlobalInfos ( "./smodels-fastlim/" )
 
 def createTarball():
     """
@@ -348,6 +356,7 @@ def create():
     cleanDatabase() ## clean up database, remove orig, validated
     splitDatabase() ## split database into official and optional
     removeNonValidated() ## remove all non-validated analyses
+    clearTxtFiles() ## now clear up all txt files
     convertRecipes()
     makeDocumentation()
     rmExtraFiles() ## ... remove unneeded files ...
@@ -360,6 +369,7 @@ def create():
     isDummy()
 
 if __name__ == "__main__":
+    # clearGlobalInfos ( "%s/smodels-database/" % dirname )
     # fetchDatabase()
     # cleanDatabase()
     # splitDatabase()

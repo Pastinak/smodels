@@ -24,8 +24,11 @@ import pyslha
 import ast
 import sys
 import time
-from ConfigParser import SafeConfigParser
-from smodels.tools.physicsUnits import GeV, fb
+try:
+    from ConfigParser import SafeConfigParser
+except ImportError as e:
+    from configparser import ConfigParser
+from smodels.tools.physicsUnits import GeV, fb, TeV
 from smodels.experiment.exceptions import DatabaseNotFoundException
 from smodels.experiment.databaseObj import Database, ExpResultList
 from smodels.tools.smodelsLogging import logger
@@ -46,7 +49,7 @@ def testPoint(inputFile, outputDir, parser, databaseVersion, listOfExpRes):
     """Get run parameters and options from the parser"""
     sigmacut = parser.getfloat("parameters", "sigmacut") * fb
     minmassgap = parser.getfloat("parameters", "minmassgap") * GeV
-    inputType = parser.get("options", "inputType").lower()
+    inputType = runtime.filetype ( inputFile )
 
 
     """Setup output printers"""
@@ -60,7 +63,7 @@ def testPoint(inputFile, outputDir, parser, databaseVersion, listOfExpRes):
     """Check input file for errors"""
     inputStatus = ioObjects.FileStatus()
     if parser.getboolean("options", "checkInput"):
-        inputStatus.checkFile(inputType, inputFile, sigmacut)
+        inputStatus.checkFile( inputFile, sigmacut)
     """Initialize output status and exit if there were errors in the input"""
     outputStatus = ioObjects.OutputStatus(inputStatus.status, inputFile,
             dict(parser.items("parameters")), databaseVersion)
@@ -130,7 +133,11 @@ def testPoint(inputFile, outputDir, parser, databaseVersion, listOfExpRes):
 
     if parser.getboolean("options", "testCoverage"):
         """ Testing coverage of model point, add results to the output file """
-        uncovered = coverage.Uncovered(smstoplist)
+        if  parser.has_option("options","coverageSqrts"):
+            sqrts = parser.getfloat("options", "coverageSqrts")*TeV
+        else:
+            sqrts = None
+        uncovered = coverage.Uncovered(smstoplist,sqrts=sqrts)
         masterPrinter.addObj(uncovered)
 
         sms_list = misSMS.missing_sms_dict(uncovered.missingTopos, uncovered.sqrts)['topology']
@@ -169,7 +176,7 @@ def runSingleFile(inputFile, outputDir, parser, databaseVersion, listOfExpRes,
         with timeOut.Timeout(timeout):
             return testPoint(inputFile, outputDir, parser, databaseVersion,
                              listOfExpRes)
-    except Exception,e:
+    except Exception as e:
         crashReportFacility = crashReport.CrashReport()
          
         if development:
@@ -284,12 +291,25 @@ def loadDatabase(parser, db):
         
     """
     try:
-        databasePath = parser.get("path", "databasePath")
+        dp = parser.get ( "path", "databasePath" )
+        logger.error ( "``[path] databasePath'' in ini file is deprecated; " \
+           "use ``[database] path'' instead. (See e.g. etc/parameters_default.ini)" )
+        parser.set ( "database", "path", dp )
+    except Exception as e:
+        ## path.databasePath not set. This is good.
+        pass
+    try:
         database = db
+        # logger.error ( "database=db: %s" % database )
         if database in [ None, True ]:
+            databasePath = parser.get( "database", "path" )
+            discard_zeroes = parser.getboolean( "database", "discardZeroes" )
             force_load=None
             if database == True: force_load="txt"
-            database = Database( databasePath, force_load=force_load)
+            if os.path.isfile ( databasePath ):
+                force_load="pcl"
+            database = Database( databasePath, force_load=force_load, \
+                                 discard_zeroes = discard_zeroes )
         databaseVersion = database.databaseVersion
     except DatabaseNotFoundException:
         logger.error("Database not found in %s" % os.path.realpath(databasePath))
@@ -348,7 +368,10 @@ def getParameters(parameterFile):
     :returns: ConfigParser read from parameterFile
         
     """
-    parser = SafeConfigParser()
+    try:
+        parser = ConfigParser( inline_comment_prefixes=( ';', ) )
+    except Exception as e:
+        parser = SafeConfigParser()
     ret=parser.read(parameterFile)
     if ret == []:
         logger.error ( "No such file or directory: '%s'" % parameterFile )

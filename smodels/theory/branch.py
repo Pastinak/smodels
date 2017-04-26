@@ -8,7 +8,7 @@
 
 import sys
 from smodels.theory.particleNames import simParticles, elementsInStr
-from smodels.tools.physicsUnits import fb
+from smodels.tools.physicsUnits import fb, MeV
 from smodels.particles import rEven, ptcDic
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 from smodels.tools.smodelsLogging import logger
@@ -80,6 +80,7 @@ class Branch(object):
         :return: -1 if self < other, 0 if self == other, +1, if self > other.
         """
         
+        # print ( type ( self.masses[0] ) )
         if self.vertnumb != other.vertnumb:
             comp = self.vertnumb > other.vertnumb
             if comp: return 1
@@ -92,7 +93,7 @@ class Branch(object):
             comp = self.particles > other.particles
             if comp: return 1
             else: return -1
-        elif self.masses != other.masses:
+        elif not self.masses == other.masses:
             comp = self.masses > other.masses
             if comp: return 1
             else: return -1

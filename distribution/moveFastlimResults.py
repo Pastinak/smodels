@@ -8,7 +8,7 @@ import commands
 import sys
 sys.path.insert(0,"." )
 
-from createTarballs import clearGlobalInfos
+# from createTarballs import clearGlobalInfos
 
 fastlimdir = "../../smodels-fastlim"
 
@@ -51,7 +51,7 @@ def isFastlim ( path, dryrun ):
     run ( cmd )
     cmd = "rm -r %s/%s/sms.root" % ( fastlimdir, path )
     run ( cmd )
-    clearGlobalInfos ( fastlimdir )
+    # clearGlobalInfos ( fastlimdir )
 
 def createFastlimTarball():
     cmd = "cd %s; tar czvf ../smodels-fastlim.tgz ./" % fastlimdir
@@ -90,6 +90,15 @@ def moveBibFile ( dryrun ):
     else:
         cmd = "mv %s %s" % ( fastlim_bib, fastlimdir )
         run ( cmd, dryrun )
+        
+def moveReadmeFile ( dryrun ):
+    """ move fastlim-specific README file """
+    fastlim_readme = "README_fastlim"
+    if not os.path.exists ( fastlim_readme ):
+        error ( "%s is missing!" % fastlim_readme )
+    else:
+        cmd = "mv %s %s" % ( fastlim_readme, os.path.join(fastlimdir,'README' ))
+        run ( cmd, dryrun )        
 
 if __name__ == "__main__":
     import argparse
@@ -103,4 +112,6 @@ if __name__ == "__main__":
     mkDirs()
     traverse( args.dryrun )
     moveBibFile ( args.dryrun )
-    createFastlimTarball()
+    moveReadmeFile ( args.dryrun )
+#    createFastlimTarball()
+

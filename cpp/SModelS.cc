@@ -8,7 +8,22 @@ using namespace std;
 // https://docs.python.org/2/extending/embedding.html
 // http://stackoverflow.com/questions/3286448/calling-a-python-method-from-c-c-and-extracting-its-return-value
 
-SModelS::SModelS( const std::string & parameterfile )
+SModelS::SModelS( const string & parameterfile ) 
+{
+  initialize ( parameterfile, "info" );
+}
+
+SModelS::SModelS( const string & parameterfile, const string & verbose )
+{
+  initialize ( parameterfile, verbose );
+}
+
+SModelS::~SModelS ()
+{
+  Py_Finalize();
+}
+
+void SModelS::initialize ( const string & parameterfile, const string & verbose )
 {
   cout << "[smodels.cpp] initialising!" << endl;
   /// initialise python, import modules
@@ -19,17 +34,13 @@ SModelS::SModelS( const std::string & parameterfile )
   PyRun_SimpleString("import time");
   PyRun_SimpleString("t0=time.time()");
   PyRun_SimpleString("import modelTester");
-  PyRun_SimpleString("import smodelsLogging");
-  // PyRun_SimpleString("smodelsLogging.setLogLevel ( \"debug\" ) ");
+  PyRun_SimpleString("from smodelsLogging import setLogLevel");
+	ostringstream set_verbosity;
+	set_verbosity << "setLogLevel ( \"" << verbose << "\" ) ";
+  PyRun_SimpleString( set_verbosity.str().c_str() );
 	// PyObject* myModuleString = PyString_FromString((char*)"modelTester");
 	// PyObject* myModule = PyImport_Import( myModuleString );
   loadDatabase ( parameterfile );
-}
-
-SModelS::~SModelS ()
-{
-  Py_Finalize();
-  cout << "[smodels.cpp] ends!" << endl;
 }
 
 void SModelS::loadDatabase ( const string & parameterfile )
@@ -43,7 +54,7 @@ void SModelS::loadDatabase ( const string & parameterfile )
   PyRun_SimpleString( "print '[smodels.cpp] %d experimental results found.' % len(listOfExpRes) " );
 }
 
-void SModelS::run ( const string & inFile )
+int SModelS::run ( const string & inFile )
 {
   cout << "[smodels.cpp] now running over " << inFile << endl;
 	ostringstream buffer;
@@ -51,4 +62,5 @@ void SModelS::run ( const string & inFile )
   PyRun_SimpleString( buffer.str().c_str() );
   PyRun_SimpleString( "fileList = modelTester.getAllInputFiles( inFile )" );
   PyRun_SimpleString( "modelTester.testPoints( fileList, inFile, 'results', parser, databaseVersion, listOfExpRes, 900, False, parameterFile )" );
+  return 0;
 }

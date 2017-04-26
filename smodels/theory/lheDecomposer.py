@@ -91,7 +91,9 @@ def elementFromEvent(event, weight=None):
     # Create branch list
     finalBranchList = []
     for ip, particle in enumerate(event.particles):
-        if not particle.pdg in smodels.particles.rEven.keys() +  smodels.particles.rOdd.keys():
+        keys = list ( smodels.particles.rEven.keys() ) + \
+               list ( smodels.particles.rOdd.keys() )
+        if not particle.pdg in keys:
             logger.warning("Particle %i not defined in particles.py, events containing this particle will be ignored" %(particle.pdg))
             return None
         
@@ -165,7 +167,7 @@ def _getDictionariesFromEvent(event):
             # Ignore R-even particles and initial state particles
             continue
         ibranch = branches[ip]  # Get particle branch
-        massDic[ibranch][particle.pdg] = particle.mass* GeV
+        massDic[ibranch][particle.pdg] = round(particle.mass,1)* GeV
         # Create empty BRs
         brDic[ibranch][particle.pdg] = [pyslha.Decay(0., 0, [], particle.pdg)]
 

@@ -7,12 +7,10 @@
 """
 
 from __future__ import print_function
-import os, sys
-from ConfigParser import SafeConfigParser
+import os
 from smodels.installation import installDirectory, version
 from smodels.tools import modelTester
 from smodels.tools import crashReport
-import smodels.tools.printer as prt
 from smodels.tools import smodelsLogging
 
 def main( inFile, parameterFile, outputDir, db, timeout, development ):
@@ -75,6 +73,8 @@ if __name__ == "__main__":
             action='store_true')
     ap.add_argument('-t', '--force_txt', help='force loading the text database',
             action='store_true')
+    ap.add_argument('-C', '--colors', help='colored output',
+            action='store_true')
     ap.add_argument('-V', '--version', action='version', version = version() )
     ap.add_argument('-c', '--run-crashreport', 
             help='parse crash report file and use its contents for a SModelS run. '
@@ -90,6 +90,9 @@ if __name__ == "__main__":
     
     
     args = ap.parse_args()
+    if args.colors:
+        from smodels.tools.colors import colors
+        colors.on = True
 
     db=None
     if args.force_txt: db=True
