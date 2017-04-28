@@ -26,7 +26,7 @@ from collections import OrderedDict
 from xml.dom import minidom
 from xml.etree import ElementTree
 from math import floor, log10
-
+from smodels.tools.tdict import tdict
 
 
 class MPrinter(object):
@@ -894,6 +894,15 @@ class PyPrinter(BasicPrinter):
         nprint = 10  # Number of missing topologies to be printed (ordered by cross sections)
 
         missedTopos = []
+        tdict2 = {}
+        
+        for key in tdict: #format dictionary to match 'element' format
+#            print(key)
+            new_key = key.replace(" ","")
+            new_key = key.replace("'","")
+#            print(new_key)
+            tdict2[new_key] = tdict[key]
+#        print(tdict2)
         
         
         for topo in obj.missingTopos.topos:
@@ -907,7 +916,11 @@ class PyPrinter(BasicPrinter):
     
         for topo in obj.missingTopos.topos[:nprint]:
             missed = {'sqrts (TeV)' : obj.sqrts.asNumber(TeV), 'weight (fb)' : topo.value,
-                                'element' : str(topo.topo)}           
+                                'element' : str(topo.topo) }
+            print(topo.topo)
+            if topo.topo in tdict2:
+                print(A)
+                missed["elementname"] = tdict2[topo.topo]
             if hasattr(self,"addelementlist") and self.addelementlist:
                 contributing = []
                 for el in topo.contributingElements:

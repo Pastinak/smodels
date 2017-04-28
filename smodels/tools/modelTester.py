@@ -308,6 +308,7 @@ def loadDatabase(parser, db):
             if database == True: force_load="txt"
             if os.path.isfile ( databasePath ):
                 force_load="pcl"
+           # databasePath_ = '/home/mrowietm/smodels/test/tinydb/' this is a temporary hack, remove if it works without.
             database = Database( databasePath, force_load=force_load, \
                                  discard_zeroes = discard_zeroes )
         databaseVersion = database.databaseVersion
