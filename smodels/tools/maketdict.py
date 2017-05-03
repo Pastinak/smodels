@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 from smodels.theory import element
 from smodels.theory import particleNames
@@ -24,6 +24,8 @@ def make_tdict(smodels_database_path='smodels-database', regenerate_constraints=
             smodels_database_path = smodels_database_path[:-1]
         os.system("grep constraint " + smodels_database_path + "/*/*/*/data/*.txt > " + filename)
 
+    print dir(particleNames)
+    print help(particleNames.elementsInStr)
     d = {}
     f = open(filename, 'r')
     line = f.readline()
@@ -35,7 +37,7 @@ def make_tdict(smodels_database_path='smodels-database', regenerate_constraints=
         finalstates = line.split(':')[-1][:-1].split(' + ')
 
         # Using smodels for parsing string:
-        finalstates = particleNames.elementsInStr(finalstates) #removeQuotes = False)
+        finalstates = particleNames.elementsInStr(finalstates, removeQuotes=False)
 
         print 'smodels finalstates:', finalstates
         for finalstate in finalstates:
