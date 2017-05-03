@@ -9,16 +9,12 @@
 
 """
 
-#from smodels.tools import missingTopologies
 from smodels.tools import tdict
-#import unum
-#from smodels.tools.physicsUnits import GeV
 from physicsUnits import GeV, pb
 from math import floor, log10
 from smodels.tools import txNames
 from smodels.tools import txDecays
-#from smodels_utils.helper import txNames
-#from smodels_utils.helper import txDecays
+from smodels.theory import element
 from smodels import particles
 import ast
 
