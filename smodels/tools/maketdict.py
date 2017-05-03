@@ -40,45 +40,47 @@ def make_tdict(smodels_database_path='smodels-database', regenerate_constraints=
         finalstates = particleNames.elementsInStr(finalstates, removeQuotes=False)
 
         print 'smodels finalstates:', finalstates
+        #for finalstate in finalstates:
+        #    # Some final states in the database are combinations of final states
+        #    # For building a dictionary, make multiple entries, one for each final state
+        #    # a ]+] points at a combination, e.g.:
+        #    # 2.*([[['L'],['L']],[['L'],['nu']]] + [[['L'],['L']],[['nu'],['L']]])
+        #    if ']+[' in finalstate:
+        #        # Remove brackets and so on from finalstate (see example above)
+        #        if '(' in finalstate:
+        #            finalstate_nicelywritten = finalstate[finalstate.index('(') + 1:]
+        #        finalstate_nicelywritten = finalstate_nicelywritten.strip(')')
+        #        finalstates_no_combinations = finalstate_nicelywritten.split(']+[')
+        #        finalstates_no_combinations = [finalstates_no_combinations[0] + ']'] + ['[' + di + ']' for di in finalstates_no_combinations[1:-1]] + ['[' + finalstates_no_combinations[-1]]
+        #        finalstates.remove(finalstate)
+        #        finalstates += finalstates_no_combinations
         for finalstate in finalstates:
-            # Some final states in the database are combinations of final states
-            # For building a dictionary, make multiple entries, one for each final state
-            # a ]+] points at a combination, e.g.:
-            # 2.*([[['L'],['L']],[['L'],['nu']]] + [[['L'],['L']],[['nu'],['L']]])
-            if ']+[' in finalstate:
-                # Remove brackets and so on from finalstate (see example above)
-                if '(' in finalstate:
-                    finalstate_nicelywritten = finalstate[finalstate.index('(') + 1:]
-                finalstate_nicelywritten = finalstate_nicelywritten.strip(')')
-                finalstates_no_combinations = finalstate_nicelywritten.split(']+[')
-                finalstates_no_combinations = [finalstates_no_combinations[0] + ']'] + ['[' + di + ']' for di in finalstates_no_combinations[1:-1]] + ['[' + finalstates_no_combinations[-1]]
-                finalstates.remove(finalstate)
-                finalstates += finalstates_no_combinations
-        for finalstate in finalstates:
-            if '(' in finalstate:
-                # This is still a composit finalstate and/or has a 2*( in front of it or so:
-                finalstate_nicelywritten = finalstate[finalstate.index('(') + 1:]
-            elif '*' in finalstate:
-                # This is still a composit finalstate and/or has a 2*( in front of it or so:
-                finalstate_nicelywritten = finalstate[finalstate.index('*') + 1:]
-            else:
-                finalstate_nicelywritten = finalstate
-            finalstate_nicelywritten = finalstate_nicelywritten.strip(')').strip()
-            finalstate_nicelywritten = finalstate_nicelywritten.replace('-', '').replace('+', '')
+            #if '(' in finalstate:
+            #    # This is still a composit finalstate and/or has a 2*( in front of it or so:
+            #    finalstate_nicelywritten = finalstate[finalstate.index('(') + 1:]
+            #elif '*' in finalstate:
+            #    # This is still a composit finalstate and/or has a 2*( in front of it or so:
+            #    finalstate_nicelywritten = finalstate[finalstate.index('*') + 1:]
+            #else:
+            #    finalstate_nicelywritten = finalstate
+            #finalstate_nicelywritten = finalstate_nicelywritten.strip(')').strip()
+            #finalstate_nicelywritten = finalstate_nicelywritten.replace('-', '').replace('+', '')
 
-            # I still have this problem:
-            # [[['t','t']],[['t','t']]]]
-            if finalstate_nicelywritten.startswith("[[['") and finalstate_nicelywritten.endswith("']]]]"):
-                print "rewriting finalstate", finalstate_nicelywritten
-                finalstate_nicelywritten = finalstate_nicelywritten[:-1]
-            if finalstate_nicelywritten.startswith("[[[['") and finalstate_nicelywritten.endswith("']]]"):
-                print "rewriting finalstate", finalstate_nicelywritten
-                finalstate_nicelywritten = finalstate_nicelywritten[1:]
+            ## I still have this problem:
+            ## [[['t','t']],[['t','t']]]]
+            #if finalstate_nicelywritten.startswith("[[['") and finalstate_nicelywritten.endswith("']]]]"):
+            #    print "rewriting finalstate", finalstate_nicelywritten
+            #    finalstate_nicelywritten = finalstate_nicelywritten[:-1]
+            #if finalstate_nicelywritten.startswith("[[[['") and finalstate_nicelywritten.endswith("']]]"):
+            #    print "rewriting finalstate", finalstate_nicelywritten
+            #    finalstate_nicelywritten = finalstate_nicelywritten[1:]
 
             # Todo: Read out from database as it is done before!
+            # Done
 
             # Now try to sort the finalstate:
-            print finalstate_nicelywritten
+            #print finalstate_nicelywritten
+            finalstate_nicelywritten = finalstate
             el = element.Element(ast.literal_eval(finalstate_nicelywritten))
             el.sortBranches()
             finalstate_sorted = str(el.getParticles())
