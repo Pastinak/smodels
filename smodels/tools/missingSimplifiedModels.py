@@ -20,7 +20,46 @@ from smodels.tools import txDecays
 #from smodels_utils.helper import txNames
 #from smodels_utils.helper import txDecays
 from smodels import particles
+import ast
 
+
+
+def mlsp(smstoplist):
+    """
+    Given an object of type TopologyList (from smodels.theory.topology)
+    return the lightest particle mass.
+
+    >>> from smodels.theory import slhaDecomposer
+    >>> smstoplist = slhaDecomposer.decompose('inputFiles/slha/complicated.slha')
+    >>> elements = smstoplist.getElements()
+    >>> el1 = elements[1]
+    >>> el1.getMasses()
+    [[1.29E+02 [GeV]], [2.69E+02 [GeV], 1.29E+02 [GeV]]]
+    >>> min(el1.getMasses())
+    [1.29E+02 [GeV]]
+    >>> a = []
+    >>> a.extend([mass for mass in masses for masses in el1.getMasses()])
+    >>> a
+    [2.69E+02 [GeV], 2.69E+02 [GeV], 1.29E+02 [GeV], 1.29E+02 [GeV]]
+    >>> a = []
+    >>> a.extend([mass for mass in masses for el in elements for masses in el.getMasses()])
+    >>> list(set(a))
+    [1.29E+02 [GeV], 8.65E+02 [GeV], 2.69E+02 [GeV], 9.91E+02 [GeV]]
+    >>> min(list(set(a)))
+    1.29E+02 [GeV]
+
+    """
+    # Note: instead of going through entire smstoplist, one take the last partice in decay chains
+    # which should always be an lsp
+    # To check if it is really the LSP and not a compressed particle on can get the mother
+    # and whether the particle was actually compressed. Need to check this still.
+    elements = smstoplist.getElements()
+    massesGeV = []
+    massesGev.extend([mass for mass in masses for el in elements for masses in el.getMasses()])
+    if massesGeV == []:
+        return None
+    else:
+        return min(massesGeV)
 
 def round_to_sign(x, sig=3):
     """
@@ -42,9 +81,13 @@ def sms_name(elem):
     decays = txDecays.decays
     #txes = {'T2': 'signature': "[[[jet]],[[jet]]]", 'particles': "[[[1000002, 1000022], [1000021, 1000022]]]"}
     #{'T2': 'signature': "[[[jet]],[[jet]]]", 'particles': "[[[1000002, 1000022], [1000021, 1000022]]]"}
-    if str(finalstate.replace(' ', '')) in tdict.tdict:
+    if str(finalstate).replace(' ', '') in tdict.tdict:
         return tdict.tdict[str(finalstate)]
     else:
+        for finalstatestring in tdict.tdict:
+            el = element.Element(ast.literal_eval(finalstatestring))
+            if el.particlesMatch(elem):
+                return tdict.tdict[finalstatestring]
         return None
 
 

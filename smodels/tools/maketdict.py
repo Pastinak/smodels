@@ -1,6 +1,10 @@
 #!/usr/bin/env python2
 
-def make_tdict(smodels_database_path='../../smodels-database', regenerate_constraints=True, filename="constraints"):
+from smodels.theory import element
+from smodels.theory import particleNames
+import ast
+
+def make_tdict(smodels_database_path='smodels-database', regenerate_constraints=True, filename="constraints"):
     """
     Make a tdictionary with finalstates as strings as keys
     and txnames as values.
@@ -25,36 +29,66 @@ def make_tdict(smodels_database_path='../../smodels-database', regenerate_constr
     line = f.readline()
     double_names = {}
     while line != '':
+        # txname, like T1bbbb:
         tx = line.split(':')[0].split('/')[-1][:-4]
-        dinges = line.split(':')[-1][:-1].split(' + ')
-        for ding in dinges:
-            if ']+[' in ding:
-                #print "ding", ding
-                if '(' in ding:
-                    din = ding[ding.index('(') + 1:]
-                din = din.strip(')')
-                nieuwedingen = din.split(']+[')
-                nieuwedingen = [nieuwedingen[0] + ']'] + ['[' + di + ']' for di in nieuwedingen[1:-1]] + ['[' + nieuwedingen[-1]]
-                dinges.remove(ding)
-                dinges += nieuwedingen
-        for ding in dinges:
-            if '(' in ding:
-                din = ding[ding.index('(') + 1:]
-            elif '*' in ding:
-                din = ding[ding.index('*') + 1:]
+        # There may be more than one final state written on one line separated by +
+        finalstates = line.split(':')[-1][:-1].split(' + ')
+
+        # Using smodels for parsing string:
+        finalstates = particleNames.elementsInStr(finalstates) #removeQuotes = False)
+
+        print 'smodels finalstates:', finalstates
+        for finalstate in finalstates:
+            # Some final states in the database are combinations of final states
+            # For building a dictionary, make multiple entries, one for each final state
+            # a ]+] points at a combination, e.g.:
+            # 2.*([[['L'],['L']],[['L'],['nu']]] + [[['L'],['L']],[['nu'],['L']]])
+            if ']+[' in finalstate:
+                # Remove brackets and so on from finalstate (see example above)
+                if '(' in finalstate:
+                    finalstate_nicelywritten = finalstate[finalstate.index('(') + 1:]
+                finalstate_nicelywritten = finalstate_nicelywritten.strip(')')
+                finalstates_no_combinations = finalstate_nicelywritten.split(']+[')
+                finalstates_no_combinations = [finalstates_no_combinations[0] + ']'] + ['[' + di + ']' for di in finalstates_no_combinations[1:-1]] + ['[' + finalstates_no_combinations[-1]]
+                finalstates.remove(finalstate)
+                finalstates += finalstates_no_combinations
+        for finalstate in finalstates:
+            if '(' in finalstate:
+                # This is still a composit finalstate and/or has a 2*( in front of it or so:
+                finalstate_nicelywritten = finalstate[finalstate.index('(') + 1:]
+            elif '*' in finalstate:
+                # This is still a composit finalstate and/or has a 2*( in front of it or so:
+                finalstate_nicelywritten = finalstate[finalstate.index('*') + 1:]
             else:
-                din = ding
-            din = din.strip(')').strip()
-            if din in d and d[din] != tx:
-                #print 'din already in dictionary! this one:', din
-                #print 'topology name was: ', d[din], 'is:', tx
-                if d[din] not in double_names:
-                    double_names[d[din]] = tx
+                finalstate_nicelywritten = finalstate
+            finalstate_nicelywritten = finalstate_nicelywritten.strip(')').strip()
+            finalstate_nicelywritten = finalstate_nicelywritten.replace('-', '').replace('+', '')
+
+            # I still have this problem:
+            # [[['t','t']],[['t','t']]]]
+            if finalstate_nicelywritten.startswith("[[['") and finalstate_nicelywritten.endswith("']]]]"):
+                print "rewriting finalstate", finalstate_nicelywritten
+                finalstate_nicelywritten = finalstate_nicelywritten[:-1]
+            if finalstate_nicelywritten.startswith("[[[['") and finalstate_nicelywritten.endswith("']]]"):
+                print "rewriting finalstate", finalstate_nicelywritten
+                finalstate_nicelywritten = finalstate_nicelywritten[1:]
+
+            # Todo: Read out from database as it is done before!
+
+            # Now try to sort the finalstate:
+            print finalstate_nicelywritten
+            el = element.Element(ast.literal_eval(finalstate_nicelywritten))
+            el.sortBranches()
+            finalstate_sorted = str(el.getParticles())
+
+            if finalstate_sorted in d and d[finalstate_sorted] != tx:
+                if d[finalstate_sorted] not in double_names:
+                    double_names[d[finalstate_sorted]] = tx
                 elif tx not in double_names:
-                    double_names[tx] = d[din]
+                    double_names[tx] = d[finalstate_sorted]
                 else:
-                    print 'not adding double name', d[din], tx
-            d[din] = tx
+                    print 'not adding double name', d[finalstate_sorted], tx
+            d[finalstate_sorted] = tx
         line = f.readline()
 
     return d, double_names
@@ -73,7 +107,7 @@ if __name__ == "__main__":
     for k in d:
         if 'W' in k and 'b' in k:
             print k, d[k]
-    tdictwrite = open("tdict.py", "w")
+    tdictwrite = open("smodels/tools/tdict.py", "w")
     tdictwrite.write("tdict = " + str(d) + '\n\n')
     tdictwrite.write("double_names = " + str(double_names) + '\n')
     tdictwrite.close()
