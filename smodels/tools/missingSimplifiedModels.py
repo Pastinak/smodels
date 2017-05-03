@@ -89,8 +89,9 @@ def sms_name(elem):
     decays = txDecays.decays
     #txes = {'T2': 'signature': "[[[jet]],[[jet]]]", 'particles': "[[[1000002, 1000022], [1000021, 1000022]]]"}
     #{'T2': 'signature': "[[[jet]],[[jet]]]", 'particles': "[[[1000002, 1000022], [1000021, 1000022]]]"}
-    if str(finalstate).replace(' ', '') in tdict.tdict:
-        return tdict.tdict[str(finalstate)]
+    fs = str(finalstate).replace(' ', '')
+    if fs in tdict.tdict:
+        return tdict.tdict[fs]
     else:
         for finalstatestring in tdict.tdict:
             el = element.Element(finalstatestring)

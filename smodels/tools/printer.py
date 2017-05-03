@@ -919,7 +919,7 @@ class PyPrinter(BasicPrinter):
                                 'element' : str(topo.topo) }
             print(topo.topo)
             if topo.topo in tdict2:
-                print(A)
+                #print(A)
                 missed["elementname"] = tdict2[topo.topo]
             if hasattr(self,"addelementlist") and self.addelementlist:
                 contributing = []
