@@ -41,7 +41,10 @@ def make_tdict(smodels_database_path='smodels-database', regenerate_constraints=
 
         for finalstate in finalstates:
             el = element.Element(ast.literal_eval(finalstate))
-            el.sortBranches()
+            #print el.getParticles()
+            #print finalstate
+            #print el.sortBranches()
+            #print el.getParticles()
             finalstate_sorted = str(el.getParticles())
 
             if finalstate_sorted in d and d[finalstate_sorted] != tx:
@@ -51,7 +54,8 @@ def make_tdict(smodels_database_path='smodels-database', regenerate_constraints=
                     double_names[tx] = d[finalstate_sorted]
                 else:
                     print 'not adding double name', d[finalstate_sorted], tx
-            d[finalstate_sorted] = tx
+            # d[finalstate_sorted] = tx #not working
+            d[finalstate] = tx
         line = f.readline()
 
     return d, double_names
