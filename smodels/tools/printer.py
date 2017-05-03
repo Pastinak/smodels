@@ -916,15 +916,10 @@ class PyPrinter(BasicPrinter):
                                         reverse=True)        
     
         for topo in obj.missingTopos.topos[:nprint]:
-           # print("A")
-           # print(sms_name(topo.contributingElements[0]))
-           # print("B")
+
             missed = {'sqrts (TeV)' : obj.sqrts.asNumber(TeV), 'weight (fb)' : topo.value,
                                 'element' : str(topo.topo) , 'topology designation' : sms_name(topo.contributingElements[0])}
-            #missed["elementname"] = sms_name(topo.topo)
-           # print("C")
-            
-            
+
             if hasattr(self,"addelementlist") and self.addelementlist:
                 contributing = []
                 for el in topo.contributingElements:

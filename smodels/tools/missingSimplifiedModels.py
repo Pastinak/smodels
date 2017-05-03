@@ -9,16 +9,12 @@
 
 """
 
-#from smodels.tools import missingTopologies
 from smodels.tools import tdict
-#import unum
-#from smodels.tools.physicsUnits import GeV
 from physicsUnits import GeV, pb
 from math import floor, log10
 from smodels.tools import txNames
 from smodels.tools import txDecays
-#from smodels_utils.helper import txNames
-#from smodels_utils.helper import txDecays
+from smodels.theory import element
 from smodels import particles
 from smodels.theory import element
 import ast
@@ -74,6 +70,18 @@ def round_to_sign(x, sig=3):
 
 def sms_name(elem):
     """
+    Return sms name from tdict given the element from which a final state can be extracted.
+    >>> el = element.Element("[[['t'],['W']],[['t'],['W']]]")
+    >>> print el
+    [[[t],[W]],[[t],[W]]]
+    >>> el2 = element.Element("[[['t'],['W']],[['W'],['t']]]")
+    >>> print el2
+    [[[t],[W]],[[W],[t]]]
+    >>> el.particlesMatch(el)
+    True
+    >>> el2.sortBranches()
+    >>> print el2
+    [[[W],[t]],[[t],[W]]]
     """
     tx = txNames.getTx(elem)
     finalstate = elem.getParticles()
@@ -81,12 +89,16 @@ def sms_name(elem):
     decays = txDecays.decays
     #txes = {'T2': 'signature': "[[[jet]],[[jet]]]", 'particles': "[[[1000002, 1000022], [1000021, 1000022]]]"}
     #{'T2': 'signature': "[[[jet]],[[jet]]]", 'particles': "[[[1000002, 1000022], [1000021, 1000022]]]"}
-    if str(finalstate).replace(' ', '') in tdict.tdict:
-        return tdict.tdict[str(finalstate).replace(' ','')]
+
+    fs = str(finalstate).replace(' ', '')
+    if fs in tdict.tdict:
+        return tdict.tdict[fs]
     else:
         for finalstatestring in tdict.tdict:
             el = element.Element(finalstatestring)
+            # Need literal eval or not? See examples above.
             if el.particlesMatch(elem):
+                # Check: is this working?
                 return tdict.tdict[finalstatestring]
         return None
 
