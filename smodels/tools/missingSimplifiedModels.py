@@ -20,6 +20,7 @@ from smodels.tools import txDecays
 #from smodels_utils.helper import txNames
 #from smodels_utils.helper import txDecays
 from smodels import particles
+from smodels.theory import element
 import ast
 
 
@@ -74,7 +75,6 @@ def round_to_sign(x, sig=3):
 def sms_name(elem):
     """
     """
-
     tx = txNames.getTx(elem)
     finalstate = elem.getParticles()
     #print(tx, pids, parts)
@@ -82,10 +82,10 @@ def sms_name(elem):
     #txes = {'T2': 'signature': "[[[jet]],[[jet]]]", 'particles': "[[[1000002, 1000022], [1000021, 1000022]]]"}
     #{'T2': 'signature': "[[[jet]],[[jet]]]", 'particles': "[[[1000002, 1000022], [1000021, 1000022]]]"}
     if str(finalstate).replace(' ', '') in tdict.tdict:
-        return tdict.tdict[str(finalstate)]
+        return tdict.tdict[str(finalstate).replace(' ','')]
     else:
         for finalstatestring in tdict.tdict:
-            el = element.Element(ast.literal_eval(finalstatestring))
+            el = element.Element(finalstatestring)
             if el.particlesMatch(elem):
                 return tdict.tdict[finalstatestring]
         return None
