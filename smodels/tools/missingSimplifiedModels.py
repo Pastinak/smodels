@@ -73,6 +73,18 @@ def round_to_sign(x, sig=3):
 
 def sms_name(elem):
     """
+    Return sms name from tdict given the element from which a final state can be extracted.
+    >>> el = element.Element("[[['t'],['W']],[['t'],['W']]]")
+    >>> print el
+    [[[t],[W]],[[t],[W]]]
+    >>> el2 = element.Element("[[['t'],['W']],[['W'],['t']]]")
+    >>> print el2
+    [[[t],[W]],[[W],[t]]]
+    >>> el.particlesMatch(el)
+    True
+    >>> el2.sortBranches()
+    >>> print el2
+    [[[W],[t]],[[t],[W]]]
     """
 
     tx = txNames.getTx(elem)
@@ -85,8 +97,10 @@ def sms_name(elem):
         return tdict.tdict[str(finalstate)]
     else:
         for finalstatestring in tdict.tdict:
-            el = element.Element(ast.literal_eval(finalstatestring))
+            el = element.Element(finalstatestring)
+            # Need literal eval or not? See examples above.
             if el.particlesMatch(elem):
+                # Check: is this working?
                 return tdict.tdict[finalstatestring]
         return None
 
