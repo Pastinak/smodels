@@ -16,8 +16,6 @@ from smodels.tools import txNames
 from smodels.tools import txDecays
 from smodels.theory import element
 from smodels import particles
-from smodels.theory import element
-import ast
 
 
 
@@ -83,10 +81,11 @@ def sms_name(elem):
     >>> print el2
     [[[W],[t]],[[t],[W]]]
     """
-    tx = txNames.getTx(elem)
+
+    #tx = txNames.getTx(elem)
     finalstate = elem.getParticles()
     #print(tx, pids, parts)
-    decays = txDecays.decays
+    #decays = txDecays.decays
     #txes = {'T2': 'signature': "[[[jet]],[[jet]]]", 'particles': "[[[1000002, 1000022], [1000021, 1000022]]]"}
     #{'T2': 'signature': "[[[jet]],[[jet]]]", 'particles': "[[[1000002, 1000022], [1000021, 1000022]]]"}
 
@@ -144,7 +143,7 @@ def missing_elem_list(missing_elements, mistop_sqrts):
     return missing_elts
 
 
-def missing_sms_dict(missing_topos, sqrts):
+def missing_sms_dict(missing_topos, sqrts, nprint=10):
     """(MissingTopos)-> [list]
 
     Given a missing topology, which can be quite general
@@ -156,11 +155,7 @@ def missing_sms_dict(missing_topos, sqrts):
     """
     mistop_sqrts = sqrts
     missing_topo_dict = {'topology': []}
-    #missing_topos = {uncovered.missingTopos.topos: 'missing'}
-    #missing_topos.update({uncovered.outsideGrid.topos: 'outsideGrid'})
-    # missing_topos.update({uncovered.longCascade.topos: 'longCascade'})
-    # missing_topos.update({uncovered.asymmetricBranches.topos: 'asymmetricBranches'})
-    for mistop in sorted(missing_topos.topos, key=lambda x: x.value, reverse=True):
+    for mistop in sorted(missing_topos.topos, key=lambda x: x.value, reverse=True)[:nprint]:
         topname = mistop.topo
 
         topweight = 0
@@ -172,61 +167,7 @@ def missing_sms_dict(missing_topos, sqrts):
         missing_topo_dict['topology'].append(missing)
 
     missing_topo_dict['topology'].sort(key=lambda x: x['TOPweightPB'], reverse=True)
-    #print("returning missing sms dict")
     return missing_topo_dict
-
-
-
-#def missing_sms_dict(missing_topos):
-#    """(MissingTopo)-> [list]
-#
-#    Given a missing topology, which can be quite general
-#    in the sense that it only gives a certain final state,
-#    return the specific particle IDs and weights of what can
-#    be called missing simplified models.
-#
-#    >>> 
-#    """
-#    missing_topo_dict = {'topology': []}
-#    mistop_sqrts = missing_topos.sqrts
-#    for mistop in sorted(missing_topos.topos, key=lambda x: x.value, reverse=True):
-#        topname = mistop.topo
-#        topweight = mistop.weights.getXsecsFor(mistop_sqrts)[0].value.asNumber(pb)
-#        missing = {'name': topname, 'TOPweightPB': topweight, 'sqrts': str(mistop_sqrts)}
-#        missing['elem'] = []
-#        elementdict = {}
-#        for elem in mistop.contributingElements:
-#            pids = elem.getPIDs()
-#
-#            # We do not keep track of antiparticles:
-#            pids_no_minus = str(pids).replace('-', '')
-#
-#            # Get the cross section * branching ratio:
-#            wt = elem.weight.getXsecsFor(mistop_sqrts)[0].value
-#            # Get the particle names (final state):
-#            parts = elem.getParticles()
-#            # Get the particle masses:
-#            masses = elem.getMasses()
-#            # Keep track of only unique particles for each branch.
-#            # Again, here the antiparticles are ignored:
-#            branches = unique_particles(pids, parts, masses)
-#
-#            # Add weight if it only concerns antiparticles:
-#            if pids_no_minus in elementdict:
-#                elementdict[pids_no_minus]['ELweightPB'] += wt.asNumber(pb)
-#            # Add new element otherwise:
-#            else:
-#                elt = {'pids': str(pids_no_minus),
-#                        'ELweightPB': wt.asNumber(pb),
-#                        'branch': branches}
-#                elementdict[pids_no_minus] = elt
-#        for elt in sorted(elementdict.values(), key=lambda x: x['ELweightPB'], reverse=True):
-#            missing['elem'].append(elt)
-#        missing_topo_dict['topology'].append(missing)
-#
-#    return missing_topo_dict
-
-
 
 
 def unique_particles(pids, final_states, masses):
@@ -270,7 +211,7 @@ def unique_particles(pids, final_states, masses):
             particles.append({'massGeV': massGeV, 'pid':
                 degenerate_particles})
         branches.append({'finalstate': branchname, 'particle':
-                particles})
+            particles})
     return branches
 
 

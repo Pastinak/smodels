@@ -140,22 +140,8 @@ def testPoint(inputFile, outputDir, parser, databaseVersion, listOfExpRes):
         uncovered = coverage.Uncovered(smstoplist,sqrts=sqrts)
         masterPrinter.addObj(uncovered)
 
-        sms_list = misSMS.missing_sms_dict(uncovered.missingTopos, uncovered.sqrts)['topology']
         print(inputFile)
-        #d_slha = pyslha.readSLHA(inputFile)
-        
-        for top in sms_list[:1]:
-            top_name = 'dummy'
-            print("Here comes my sms")
-            print(top)
-            for sms in top['elem'][:1]:
-                print('produce 1:', sms['branch'][0]['particle'][0]['pid'])
-                print('produce 2:', sms['branch'][1]['particle'][0]['pid'])
-                print('decay 1:', sms['branch'][0]['particle'][1]['pid'], ast.literal_eval(sms['branch'][0]['finalstate'])[0])
 
-
-                #proc_card = write_proc_card(sms)
-                #slha_sms = write_slha(sms)
     return masterPrinter.flush()
 
 def runSingleFile(inputFile, outputDir, parser, databaseVersion, listOfExpRes,
