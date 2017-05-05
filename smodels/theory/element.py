@@ -6,12 +6,10 @@
     
 """
 
-from smodels.theory.particleNames import elementsInStr
 from smodels.theory.branch import Branch
 from smodels.theory import crossSection
-from smodels.particles import rEven, ptcDic
-from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 from smodels.tools.smodelsLogging import logger
+from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 
 class Element(object):
     """
@@ -34,39 +32,34 @@ class Element(object):
         :parameter info: string describing the element in bracket notation
                          (e.g. [[[e+],[jet]],[[e-],[jet]]])
         """
-        self.branches = [Branch(), Branch()]
+        self.branches = []
         self.weight = crossSection.XSectionList()
         self.motherElements = []
         self.elID = 0
         self.covered = False
         self.tested = False
                 
-        if info:
-            # Create element from particle string
-            if type(info) == type(str()):
-                elements = elementsInStr(info)
-                if not elements or len(elements) > 1:
-                    nel = 0
-                    if elements:
-                        nel = len(elements)
-                    logger.error("Malformed input string. Number of elements "
-                                  "is %d (expected 1) in: ``%s''", nel, info)
-                    return None
-                else:
-                    el = elements[0]
-                    branches = elementsInStr(el[1:-1])
-                    if not branches or len(branches) != 2:
-                        logger.error("Malformed input string. Number of "
-                                      "branches is %d (expected 2) in: ``%s''",
-                                      len(branches), info)
-                        return None
-                    self.branches = []                    
-                    for branch in branches:
-                        self.branches.append(Branch(branch))
-            # Create element from branch pair
-            elif type(info) == type([]) and type(info[0]) == type(Branch()):
-                for ib, branch in enumerate(info):
-                    self.branches[ib] = branch.copy()
+        if isinstance(info,str):
+            self.fromString(info)
+        elif isinstance(info,list):
+            if all([isinstance(b,str) for b in info]):
+                self.branches = info
+        elif info:
+            logger.error("Invalid argument type: %s" %type(info))
+            raise SModelSError()
+            
+        self.sortBranches()
+            
+            
+    def fromString(self,elementStr):
+        """
+        Creates an element from the the element string
+        
+        :param elementStr: string representing an element in bracket notation
+        """
+        
+        branchStrings = elementStr[elementStr.find('['):elementStr.rfind(']')].split(',')
+        self.branchs = [Branch(bStr) for bStr in branchStrings]
         
     
     def __cmp__(self,other):
@@ -98,11 +91,11 @@ class Element(object):
 
     def __str__(self):
         """
-        Create the element bracket notation string, e.g. [[[jet]],[[jet]].
+        Create the element bracket notation string, e.g. [[[jet,MET]],[[jet,MET]].
         
         :returns: string representation of the element (in bracket notation)    
         """
-        particleString = str(self.getParticles()).replace(" ", "").\
+        particleString = str(self.getFinalStates()).replace(" ", "").\
                 replace("'", "")
         return particleString
     
@@ -115,46 +108,9 @@ class Element(object):
         #First make sure each branch is individually sorted 
         #(particles in each vertex are sorted)
         for br in self.branches:
-            br.sortParticles()
+            br.sortVertices()
         #Now sort branches
         self.branches = sorted(self.branches)
-
-
-    def particlesMatch(self, other, branchOrder=False):
-        """
-        Compare two Elements for matching particles only.
-        Allow for inclusive particle labels (such as the ones defined in particles.py).
-        If branchOrder = False, check both branch orderings.
-        
-        :parameter other: element to be compared (Element object)
-        :parameter branchOrder: If False, check both orderings, otherwise
-                                check the same branch ordering
-        :returns: True, if particles match; False, else;        
-        """
-        
-        
-        if type(self) != type(other):
-            return False
-        
-        if len(self.branches) != len(other.branches):
-            return False
-
-        #Check if particles inside each branch match in the correct order
-        branchMatches = []
-        for ib,br in enumerate(self.branches):
-            branchMatches.append(br.particlesMatch(other.branches[ib]))
-        if sum(branchMatches) == 2:
-                return True
-        elif branchOrder:
-            return False
-        else:       
-        #Now check for opposite order
-            for ib,br in enumerate(self.switchBranches().branches):
-                if not br.particlesMatch(other.branches[ib]):
-                    return False
-
-            return True
-
 
     def copy(self):
         """
@@ -172,37 +128,6 @@ class Element(object):
         newel.elID = self.elID
         return newel
 
-
-    def setMasses(self, mass, sameOrder=True, opposOrder=False):
-        """
-        Set the element masses to the input mass array.
-        
-        
-        :parameter mass: list of masses ([[masses for branch1],[masses for branch2]])
-        :parameter sameOrder: if True, set the masses to the same branch ordering
-                              If True and opposOrder=True, set the masses to the
-                              smaller of the two orderings.
-        :parameter opposOrder: if True, set the masses to the opposite branch ordering.
-                               If True and sameOrder=True, set the masses to the
-                               smaller of the two orderings.             
-        """
-        if sameOrder and opposOrder:
-            newmass = sorted(mass)
-        elif sameOrder:
-            newmass = mass
-        elif opposOrder:
-            newmass = [mass[1], mass[0]]
-        else:
-            logger.error("Called with no possible ordering")            
-            raise SModelSError()
-        if len(newmass) != len(self.branches):
-            logger.error("Called with wrong number of mass branches")
-            raise SModelSError()
-
-        for i, mass in enumerate(newmass):
-            self.branches[i].masses = mass[:]
-
-
     def switchBranches(self):
         """
         Switch branches, if the element contains a pair of them.
@@ -215,129 +140,84 @@ class Element(object):
             newEl.branches = [newEl.branches[1], newEl.branches[0]]
         return newEl
 
-
     def getParticles(self):
         """
-        Get the array of particles in the element.
+        Get the array of all particles appearing in the element.
         
-        :returns: list of particle strings                
+        :returns: nested list of particle objects            
         """
         
-        ptcarray = []
+        finalStates = []
         for branch in self.branches:
-            ptcarray.append(branch.particles)
-        return ptcarray
+            finalStates.append(branch.getParticles())
+        return finalStates
 
 
-    def getMasses(self):
+
+    def getFinalStates(self):
         """
-        Get the array of masses in the element.    
+        Get the array of particles appearing as a final state in the element.
         
-        :returns: list of masses (mass array)            
+        :returns: nested list of particle objects            
+        """
+        
+        finalStates = []
+        for branch in self.branches:
+            finalStates.append(branch.getFinalStates())
+        return finalStates
+    
+    def getOddStates(self):
+        """
+        Get the array of odd particle objects appearing in the element.
+        
+        :returns: nested list of particle objects                
+        """
+        
+        oddStates = []
+        for branch in self.branches:
+            oddStates.append(branch.getOddStates())
+        return oddStates
+
+    def getEvenStates(self):
+        """
+        Get the array of even particle objects appearing in the element.
+        
+        :returns: nested list of particle objects                
+        """
+        
+        evenStates = []
+        for branch in self.branches:
+            evenStates.append(branch.getEvenStates())
+        return evenStates
+
+
+    def getOddMasses(self):
+        """
+        Get the array of masses for the odd particles appearing in the element.    
+        
+        :returns: nested list of masses (mass array)            
         """
         massarray = []
         for branch in self.branches:
-            massarray.append(branch.masses)
+            massarray.append(branch.getOddMasses())
         return massarray
 
-    def getPIDs(self):
+    def getOddPIDs(self):
         """
-        Get the list of IDs (PDGs of the intermediate states appearing the cascade decay), i.e.
-        [  [[pdg1,pdg2,...],[pdg3,pdg4,...]] ].
-        The list might have more than one entry if the element combines different pdg lists:
-        [  [[pdg1,pdg2,...],[pdg3,pdg4,...]],  [[pdg1',pdg2',...],[pdg3',pdg4',...]], ...]
+        Get the PIDs for the odd particles appearing in the element.
+        If the element particles receives contributions from distinct PIDs,
+        the result may be a nested list.
         
-        :returns: list of PDG ids
+        :returns: nested list of PDG ids
         """
         
         pids = []
-        for ipid,PIDlist in enumerate(self.branches[0].PIDs):            
-            for ipid2,PIDlist2 in enumerate(self.branches[1].PIDs):
-                pids.append([self.branches[0].PIDs[ipid],self.branches[1].PIDs[ipid2]])
+        oddStates = self.getOddStates()
+        for oddParticle in oddStates:
+            pids.append(oddParticle.PIDs)
         
         return pids
 
-    def getDaughters(self):
-        """
-        Get a pair of daughter IDs (PDGs of the last intermediate 
-        state appearing the cascade decay), i.e. [ [pdgLSP1,pdgLSP2] ]    
-        Can be a list, if the element combines several daughters:
-        [ [pdgLSP1,pdgLSP2],  [pdgLSP1',pdgLSP2']] 
-        
-        :returns: list of PDG ids
-        """
-        
-        pids = self.getPIDs()
-        daughterPIDs = []
-        for pidlist in pids:
-            daughterPIDs.append([pidlist[0][-1],pidlist[1][-1]])
-            
-        return daughterPIDs
-    
-    def getMothers(self):
-        """
-        Get a pair of mother IDs (PDGs of the first intermediate 
-        state appearing the cascade decay), i.e. [ [pdgMOM1,pdgMOM2] ]    
-        Can be a list, if the element combines several mothers:
-        [ [pdgMOM1,pdgMOM2],  [pdgMOM1',pdgMOM2']] 
-        
-        :returns: list of PDG ids
-        """
-        
-        pids = self.getPIDs()
-        momPIDs = []
-        for pidlist in pids:
-            momPIDs.append([pidlist[0][0],pidlist[1][0]])
-            
-        return momPIDs    
-
-
-    def getEinfo(self):
-        """
-        Get topology info from particle string.
-        
-        :returns: dictionary containing vertices and number of final states information  
-        """
-        
-        vertnumb = []
-        vertparts = []
-        for branch in self.branches:
-            vertparts.append([len(ptcs) for ptcs in branch.particles])
-            vertnumb.append(len(branch.particles))
-                
-        return {"vertnumb" : vertnumb, "vertparts" : vertparts}
-
-
-    def _getLength(self):
-        """
-        Get the maximum of the two branch lengths.    
-        
-        :returns: maximum length of the element branches (int)    
-        """
-        return max(self.branches[0].getLength(), self.branches[1].getLength())
-
-
-    def checkConsistency(self):
-        """
-        Check if the particles defined in the element exist and are consistent
-        with the element info.
-        
-        :returns: True if the element is consistent. Print error message
-                  and exits otherwise.
-        """
-        info = self.getEinfo()
-        for ib, branch in enumerate(self.branches):
-            for iv, vertex in enumerate(branch.particles):
-                if len(vertex) != info['vertparts'][ib][iv]:
-                    logger.error("Wrong syntax")
-                    raise SModelSError()
-                for ptc in vertex:
-                    if not ptc in rEven.values() and not ptc in ptcDic:
-                        logger.error("Unknown particle. Add " + ptc + " to smodels/particle.py")
-                        raise SModelSError()
-        return True
-
-    
     def compressElement(self, doCompress, doInvisible, minmassgap):
         """
         Keep compressing the original element and the derived ones till they
