@@ -11,6 +11,8 @@ from smodels.tools.smodelsLogging import logger
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 
 
+requiredAttr = ['zParity','name']
+
 class Particle(object):
     """
     An instance of this class represents a particle.    
@@ -24,7 +26,7 @@ class Particle(object):
     :ivar name: string representation for the particle    
     """
     
-    def __init__(self, particleStr=None):
+    def __init__(self, **particleAtt):
         """
         Initializes the particle from the . If particleStr is defined, returns
         the corresponding particle using the pre-defined model particles
@@ -32,18 +34,13 @@ class Particle(object):
         :parameter particleStr: string describing the particle (e.g. e+, L,...)
         """
         
-        self.mass = None
-        self.width = None
-        self.eCharge = None
-        self.cCharge = None
-        self.spin = None
-        self.name = particleStr
-                    
-        if isinstance(particleStr,str):
-            return self.fromString(particleStr)
-        elif particleStr:
-            logger.error("Invalid argument type: %s" %type(particleStr))
-            raise SModelSError()
+        for key,val in particleAtt.items():
+            setattr(self,key,val)
+        
+        for rAtt in requiredAttr:
+            if not rAtt in particleAtt:
+                logger.error("Particle must have %s attribute" %rAtt)
+                raise SModelSError()
     
     def fromString(self,particleStr):
         """
@@ -53,8 +50,30 @@ class Particle(object):
         :param particleStr: string representing one of pre-defined particles.
         """
         
-        for ptc in modelParticles
+        if not isinstance(particleStr,str):
+            logger.error("Input must be a string.")
+            raise SModelSError()
         
+        for ptc in modelParticles:
+            if str(ptc) == particleStr:
+                return ptc
+        
+        logger.error("Particle %s not defined. Please add it to model particles." %particleStr)
+        raise SModelSError()    
+    
+    def __cmp__(self,other):
+        """
+        Compares the particle with other.        
+        The comparison is made based on the particle name.         
+        :param other:  particle to be compared (Particle object)
+        :return: -1 if self < other, 0 if self == other, +1, if self > other.
+        """
+        
+        if not isinstance(other,Particle):
+            logger.warning("Comparing particle object with %s" %str(type(other)))
+            return 1
+    
+        return self.name.__cmp__(other.name)
             
     def __str__(self):
         return self.name
