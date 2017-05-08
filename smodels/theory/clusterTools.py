@@ -1,5 +1,5 @@
 """
-.. module:: theory.clusterTools
+.. module:: clusterTools
    :synopsis: Module holding the ElementCluster class and cluster methods used to combine similar elements according
       to the analysis.
         
@@ -7,13 +7,13 @@
         
 """
 
+import sys
 from smodels.theory import crossSection
 from smodels.theory.auxiliaryFunctions import massAvg, massPosition, distance
-from smodels.tools.physicsUnits import fb
+from smodels.tools.physicsUnits import fb, MeV
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
-import logging,sys
 
-logger = logging.getLogger(__name__)
+from smodels.tools.smodelsLogging import logger
 
 
 class ElementCluster(object):
@@ -35,7 +35,7 @@ class ElementCluster(object):
 
     def getTotalXSec(self):
         """
-        Return the sum over the cross-sections of all elements belonging to
+        Return the sum over the cross sections of all elements belonging to
         the cluster.
         
         :returns: sum of weights of all the elements in the cluster (XSectionList object)
@@ -43,16 +43,32 @@ class ElementCluster(object):
         totxsec = crossSection.XSectionList()
         for el in self.elements:
             totxsec.combineWith(el.weight)
-        return totxsec
+        if len(totxsec) != 1:
+            logger.error("Cluster total cross section should have a single value")
+            raise SModelSError()
+        return totxsec[0]
 
     def getAvgMass(self):
         """
         Return the average mass of all elements belonging to the cluster.
         If the cluster does not refer to a TxName (i.e. in efficiency map results)
-        AND the cluster contains more than one element, returns None.
+        AND the cluster contains more than one element (assuming they differ in
+        the masses), returns None.
         
         :returns: average mass array         
         """
+
+        def similar ( a1, a2 ):
+            if len(a1) != len(a2):
+                return False
+            for l1,l2 in zip ( a1,a2 ):
+                if len(l1) != len(l2):
+                    return False
+                for e1, e2 in zip (l1,l2 ):
+                    d=abs ( (e1-e2).asNumber(MeV) )
+                    if d>.1:
+                        return False
+            return True
         
         if self.getDataType() == 'efficiencyMap':
             if len(self.elements) > 1: return None
@@ -100,20 +116,20 @@ class ElementCluster(object):
             return None
         else:
             #Check the data types
-            for txname in self.txnames:                
-                if not txname.txnameData._data:
-                    txname.txnameData.loadData()  #Make sure the _data is loaded
+            #for txname in self.txnames:                
+            #    if not txname.txnameData._data:
+            #        txname.txnameData.loadData()  #Make sure the _data is loaded
                     
-            dataType = list(set([type(txname.txnameData._data[0][1]) for txname in self.txnames]))
-            if len(dataType) != 1:
+            dataTag = list(set([txname.txnameData.dataTag for txname in self.txnames]))            
+            if len(dataTag) != 1:
                 logger.error("A single cluster contain mixed data types!")
                 raise SModelSError()
-            elif dataType[0] == type(fb):
+            elif 'upperLimit' in dataTag[0]:
                 return 'upperLimit'
-            elif dataType[0] == type(1.):
+            elif 'efficiencyMap' in dataTag[0]:
                 return 'efficiencyMap'
             else:
-                logger.error("Unknown data type %s" % (str(dataType[0])))
+                logger.error("Unknown data type %s" % (dataTag[0]))
                 raise SModelSError()
 
 
@@ -229,9 +245,11 @@ class IndexCluster(object):
         masses = [self.massMap[iel] for iel in self]
         weights = [self.weightMap[iel] for iel in self]
         clusterMass = massAvg(masses,weights=weights)
-        avgPos = self.txdata.getValueFor(clusterMass)/fb
-        return avgPos.asNumber()
-
+        avgPos = self.txdata.getValueFor(clusterMass)
+        if avgPos is None:
+            return False
+        else:
+            return (avgPos/fb).asNumber()
 
     def _getDistanceTo(self, obj):
         """
@@ -275,15 +293,33 @@ class IndexCluster(object):
 def groupAll(elements):
     """
     Create a single cluster containing all the elements.
+    Skip mother elements which contain the daughter in the list (avoids double counting).
     
+    :param elements: List of Element objects
+    :return: ElementCluster object containing all unique elements 
     """
+   
+   
     cluster = ElementCluster()
-    cluster.elements = elements
-    cluster.txnames = None
+    cluster.elements = []
+    allmothers = []
+    #Collect the list of all mothers:
+    for el in elements:
+        allmothers += [elMom[1].elID for elMom in el.motherElements]
+        
+    for el in elements:
+        #Skip the element if it is a mother of another element in the list
+        if any((elMom is el.elID) for elMom in allmothers):
+            continue
+        cluster.elements.append(el) 
+    
+    #Collect the txnames appearing in the cluster
+    cluster.txnames = list(set([el.txname for el in cluster.elements]))
+    cluster.txnames.sort()
     return cluster
 
 
-def clusterElements(elements, txname, maxDist):
+def clusterElements(elements, maxDist):
     """
     Cluster the original elements according to their mass distance.
     
@@ -294,10 +330,15 @@ def clusterElements(elements, txname, maxDist):
     :returns: list of clusters (ElementCluster objects)    
     """
     if len(elements) == 0:  return []
-    txdata = txname.txnameData
+    txnames = list(set([el.txname for el in elements]))
+    if len(txnames) != 1:
+        logger.error("Clustering elements with different Txnames!")
+        raise SModelSError()
+    txdata = txnames[0].txnameData
     # ElementCluster elements by their mass:
     clusters = _doCluster(elements, txdata, maxDist)
-    for cluster in clusters: cluster.txnames = [txname]
+    for cluster in clusters:
+        cluster.txnames = txnames
     return clusters
 
 
@@ -335,7 +376,9 @@ def _doCluster(elements, txdata, maxDist):
             if distance(posMap[iel], posMap[jel]) <= maxDist:
                 indices.append(jel)        
         indexCluster = IndexCluster(massMap, posMap, weightMap, set(indices),txdata)
-        clusterList.append(indexCluster)
+        #Ignore cluster which average mass falls oustide the grid:
+        if indexCluster.avgPosition:
+            clusterList.append(indexCluster)
 
     #Split the maximal clusters until all elements inside each cluster are
     #less than maxDist apart from each other and the cluster average position
@@ -360,7 +403,9 @@ def _doCluster(elements, txdata, maxDist):
                     newcluster = indexCluster.copy()
                     newcluster.remove(iel)
                     if not newcluster in newClusters:
-                        newClusters.append(newcluster)
+                        #Ignore cluster which average mass falls oustide the grid:
+                        if newcluster.avgPosition:
+                            newClusters.append(newcluster)
 
         clusterList = newClusters
         # Check for oversized list of indexCluster (too time consuming)

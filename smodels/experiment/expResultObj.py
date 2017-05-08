@@ -1,5 +1,5 @@
 """
-.. module:: experiment.expResult
+.. module:: expResultObj
    :synopsis: Contains class that encapsulates an experimental result
 
 .. moduleauthor:: Veronika Magerl <v.magerl@gmx.at>
@@ -7,8 +7,6 @@
 
 """
 
-import cPickle as pickle
-import logging
 import os
 from smodels.experiment import infoObj
 from smodels.experiment import txnameObj
@@ -16,7 +14,7 @@ from smodels.experiment import datasetObj
 from smodels.experiment.exceptions import DatabaseNotFoundException
 from smodels.tools.physicsUnits import fb
 
-logger = logging.getLogger(__name__)
+from smodels.tools.smodelsLogging import logger
 
 class ExpResult(object):
     """
@@ -29,7 +27,12 @@ class ExpResult(object):
                     in <path>    
     """
         
-    def __init__(self, path=None):
+    def __init__(self, path=None, discard_zeroes = True ):
+        """
+        :param path: Path to the experimental result folder
+        :param discard_zeroes: Discard maps with only zeroes
+        """ 
+
         if path and os.path.isdir(path):
             self.path = path
             if not os.path.isfile(os.path.join(path, "globalInfo.txt")):
@@ -37,11 +40,16 @@ class ExpResult(object):
                 raise TypeError
             self.globalInfo = infoObj.Info(os.path.join(path, "globalInfo.txt"))
             self.datasets = []
+            folders=[]
             for root, _, files in os.walk(path):
+                folders.append ( (root, files) )
+            folders.sort()
+            for root, files in folders:
                 if 'dataInfo.txt' in files:  # data folder found
                     # Build data set
                     try:
-                        dataset = datasetObj.DataSet(root, self.globalInfo)
+                        dataset = datasetObj.DataSet(root, self.globalInfo,
+                                discard_zeroes = discard_zeroes )
                         self.datasets.append(dataset)
                     except TypeError:
                         continue
@@ -62,25 +70,36 @@ class ExpResult(object):
     def __str__(self):
         label = self.globalInfo.getInfo('id') + ": "
         dataIDs = [dataset.dataInfo.dataId for dataset in self.datasets]
+        ct_dids=0
         if dataIDs:
             for dataid in dataIDs:
                 if dataid:
+                    ct_dids+=1
                     label += dataid + ","
-        label = label[:-1]
-        label += ':'
+        label = "%s(%d):" % ( label[:-1], ct_dids )
         txnames = []
         for dataset in self.datasets:
             for txname in dataset.txnameList:
                 tx = txname.txName
                 if not tx in txnames:
+                    
                     txnames.append(tx)
         if isinstance(txnames, list):
             for txname in txnames:
                 label += txname + ','
+            label = "%s(%d)," % (label[:-1], len(txnames) )
         else:
             label += txnames + ','
         return label[:-1]
 
+    def getDataset(self, dataId ):
+        """
+        retrieve dataset by dataId
+        """
+        for dataset in self.datasets:
+            if dataset.dataInfo.dataId == dataId:
+                return dataset
+        return None
 
     def getTxNames(self):
         """
@@ -91,11 +110,21 @@ class ExpResult(object):
             txnames += dataset.txnameList
         return txnames
 
-    
+    def getEfficiencyFor ( self, txname, mass, dataset=None):
+        """
+        Convenience function. Get the efficiency for
+        a specific dataset for a a specific txname.
+        Equivalent to:
+        self.getDataset ( dataset ).getEfficiencyFor ( txname, mass )
+        """
+        dataset = self.getDataset ( dataset )
+        if dataset: return dataset.getEfficiencyFor ( txname, mass )
+        return None
+
     def getUpperLimitFor(self, dataID=None, alpha=0.05, expected=False,
                           txname=None, mass=None, compute=False):
         """
-        Computes the 95% upper limit (UL) on the signal cross-section according
+        Computes the 95% upper limit (UL) on the signal cross section according
         to the type of result.
         For an Efficiency Map type, returns  the UL for the signal*efficiency
         for the given dataSet ID (signal region).  For  an Upper Limit type,
@@ -107,7 +136,7 @@ class ExpResult(object):
                       (= 95% C.L.) (only for  efficiency-map results)
         :param expected: Compute expected limit, i.e. Nobserved = NexpectedBG
                          (only for efficiency-map results)
-        :param txname: TxName object (only for UL-type results)
+        :param txname: TxName object or txname string (only for UL-type results)
         :param mass: Mass array with units (only for UL-type results)
         :param compute: If True, the upper limit will be computed
                         from expected and observed number of events. 
@@ -136,7 +165,10 @@ class ExpResult(object):
             if compute:
                 upperLimit = useDataset.getSRUpperLimit(alpha, expected, compute)
             else:
-                upperLimit = useDataset.dataInfo.upperLimit
+                if expected:
+                    upperLimit = useDataset.dataInfo.expectedUpperLimit
+                else:
+                    upperLimit = useDataset.dataInfo.upperLimit
                 if (upperLimit/fb).normalize()._unit:
                     logger.error("Upper limit defined with wrong units for %s and %s"
                                   %(dataset.globalInfo.id,dataset.dataInfo.dataId))
@@ -148,15 +180,18 @@ class ExpResult(object):
                              computing ULs for upper-limit results.")
                 return False
             if not isinstance(txname, txnameObj.TxName) and \
-               not isinstance(txname, str):
-                 logger.error("txname must be a TxName object or a string")
-                 return False
+            not isinstance(txname, str):
+                logger.error("txname must be a TxName object or a string")
+                return False
             if not isinstance(mass, list):
                 logger.error("mass must be a mass array")
                 return False
             for tx in self.getTxNames():
                 if tx == txname or tx.txName == txname:
-                    upperLimit = tx.txnameData.getValueFor(mass)
+                    if expected:
+                        if not tx.txnameDataExp: upperLimit = None
+                        else: upperLimit = tx.txnameDataExp.getValueFor(mass)
+                    else: upperLimit = tx.txnameData.getValueFor(mass)
         else:
             logger.warning("Unkown data type: %s. Data will be ignored.", 
                            self.datasets[0].dataInfo.dataType)
@@ -177,10 +212,10 @@ class ExpResult(object):
         :return: list of values or value
         
         """
-        fieldDict = self.__dict__.items()[:]
+        fieldDict = list ( self.__dict__.items() )
         valuesDict = {}
         while fieldDict:
-            for field, value in fieldDict[:]:
+            for field, value in fieldDict:
                 if not '<smodels.experiment' in str(value):
                     if not field in valuesDict:
                         valuesDict[field] = [value]
@@ -188,19 +223,19 @@ class ExpResult(object):
                 else:
                     if isinstance(value, list):
                         for entry in value:
-                            fieldDict += entry.__dict__.items()[:]
-                    else: fieldDict += value.__dict__.items()[:]
+                            fieldDict += entry.__dict__.items()
+                    else: fieldDict += value.__dict__.items()
                 fieldDict.remove((field, value))
 
         # Try to keep only the set of unique values
         for key, val in valuesDict.items():
             try:
                 valuesDict[key] = list(set(val))
-            except:
+            except TypeError:
                 pass
         if not attribute:
             return valuesDict
-        elif not attribute in valuesDict:
+        elif not attribute in valuesDict.keys():
             logger.warning("Could not find field %s in %s", attribute, self.path)
             return False
         else:

@@ -1,18 +1,15 @@
 #!/usr/bin/env python
 
 """
-.. module:: tools.externalPythonTools
+.. module:: externalPythonTools
    :synopsis: This module is to check the installation of python tools, 
-              i.e. unum, scipy, numpy.
+              i.e. unum, scipy, numpy, pyslha.
 
 .. moduleauthor:: Wolfgang Waltenberger <wolfgang.waltenberger@gmail.com>
 
 """
 
-import logging
-
-logger = logging.getLogger(__name__)
-
+from smodels.tools.smodelsLogging import logger
 
 class ExternalPythonTool(object):
     """
@@ -30,9 +27,11 @@ class ExternalPythonTool(object):
         try:
             i = __import__(importname)
             self.pythonPath = i.__file__.replace("/__init__.pyc", "")
-        except ImportError, e:
+        except ImportError as e:
             logger.error("could not find %s: %s" % (importname, e))
 
+    def compile ( self ):
+        pass
 
     def pathOfExecutable (self):
         """
@@ -59,6 +58,7 @@ class ExternalPythonTool(object):
 
 pythonTools = { "unum" : ExternalPythonTool("unum"),
                 "numpy": ExternalPythonTool("numpy"),
+                "pyslha": ExternalPythonTool("pyslha"),
                 "scipy": ExternalPythonTool("scipy") }
 
 

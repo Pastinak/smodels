@@ -1,10 +1,10 @@
 """
-.. module:: theory.theoryPrediction
+.. module:: theoryPrediction
    :synopsis: Provides a class to encapsulate the results of the computation of
               reference cross sections and related functions.
         
 .. moduleauthor:: Andre Lessa <lessa.a.p@gmail.com>
-.. autofunction:: _getElementsFrom        
+.. autofunction:: _getElementsFrom    
 """
 
 from smodels.theory import clusterTools, crossSection, element
@@ -14,7 +14,7 @@ import logging,sys
 from smodels.tools.physicsUnits import TeV,fb
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 
-logger = logging.getLogger(__name__)
+from smodels.tools.smodelsLogging import logger
 
 class TheoryPrediction(object):
     """
@@ -22,46 +22,75 @@ class TheoryPrediction(object):
     for an analysis.
     
     :ivar analysis: holds the analysis (ULanalysis or EManalysis object)
-                    to which the prediction refers to
-    :ivar value: value of the theory prediction 
-                (relevant cross-section to be compared with the experimental limits).
+                    to which the prediction refers
+    :ivar xsection: xsection of the theory prediction 
+                (relevant cross section to be compared with the experimental limits).
                 It is a XSection object.
     :ivar conditions: list of values for the analysis conditions
                       (only for upper limit-type analysis, e.g. analysis=ULanalysis)
-    :ivar mass: mass of the cluster to which the theory prediction refers to
+    :ivar mass: mass of the cluster to which the theory prediction refers
                 (only for upper limit-type analysis, e.g. analysis=ULanalysis)   
                  
     """
     def __init__(self):
         self.analysis = None
-        self.value = None
+        self.xsection = None
         self.conditions = None
-        self.mass = None
+        self.mass = None        
+
+    def computeStatistics(self):
+        """
+        Compute the likelihood, chi-square and expected upper limit for this theory prediction.
+        The resulting values are stored as the likelihood, chi2 and expectedUL attributes.        
+        """
+        if not hasattr(self, "dataset") or self.dataset.dataInfo.dataType == 'upperLimit':
+            self.likelihood = None
+            self.chi2 = None
+            self.expectedUL = None
+            return
+        
+        lumi = self.dataset.globalInfo.lumi  
+        nsig = (self.xsection.value*lumi).asNumber()
+        llhd = self.dataset.likelihood(nsig)
+        chi2 = self.dataset.chi2(nsig)
+        expectedUL = self.dataset.getSRUpperLimit(alpha = 0.05, expected = True)
+        
+        self.likelihood =  llhd
+        self.chi2 =  chi2
+        self.expectedUL = expectedUL
         
     def getmaxCondition(self):
         """
-        Returns the maximum value from the list conditions
+        Returns the maximum xsection from the list conditions
         
-        :returns: maximum condition value (float)
-        
+        :returns: maximum condition xsection (float)        
         """
 
         if not self.conditions: return 0.        
-        maxcond = 0.
+        # maxcond = 0.
+        values = [ 0. ]
         for value in self.conditions.values():
             if value == 'N/A': return value
             if value == None: continue
-            maxcond = max(maxcond,value)
-        return maxcond        
+            #print ( "value=",value,type(value),float(value) )
+            #maxcond = max(maxcond,float(value))
+            values.append ( float(value) )
+        return max(values)
+        # return maxcond
+    
+    def __str__(self):
+        return "%s:%s" % ( self.analysis, self.xsection )
+
+
 
 class TheoryPredictionList(object):
     """
     An instance of this class represents a collection of theory prediction
     objects.
     
-    :ivar _theoryPredictions: list of TheoryPrediction objects   
-     
+    :ivar _theoryPredictions: list of TheoryPrediction objects     
     """
+    
     def __init__(self, theoryPredictions=None):
         """
         Initializes the list.
@@ -135,6 +164,7 @@ def theoryPredictionsFor(expResult, smsTopList, maxMassDist=0.2, useBestDataset=
 def _getBestResults(dataSetResults):
     """
     Returns the best result according to the expected upper limit
+    
     :param dataSetResults: list of TheoryPredictionList objects
     :return: best result (TheoryPredictionList object)
     """
@@ -157,11 +187,8 @@ def _getBestResults(dataSetResults):
             logger.error("Multiple data sets should only exist for efficiency map results!")
             raise SModelSError()                    
         pred = predList[0]
-        if len(pred.value) != 1:
-            logger.error("Signal region prediction should correspond to a single cross-section!")
-            raise SModelSError()
-        xsec = pred.value[0]        
-        expectedR = xsec.value/dataset.getSRUpperLimit(0.05,True,False)
+        xsec = pred.xsection        
+        expectedR = ( xsec.value/dataset.getSRUpperLimit(0.05,True,False) ).asNumber()
         if expectedR > bestExpectedR or (expectedR == bestExpectedR and xsec.value > bestXsec):
             bestExpectedR = expectedR
             bestPredList = predList
@@ -182,20 +209,26 @@ def _getDataSetPredictions(dataset,smsTopList,maxMassDist):
     :parameter smsTopList: list of topologies containing elements (TopologyList object)
     :parameter maxMassDist: maximum mass distance for clustering elements (float)
     :returns:  a TheoryPredictionList object containing a list of TheoryPrediction objects
-    """     
+    """
+    
     predictionList = TheoryPredictionList()
     # Select elements belonging to expResult and apply efficiencies
     elements = _getElementsFrom(smsTopList, dataset)
-    if len(elements) == 0: return None
+    
+    #Check dataset sqrts format:
     if (dataset.globalInfo.sqrts/TeV).normalize()._unit:
             ID = dataset.globalInfo.id
             logger.error("Sqrts defined with wrong units for %s" %(ID) )
             return False
-
+            
+    #Remove unwanted cross sections
+    newelements = []
     for el in elements:
-        for xsec in el.weight:          
-            if xsec.info.sqrts != dataset.globalInfo.sqrts:
-                el.weight.delete(xsec)
+        el.weight = el.weight.getXsecsFor(dataset.globalInfo.sqrts)
+        if not el.weight: continue
+        newelements.append(el)
+    elements = newelements
+    if len(elements) == 0: return None
 
     # Combine elements according to their respective constraints and masses
     # (For efficiencyMap analysis group all elements)
@@ -206,8 +239,9 @@ def _getDataSetPredictions(dataset,smsTopList,maxMassDist):
         theoryPrediction = TheoryPrediction()
         theoryPrediction.dataset = dataset
         theoryPrediction.txnames = cluster.txnames  
-        theoryPrediction.value = _evalConstraint(cluster)            
+        theoryPrediction.xsection = _evalConstraint(cluster)
         theoryPrediction.conditions = _evalConditions(cluster)
+        theoryPrediction.cluster = cluster
         theoryPrediction.mass = cluster.getAvgMass()
 #         theoryPrediction.PIDs = cluster.getPIDs()
 #         theoryPrediction.IDs = cluster.getIDs()
@@ -241,11 +275,13 @@ def _getElementsFrom(smsTopList, dataset):
                 if not str(el) == '[[[b-,b+]],[[b-,b+]]]':continue                
                 newEl = txname.hasElementAs(el)  #Check if element appears in txname
                 if not newEl: continue
-                el.covered += 1
-                eff = txname.getEfficiencyFor(newEl.getOddMasses())
+                el.covered = True
+                eff = txname.getEfficiencyFor(newEl.getMasses())
                 if not eff: continue
+                el.tested = True
                 newEl.eff = eff
                 newEl.weight *= eff
+                newEl.txname = txname
                 elements.append(newEl) #Save element with correct branch ordering
 
     return elements
@@ -260,24 +296,23 @@ def _combineElements(elements, dataset, maxDist):
     
     :parameter elements: list of elements (Element objects)
     :parameter expResult: Data Set to be considered (DataSet object)
-    :returns: list of element clusters (ElementCluster objects)
-    
+    :returns: list of element clusters (ElementCluster objects)    
     """
     
     clusters = []   
     
-    if dataset.dataInfo.dataType == 'efficiencyMap':
-        cluster = clusterTools.groupAll(elements)
-        cluster.txnames = dataset.txnameList  
+    if dataset.dataInfo.dataType == 'efficiencyMap':        
+        cluster = clusterTools.groupAll(elements)  
         clusters.append(cluster)
-    elif dataset.dataInfo.dataType == 'upperLimit':        
-        for txname in dataset.txnameList:
+    elif dataset.dataInfo.dataType == 'upperLimit':
+        txnames = list(set([el.txname for el in elements]))        
+        for txname in txnames:
             txnameEls = []
             for element in elements:
-                #Check if element really belongs to txname:
-                if not txname.hasElementAs(element): continue                
+                if not element.txname == txname:
+                    continue
                 else: txnameEls.append(element)
-            txnameClusters = clusterTools.clusterElements(txnameEls, txname, maxDist)         
+            txnameClusters = clusterTools.clusterElements(txnameEls, maxDist)         
             clusters += txnameClusters
     else:
         logger.warning("Unkown data type: %s. Data will be ignored." 
@@ -294,7 +329,7 @@ def _evalConstraint(cluster):
     For efficiency map results, sum all the elements' weights.
     
     :parameter cluster: cluster of elements (ElementCluster object)
-    :returns: cluster cross-section
+    :returns: cluster cross section
     """
 
     if cluster.getDataType() == 'efficiencyMap':
@@ -348,22 +383,12 @@ def _evalConditions(cluster):
             
         # Loop over conditions
         for cond in conditions:
-            #Zero txname elements xsecs: 
-            for el in txname._topologyList.getElements():
-                el.weight._zeroXSecs()
-            valsDict = {'cSim': cSim,'cGtr' : cGtr,'Csim': cSim,'Cgtr' : cGtr}
-            newcond = cond              
-            for iel,el in enumerate(txname._topologyList.getElements()):
-                for elB in cluster:
-                    if elB == el: el.weight.combineWith(elB.weight)  
-                newcond = newcond.replace(el._createdFromStr,'w'+str(iel))     
-                valsDict['w'+str(iel)] = el.weight    
-            try:        
-                conditionVals[cond] =  eval(newcond,valsDict)
-            except:
-                logger.error("Error evaluating condition %s" %(cond))
-                raise SModelSError()            
-     
+            exprvalue = _evalExpression(cond,cluster)
+            if type(exprvalue) == type(crossSection.XSection()):
+                conditionVals[cond] = exprvalue.value
+            else:
+                conditions[cond] = exprvalue
+    
     if not conditionVals:
         return None
     else:            
@@ -381,13 +406,13 @@ def _evalExpression(stringExpr,cluster):
     
     :parameter stringExpr: string containing the expression to be evaluated
     :parameter cluster: cluster of elements (ElementCluster object)
-    :returns: value for the expression. Can be a XSectionList object, a float or not numerical (None,string,...)
+    :returns: xsection for the expression. Can be a XSection object, a float or not numerical (None,string,...)
     
     """
 
-#Get cross-section info from cluster (to generate zero cross-section values):
+#Get cross section info from cluster (to generate zero cross section values):
     infoList = cluster.elements[0].weight.getInfo()    
-#Generate elements appearing in the string expression with zero cross-sections:
+#Generate elements appearing in the string expression with zero cross sections:
     elements = []
     for elStr in createElementFromStr(stringExpr):
         el = element.Element(elStr)
@@ -410,6 +435,5 @@ def _evalExpression(stringExpr,cluster):
     if type(exprvalue) == type(crossSection.XSectionList()):
         if len(exprvalue) != 1:
             logger.error("Evaluation of expression "+expr+" returned multiple values.")
-        return exprvalue
-    else:
-        return exprvalue
+        return exprvalue[0] #Return XSection object
+    return exprvalue

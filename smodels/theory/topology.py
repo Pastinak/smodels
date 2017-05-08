@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-.. module:: theory.topology
+.. module:: topology
    :synopsis: Provides a Topology class and a TopologyList collection type.
 
 .. moduleauthor:: Andre Lessa <lessa.a.p@gmail.com>
@@ -13,9 +13,7 @@ from smodels.theory import crossSection
 from smodels.theory.element import Element
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 from smodels.theory.auxiliaryFunctions import index_bisect
-import logging
-
-logger = logging.getLogger(__name__)
+from smodels.tools.smodelsLogging import logger
 
 
 class Topology(object):
@@ -49,7 +47,7 @@ class Topology(object):
     def __str__(self):
         """
         Return string with numbers of particles per vertex, e.g.
-        [1,0],[2,1,0]
+        [1],[2,1]
         
         :returns: string with number of final states in each branch
         """
@@ -57,6 +55,16 @@ class Topology(object):
         for p in self.vertparts:
             ret += "%s" % str(p).replace(" ", "")
         return ret
+
+    def __ne__(self,other):
+        return not ( self.__eq__(other) )
+
+    def __eq__(self,other):
+        ret = (self.__cmp__(other)==0 )
+        return ret
+
+    def __lt__(self,other):
+        return self.__cmp__(other)<0
 
     def __cmp__(self,other):
         """
@@ -257,7 +265,8 @@ class TopologyList(object):
     def index(self,topo):
         """
         Uses bisect to find the index where of topo in the list.
-        If topo does not appear in the list, returns None
+        If topo does not appear in the list, returns None.
+        
         :param topo: Topology object
         :return: position of topo in the list. If topo does not    
                 appear in the list, return None.
@@ -338,6 +347,27 @@ class TopologyList(object):
         for top in self.topos:
             elements.extend(top.elementList)
         return elements
+    
+    def compressElements(self,doCompress,doInvisible,minmassgap):        
+        """
+        Compress all elements in the list and included the compressed
+        elements in the topology list.
+        
+        :parameter doCompress: if True, perform mass compression
+        :parameter doInvisible: if True, perform invisible compression
+        :parameter minmassgap: value (in GeV) of the maximum 
+                               mass difference for compression
+                               (if mass difference < minmassgap, perform mass compression)
+
+        """
+        
+        for el in self.getElements():
+            newElements = el.compressElement(doCompress,doInvisible,minmassgap)
+            if not newElements:
+                continue
+            for newelement in newElements:
+                newelement.sortBranches()  #Make sure elements are sorted BEFORE adding them
+                self.addElement(newelement)
 
     def _setElementIds(self):
         """

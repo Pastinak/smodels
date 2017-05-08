@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-.. module:: theory.lheReader
+.. module:: lheReader
    :synopsis: Provides a class that creates SMSEvents from LHE files.
 
 .. moduleauthor:: Wolfgang Waltenberger <wolfgang.waltenberger@gmail.com>
@@ -247,10 +247,9 @@ class LheReader(object):
             self.file = open(filename, 'r')
         else: self.file = filename
         self.metainfo = {"nevents" : None, "totalxsec" : None, "sqrts" : None}
-        
-        
-        # Get global information from file (cross-section sqrts, total
-        # cross-section, total number of events)
+
+        # Get global information from file (cross section sqrts, total
+        # cross section, total number of events)
         self.file.seek(0)
         line = self.file.readline()
         nevts = None
@@ -279,6 +278,9 @@ class LheReader(object):
         self.file.seek(0)
                 
 
+    def close(self):
+        """ close file handle """
+        self.file.close()
 
     def next(self):
         """
@@ -304,6 +306,9 @@ class LheReader(object):
         """
         return self
 
+    def __next__(self):
+        """ for python3 """
+        return self.next()
 
     def event(self):
         """
@@ -363,12 +368,6 @@ class LheReader(object):
         self.file.seek(0)
         self.ctr = 0
 
-    def close(self):
-        """
-        Close the lhe file, if open.
-        
-        """
-        self.file.close()
 
 
 

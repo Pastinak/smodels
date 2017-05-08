@@ -15,12 +15,9 @@ from smodels.theory import decomposer
 from smodels.tools.physicsUnits import GeV, fb
 from smodels.theory.element import createElementFromStr
 import unittest
-import logging
-import pickle
-
 
 class SlhaDecompositionTest(unittest.TestCase):
-    logger = logging.getLogger(__name__)
+    from smodels.tools.smodelsLogging import logger
 
     def testSimple(self):
         self.logger.info ( "test a simple decomposition, no compression" )

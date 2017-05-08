@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-.. module:: theory.lheDecomposer
+.. module:: lheDecomposer
    :synopsis: Decomposition of LHE events and creation of TopologyLists.
 
 .. moduleauthor:: Andre Lessa <lessa.a.p@gmail.com>
@@ -11,13 +11,11 @@
 from smodels.theory import lheReader, topology, crossSection, element
 from smodels.theory import branch
 from smodels.tools.physicsUnits import fb, GeV
+from smodels.tools.smodelsLogging import logger
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 import pyslha
 import smodels.particles
 import copy
-import logging
-
-logger = logging.getLogger(__name__)
 
 
 def decompose(lhefile, inputXsecs=None, nevts=None, doCompress=False,
@@ -26,7 +24,7 @@ def decompose(lhefile, inputXsecs=None, nevts=None, doCompress=False,
     Perform LHE-based decomposition. 
 
     :param lhefile: LHE file with e.g. pythia events
-    :param inputXsecs: xSectionList object with cross-sections for the mothers
+    :param inputXsecs: xSectionList object with cross sections for the mothers
            appearing in the LHE file. If None, use information from file.
     :param nevts: (maximum) number of events used in the decomposition. If
                   None, all events from file are processed.
@@ -44,7 +42,7 @@ def decompose(lhefile, inputXsecs=None, nevts=None, doCompress=False,
 
     reader = lheReader.LheReader(lhefile, nevts)
     smsTopList = topology.TopologyList()
-    # Get cross-section from file (= event weight, assuming a common weight for
+    # Get cross section from file (= event weight, assuming a common weight for
     # all events)
     if not inputXsecs:
         xSectionList = crossSection.getXsecFromLHEFile(lhefile,
@@ -58,6 +56,8 @@ def decompose(lhefile, inputXsecs=None, nevts=None, doCompress=False,
         eventweight = xSectionList.getXsecsFor(momPDG)
         # Get event element
         newElement = elementFromEvent(event, eventweight)
+        if not newElement:
+            continue
         allElements = [newElement]
         # Perform compression
         if doCompress or doInvisible:
@@ -91,6 +91,12 @@ def elementFromEvent(event, weight=None):
     # Create branch list
     finalBranchList = []
     for ip, particle in enumerate(event.particles):
+        keys = list ( smodels.particles.rEven.keys() ) + \
+               list ( smodels.particles.rOdd.keys() )
+        if not particle.pdg in keys:
+            logger.warning("Particle %i not defined in particles.py, events containing this particle will be ignored" %(particle.pdg))
+            return None
+        
         # Particle came from initial state (primary mother)
         if 1 in particle.moms:
             mombranch = branch.Branch()
@@ -161,7 +167,7 @@ def _getDictionariesFromEvent(event):
             # Ignore R-even particles and initial state particles
             continue
         ibranch = branches[ip]  # Get particle branch
-        massDic[ibranch][particle.pdg] = particle.mass* GeV
+        massDic[ibranch][particle.pdg] = round(particle.mass,1)* GeV
         # Create empty BRs
         brDic[ibranch][particle.pdg] = [pyslha.Decay(0., 0, [], particle.pdg)]
 

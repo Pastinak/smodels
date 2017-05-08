@@ -1,69 +1,20 @@
 """
-.. module:: theory.auxiliaryFunctions
+.. module:: auxiliaryFunctions
    :synopsis: A collection of functions used to evaluate fuzzy the conditions.
 
 .. moduleauthor:: Andre Lessa <lessa.a.p@gmail.com>
 
 """
 
-from functools import wraps
 from smodels.theory import crossSection
 from smodels.tools.physicsUnits import pb, GeV, fb
 import numpy as np
 from scipy import stats
 from collections import Iterable
-import logging
 import copy
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 
-logger = logging.getLogger(__name__)
-
-
-def toString ( arg ):
-    try:
-        return "%.2f " % arg.asUnit(fb)
-    except Exception,e:
-        pass
-    try:
-        return "%.3f " % arg.asNumber(GeV)
-    except Exception,e:
-        pass
-    try:
-        return "%.2f " % arg.asUnit(1/fb)
-    except Exception,e:
-        pass
-    if type(arg) == float:
-        return "%.2f " % arg
-    if type(arg) == int:
-        return "%d " % arg
-    if type(arg) == str:
-        return "%s " % arg
-    if type(arg) in [ list, tuple ]:
-        argstring=""
-        for newarg in arg:
-            argstring += toString ( newarg )
-    #    print "argstring=",argstring
-        return argstring
-    return "%s " % ( str(arg) )
-            
-def _memoize(func):
-    """
-    Serves as a wrapper to cache the results of func, since this is a
-    computationally expensive function.
-    
-    """
-    cache = {}
-    @wraps(func)
-    def _wrap(*args):
-        """
-        Wrapper for the function to be memoized
-        """ 
-        argstring = toString ( args )
-        if argstring not in cache:
-            cache[argstring] = func(*args)
-        return cache[argstring]
-    return _wrap
-
+from smodels.tools.smodelsLogging import logger
 
 def massPosition(mass, txdata):
     """ Give mass position in upper limit space.    
@@ -111,7 +62,7 @@ def massAvg(massList, method='weighted', weights=None):
     """
     if not massList:
         return massList
-    if len(massList) == 1:
+    if massList.count(massList[0]) == len(massList):
         return massList[0]
 
     if method == 'weighted' and (not weights or len(weights) != len(massList)):
@@ -170,7 +121,7 @@ def cSim(*weights):
     for weight in weights:
         weight.combineWith(zeros)
 
-    # Evaluate the inequality for each cross-section info
+    # Evaluate the inequality for each cross section info
     result = crossSection.XSectionList()
     for info in infoList:
         res = 0.
@@ -211,13 +162,13 @@ def cGtr(weightA, weightB):
         if not info in infoList:
             infoList.append(info)
     if not infoList:
-        # If there are no cross-sections, can not evaluate
+        # If there are no cross sections, can not evaluate
         return 'N/A'
     zeros = crossSection.XSectionList(infoList)
     weightA.combineWith(zeros)
     weightB.combineWith(zeros)
 
-    # Evaluate the inequality for each cross-section info
+    # Evaluate the inequality for each cross section info
     result = crossSection.XSectionList()
     for info in infoList:
         a = weightA.getXsecsFor(info.label)[0].value / fb
@@ -245,7 +196,7 @@ def _flattenList(inlist, dims=None):
     """
     flat = []
     for item in inlist:
-        if isinstance(item, Iterable) and not isinstance(item, basestring):
+        if isinstance(item, Iterable) and not isinstance(item, str ):
             if not dims is None:
                 dims.append(len(item))
             for x in _flattenList(item, dims):

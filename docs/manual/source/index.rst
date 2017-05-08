@@ -3,8 +3,8 @@
 .. SModelS Manual index file
 
 
-SModelS Manual
-==============
+SModelS User Manual
+===================
 
 **These pages constitute the SModelS manual.**
 
@@ -31,17 +31,17 @@ Contents
 --------
 
 .. toctree::
-   :maxdepth: 2
-
-   Introduction   
-   SModelSDefs   
-   Structure
-   Tools
+   :maxdepth: 1
+     
+   ReleaseUpdate  
    Installation
    RunningSModelS
+   Tools
+   SModelsDocs
    Examples
-
-**Additional documentation about the code structure can be found** `here <../../../documentation/build/html/index.html>`_   
+   CodeDocs
+   Cpp
+   
 
 
 Indices and tables

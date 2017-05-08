@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-.. module:: tools.asciiGraph
+.. module:: asciiGraph
    :synopsis: Contains a simple routine to draw ASCII-art Feynman-like graphs.
 
 .. moduleauthor:: Wolfgang Waltenberger <wolfgang.waltenberger@gmail.com>
@@ -17,9 +17,7 @@ from smodels import installation
 from smodels.theory import lheReader
 from smodels.theory import lheDecomposer
 from smodels.theory import crossSection
-import logging
-
-logger = logging.getLogger(__name__)
+from smodels.tools.smodelsLogging import logger
 
 
 def _printParticle(label):
@@ -72,7 +70,7 @@ def _drawBranch(branch, upwards, labels, htmlFormat, border, l):
     if not upwards:
         order = [1, 0]
     html = "<br>"
-    lengthdiff = l - len(lines[0]) / 5
+    lengthdiff = int ( l - len(lines[0]) / 5 )
     if border:
         if l == 2:
             lines[0] += " "

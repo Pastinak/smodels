@@ -1,5 +1,5 @@
 """
-.. module:: theory.element
+.. module:: element
    :synopsis: Module holding the Element class and its methods.
     
 .. moduleauthor:: Andre Lessa <lessa.a.p@gmail.com>
@@ -9,10 +9,8 @@
 from smodels.theory import crossSection
 from smodels.theory.auxiliaryFunctions import stringToList
 from smodels.theory.branch import createBranchFromStr
-import logging
-import itertools
-logger = logging.getLogger(__name__)
-
+from smodels.theory.exceptions import SModelSTheoryError as SModelSError
+from smodels.tools.smodelsLogging import logger
 
 class Element(object):
     """
@@ -37,11 +35,11 @@ class Element(object):
         self.branches = branches
         self.weight = crossSection.XSectionList()
         self.motherElements = []
-        self.elID = 0
-        self.covered = 0 # how many analyses cover this element?
+        self.elID = False
+        self.covered = False
+        self.tested = False
         
         self.sortBranches()
-
     def __cmp__(self,other):
         """
         Compares the element with other.        
@@ -74,6 +72,11 @@ class Element(object):
         else:
             return 0     
 
+    def __eq__(self,other):
+        return self.__cmp__(other)==0
+
+    def __lt__(self,other):
+        return self.__cmp__(other)<0
 
     def __hash__(self):
         return object.__hash__(self)
@@ -157,6 +160,88 @@ class Element(object):
         for branch in self.branches:
             massarray.append(branch.getOddMasses())
         return massarray
+
+    def getPIDs(self):
+        """
+        Get the list of IDs (PDGs of the intermediate states appearing the cascade decay), i.e.
+        [  [[pdg1,pdg2,...],[pdg3,pdg4,...]] ].
+        The list might have more than one entry if the element combines different pdg lists:
+        [  [[pdg1,pdg2,...],[pdg3,pdg4,...]],  [[pdg1',pdg2',...],[pdg3',pdg4',...]], ...]
+        
+        :returns: list of PDG ids
+        """
+        
+        pids = []
+        for ipid,PIDlist in enumerate(self.branches[0].PIDs):            
+            for ipid2,PIDlist2 in enumerate(self.branches[1].PIDs):
+                pids.append([self.branches[0].PIDs[ipid],self.branches[1].PIDs[ipid2]])
+        
+        return pids
+
+    def getDaughters(self):
+        """
+        Get a pair of daughter IDs (PDGs of the last intermediate 
+        state appearing the cascade decay), i.e. [ [pdgLSP1,pdgLSP2] ]    
+        Can be a list, if the element combines several daughters:
+        [ [pdgLSP1,pdgLSP2],  [pdgLSP1',pdgLSP2']] 
+        
+        :returns: list of PDG ids
+        """
+        
+        pids = self.getPIDs()
+        daughterPIDs = []
+        for pidlist in pids:
+            daughterPIDs.append([pidlist[0][-1],pidlist[1][-1]])
+            
+        return daughterPIDs
+    
+    def getMothers(self):
+        """
+        Get a pair of mother IDs (PDGs of the first intermediate 
+        state appearing the cascade decay), i.e. [ [pdgMOM1,pdgMOM2] ]    
+        Can be a list, if the element combines several mothers:
+        [ [pdgMOM1,pdgMOM2],  [pdgMOM1',pdgMOM2']] 
+        
+        :returns: list of PDG ids
+        """
+        
+        pids = self.getPIDs()
+        momPIDs = []
+        for pidlist in pids:
+            momPIDs.append([pidlist[0][0],pidlist[1][0]])
+            
+        return momPIDs    
+
+
+    def _getLength(self):
+        """
+        Get the maximum of the two branch lengths.    
+        
+        :returns: maximum length of the element branches (int)    
+        """
+        return max(self.branches[0].getLength(), self.branches[1].getLength())
+
+
+    def checkConsistency(self):
+        """
+        Check if the particles defined in the element exist and are consistent
+        with the element info.
+        
+        :returns: True if the element is consistent. Print error message
+                  and exits otherwise.
+        """
+        info = self.getEinfo()
+        for ib, branch in enumerate(self.branches):
+            for iv, vertex in enumerate(branch.particles):
+                if len(vertex) != info['vertparts'][ib][iv]:
+                    logger.error("Wrong syntax")
+                    raise SModelSError()
+                for ptc in vertex:
+                    if not ptc in rEven.values() and not ptc in ptcDic:
+                        logger.error("Unknown particle. Add " + ptc + " to smodels/particle.py")
+                        raise SModelSError()
+        return True
+
     
     def compressElement(self, doCompress, doInvisible, minmassgap):
         """
@@ -170,8 +255,12 @@ class Element(object):
                                (if mass difference < minmassgap, perform mass compression)
         :returns: list with the compressed elements (Element objects)        
         """
+        
+        if not doCompress and not doInvisible:
+            return []
+        
         added = True
-        newElements = [self.copy()]
+        newElements = [self]
         # Keep compressing the new topologies generated so far until no new
         # compressions can happen:
         while added:
@@ -218,7 +307,6 @@ class Element(object):
                 if br:
                     newelement.branches[ibr] = br
         newelement.motherElements = [ ("mass", self.copy()) ]
-
         newelement.sortBranches()
         return newelement
 
@@ -268,16 +356,8 @@ class Element(object):
         
         :parameter other: element (Element Object)  
         """
-        if len(self.motherElements)==0: 
-            # no mothers? then you yourself are mother!
-            tmp=self.copy()
-            self.motherElements.append ( ("combine", tmp) )
-        for m in other.motherElements:
-            self.motherElements.append ( (m[0], m[1].copy()) )
-        if len(other.motherElements)==0: 
-            # no mothers? then yo yourself are mother now
-            tmp=other.copy()
-            self.motherElements.append ( ("combine", tmp) )
+        
+        self.motherElements += el2.motherElements
 
 
     def combineParticles(self,other):

@@ -4,18 +4,26 @@ tools package
 Submodules
 ----------
 
-tools.BayesianUpperLimit module
--------------------------------
-
-.. automodule:: tools.BayesianUpperLimit
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 tools.asciiGraph module
 -----------------------
 
 .. automodule:: tools.asciiGraph
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tools.caching module
+--------------------
+
+.. automodule:: tools.caching
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tools.coverage module
+---------------------
+
+.. automodule:: tools.coverage
     :members:
     :undoc-members:
     :show-inheritance:
@@ -32,14 +40,6 @@ tools.databaseBrowser module
 ----------------------------
 
 .. automodule:: tools.databaseBrowser
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-tools.exclusion_CLs module
---------------------------
-
-.. automodule:: tools.exclusion_CLs
     :members:
     :undoc-members:
     :show-inheritance:
@@ -92,10 +92,10 @@ tools.lheChecks module
     :undoc-members:
     :show-inheritance:
 
-tools.missingTopologies module
-------------------------------
+tools.modelTester module
+------------------------
 
-.. automodule:: tools.missingTopologies
+.. automodule:: tools.modelTester
     :members:
     :undoc-members:
     :show-inheritance:
@@ -124,10 +124,26 @@ tools.printer module
     :undoc-members:
     :show-inheritance:
 
+tools.runtime module
+--------------------
+
+.. automodule:: tools.runtime
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 tools.slhaChecks module
 -----------------------
 
 .. automodule:: tools.slhaChecks
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+tools.smodelsLogging module
+---------------------------
+
+.. automodule:: tools.smodelsLogging
     :members:
     :undoc-members:
     :show-inheritance:
@@ -148,10 +164,10 @@ tools.stringTools module
     :undoc-members:
     :show-inheritance:
 
-tools.summaryReader module
---------------------------
+tools.timeOut module
+--------------------
 
-.. automodule:: tools.summaryReader
+.. automodule:: tools.timeOut
     :members:
     :undoc-members:
     :show-inheritance:
@@ -160,14 +176,6 @@ tools.toolBox module
 --------------------
 
 .. automodule:: tools.toolBox
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-tools.uniqueLogFilter module
-----------------------------
-
-.. automodule:: tools.uniqueLogFilter
     :members:
     :undoc-members:
     :show-inheritance:

@@ -1,5 +1,5 @@
 """
-.. module:: tools.crashReport
+.. module:: crashReport
    :synopsis: Facility used in runSModelS.py to create and read SModelS crash report files.
 
 .. moduleauthor:: Wolfgang Magerl <wolfgang.magerl@gmail.com>
@@ -7,14 +7,11 @@
 """
 
 import os
-import datetime
+from datetime import datetime
 import platform
 import traceback
-import logging
-from smodels import installation
-
-log = logging.getLogger(__name__)
-
+from smodels.installation import installDirectory
+from smodels.tools.smodelsLogging import logger
 
 class CrashReport(object):
     """
@@ -22,8 +19,8 @@ class CrashReport(object):
     
     """    
     def __init__(self):        
-        timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')
-        self.timestampHuman = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
+        self.timestampHuman = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
         self.crashReportFileName = 'smodels-' + timestamp + '.crash'
 
 
@@ -48,7 +45,7 @@ class CrashReport(object):
         
         """
     
-        with open(installation.installDirectory()+'/smodels/version', 'r') as versionFile:
+        with open ( installDirectory()+'/smodels/version', 'r') as versionFile:
             version = versionFile.readline()
     
         with open(inputFileName, 'r') as inputFile:
@@ -57,52 +54,51 @@ class CrashReport(object):
         with open(parameterFileName, 'r') as parameterFile:
             parameterFileContent = parameterFile.read()
     
-        crashReportFile = open(self.crashReportFileName, 'w')
-        crashReportFile.write("================================================================================\n")
-        crashReportFile.write("SModelS Crash Report File\n")
-        crashReportFile.write("================================================================================\n")
-        crashReportFile.write("Timestamp: " + self.timestampHuman + "\n\n")
-        crashReportFile.write("SModelS Version: " + version + "\n")
-        crashReportFile.write("Platform: " + platform.platform() + "\n")
-        crashReportFile.write("Python Version: " + platform.python_version() + "\n\n")
-        crashReportFile.write("================================================================================\n\n")
-        crashReportFile.write("--------------------------------------------------------------------------------\n")
-        crashReportFile.write("* Output\n")
-        crashReportFile.write("--------------------------------------------------------------------------------\n\n")
-        crashReportFile.write(traceback.format_exc() + "\n\n")
-        crashReportFile.write("--------------------------------------------------------------------------------\n")
-        crashReportFile.write("* Input File\n")
-        crashReportFile.write("  " + os.path.basename(inputFileName) + "\n")
-        crashReportFile.write("--------------------------------------------------------------------------------\n\n")
-        crashReportFile.write(inputFileContent + "\n")
-        crashReportFile.write("--------------------------------------------------------------------------------\n")
-        crashReportFile.write("* Parameter File\n")
-        crashReportFile.write("  " + os.path.basename(parameterFileName) + "\n")
-        crashReportFile.write("--------------------------------------------------------------------------------\n\n")
-        crashReportFile.write(parameterFileContent)
-        crashReportFile.close()
-        
+        with open(self.crashReportFileName, 'w') as crashReportFile:
+            crashReportFile.write("="*80+"\n")
+            crashReportFile.write("SModelS Crash Report File\n")
+            crashReportFile.write("="*80+"\n")
+            crashReportFile.write("Timestamp: " + self.timestampHuman + "\n\n")
+            crashReportFile.write("SModelS Version: " + version + "\n")
+            crashReportFile.write("Platform: " + platform.platform() + "\n")
+            crashReportFile.write("Python Version: " + platform.python_version() + "\n\n")
+            crashReportFile.write("="*80+"\n\n")
+            crashReportFile.write("-"*80+"\n")
+            crashReportFile.write("* Output\n")
+            crashReportFile.write("-"*80+"\n\n")
+            crashReportFile.write(traceback.format_exc() + "\n\n")
+            crashReportFile.write("-"*80+"\n")
+            crashReportFile.write("* Input File\n")
+            crashReportFile.write("  " + os.path.basename(inputFileName) + "\n")
+            crashReportFile.write("-"*80+"\n\n")
+            crashReportFile.write(inputFileContent + "\n")
+            crashReportFile.write("-"*80+"\n")
+            crashReportFile.write("* Parameter File\n")
+            crashReportFile.write("  " + os.path.basename(parameterFileName) + "\n")
+            crashReportFile.write("-"*80+"\n\n")
+            crashReportFile.write(parameterFileContent)
     
     def createUnknownErrorMessage(self):
         """
         Create a message for an unknown error.
         
         """
-        message = ("\n\n\n"
-                   "================================================================================\n\n"
-                   "SModelS quit unexpectedly due to an unknown error. The error has been written to\n"
-                   + self.crashReportFileName + ".\n\n"
-                   "Please send this file to smodels-users@lists.oeaw.ac.at and shortly describe\n"
-                   "what you did to help making SModelS better!\n\n"
-                   "Alternatively, use the '--development' option when running runSModelS.py to\n"
-                   "prevent this message from showing up again.\n\n"
-                   "================================================================================")
+        message = ("\n\n\n" +"="*80+ "\n\n"
+          "SModelS quit unexpectedly due to an unforeseen error.\n"
+          "The error has been written to\n"
+          + self.crashReportFileName + ".\n\n"
+          "If you want to help make SModelS better, then please send this file to\n"
+          "smodels-users@lists.oeaw.ac.at and shortly describe what you did!\n\n"
+          "Alternatively, use the '--development' option when running runSModelS.py\n"
+          "to prevent this message from showing up again.\n\n"
+          + 80*"=" )
         return message
     
     
 def readCrashReportFile(crashReportFileName):
     """
-    Read a crash report file to use its input and parameter file sections for a SModelS run.
+    Read a crash report file to use its input and parameter file sections for a
+    SModelS run.
     
     :param crashReportFileName: relative location of the crash report file
     
@@ -118,7 +114,7 @@ def readCrashReportFile(crashReportFileName):
     for line in crashReportFileContent:
         if lineNumber == 1:
             if not line.rstrip() == "SModelS Crash Report File":
-                log.error("ERROR: Not a SModelS crash report file!")
+                logger.error("ERROR: Not a SModelS crash report file!")
                 break
             
         if line.rstrip() == "* Input File":

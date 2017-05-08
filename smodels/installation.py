@@ -17,7 +17,7 @@ def installDirectory():
     """
     Return the software installation directory, by looking at location of this
     method.
-    
+
     """
     #path = os.path.abspath(os.path.join(os.path.realpath(__file__), os.pardir))
     path = os.path.abspath(os.path.realpath(__file__))
@@ -31,17 +31,37 @@ def pythonDirectory():
     """
     Return the python installation directory, by looking at location of this
     method. Same as installDirectory(), but trailing "smodels/" removed.
-    
+
     """
     path = installDirectory()
     # path = path.replace("/smodels/", "/")
     return path
 
 
+def authors():
+    """ return the author list, taken from BANNER """
+    copying_file = open('%s/etc/BANNER' % installDirectory(), 'r')
+    lines = copying_file.readlines()
+    copying_file.close()
+    authors = ""
+    start_parsing=False
+    for line in lines:
+        if "Copyright" in line:
+            start_parsing = True
+        if not start_parsing: continue
+        to_add = line.replace ( " <smodels-users@lists.oeaw.ac.at>","" )
+        to_add = to_add.replace ( "Copyright (C) ","").replace ( "\n", "" )
+        if to_add[:5]=="2012-":
+            to_add = to_add[10:]
+        if len(authors)>0:
+            authors+=" "
+        authors += to_add
+    return authors
+
 def version(astuple=False):
     """
     Print version number of the SModelS framework.
-    
+
     """
     f = open("%s/smodels/version" % installDirectory())
     l = f.readline()
@@ -50,7 +70,7 @@ def version(astuple=False):
     l.strip()
     if not astuple:
         return l
-    a = l.split(".")
+    a = l.replace(" ",".",1).split(".")
     for ctr,el in enumerate(a):
         try:
             a[ctr]=int(el)
@@ -62,7 +82,7 @@ def version(astuple=False):
 def license():
     """
     Print license information of the SModelS framework.
-    
+
     """
     f = open(installDirectory() + "COPYING")
     lines = f.readlines()
@@ -73,9 +93,9 @@ def license():
 def banner():
     """
     Returns SModelS banner.
-    
+
     """
-    f = open(installDirectory() + "BANNER")
+    f = open(installDirectory() + "/etc/BANNER")
     lines = f.readlines()
     f.close()
     return "".join(lines)
@@ -83,7 +103,7 @@ def banner():
 def printHelp():
     """
     Print usage information of this module.
-    
+
     """
     print("Usage: " + sys.argv[0] + " [--help|-h] [--installdir|-i] [--pythondir|-p]")
     print("                      [--version|-v] [--banner|-b] [--license|--copyright|-c]:")

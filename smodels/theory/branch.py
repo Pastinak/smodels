@@ -1,19 +1,17 @@
 """
-.. module:: theory.branch
-   :synopsis: Module holding the branch class, its methods and related functions.
+.. module:: branch
+   :synopsis: Module holding the branch class and methods.
         
 .. moduleauthor:: Andre Lessa <lessa.a.p@gmail.com>
         
 """
 
-from smodels.tools.physicsUnits import fb
-from smodels.theory.vertex import createVertexFromStr, Vertex
-from smodels.theory.particle import Particle
-from smodels.theory.auxiliaryFunctions import stringToList
-import logging
+import sys
+from smodels.theory.particleNames import simParticles, elementsInStr
+from smodels.tools.physicsUnits import fb, MeV
+from smodels.particles import rEven, ptcDic
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
-
-logger = logging.getLogger(__name__)
+from smodels.tools.smodelsLogging import logger
 
 
 class Branch(object):
@@ -68,17 +66,20 @@ class Branch(object):
         :return: -1 if self < other, 0 if self == other, +1, if self > other.
         """  
         
-        if not isinstance(other,Branch):
-            return +1      
-        
-        info = self.getBinfo()
-        infoB = other.getBinfo()
-        if info['vertnumb'] != infoB['vertnumb']:
-            comp = info['vertnumb'] > infoB['vertnumb']
+        if self.vertnumb != other.vertnumb:
+            comp = self.vertnumb > other.vertnumb
             if comp: return 1
             else: return -1
-        elif info['vertparts'] != infoB['vertparts']:
-            comp = info['vertparts'] > infoB['vertparts']
+        elif self.vertparts != other.vertparts:
+            comp = self.vertparts > other.vertparts
+            if comp: return 1
+            else: return -1
+        elif self.particles != other.particles:
+            comp = self.particles > other.particles
+            if comp: return 1
+            else: return -1
+        elif not self.masses == other.masses:
+            comp = self.masses > other.masses
             if comp: return 1
             else: return -1            
         else:
@@ -175,6 +176,13 @@ class Branch(object):
         pids = [v.getOddPIDs() for v in self.vertices]
         
         return pids            
+
+    def __lt__( self, b2 ):
+        return self.__cmp__ ( b2 ) == -1
+
+    def __eq__( self, b2 ):
+        return self.__cmp__ ( b2 ) == 0
+
 
     def _addVertex(self, newVertex):
         """

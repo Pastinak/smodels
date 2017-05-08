@@ -45,9 +45,9 @@ This document describes the computer package that does all this.
 SModelS can be used just like an application, running :ref:`runSModelS.py <runSModelS>`.
 In addition, SModelS is also usable as a :ref:`library <exampleCode>`, providing functionality to
 
- * classify LHE events,
- * decompose SLHA events,
- * compute LO, NLO, NLL cross sections,
+ * decompose models into simplified models,
+ * confront input models with LHC constraints,
+ * compute LO, NLO, NLL SUSY cross sections,
  * identify missing topologies,
  * browse the SModelS database of SMS results
  * and a few more tasks.
@@ -56,17 +56,17 @@ For example code for various tasks, see :ref:`Examples`
 
 **References**:
 
-.. [c1] https://twiki.cern.ch/twiki/bin/view/AtlasPublic/SupersymmetryPublicResults
+ [1] https://twiki.cern.ch/twiki/bin/view/AtlasPublic/SupersymmetryPublicResults
 
-.. [c2] https://twiki.cern.ch/twiki/bin/view/CMSPublic/PhysicsResultsSUS
+ [2] https://twiki.cern.ch/twiki/bin/view/CMSPublic/PhysicsResultsSUS
 
  [3] Heavy Flavor Averaging Group Collaboration, Y. Amhis et al.,
  Averages of B-Hadron, C-Hadron, and tau-lepton properties as of
- early 2012, 1207.1158. and HFAG2013 update at http://www.slac.
- stanford.edu/xorg/hfag/
+ early 2012, 1207.1158. and HFAG2013 update at 
+ http://www.slac.stanford.edu/xorg/hfag/
 
  [4] LHCb Collaboration, R. Aaij et al., First evidence for the decay
- B s → μ + μ − , Phys. Rev. Lett. 110, 021801 (2013), 1211.2674
+ B\ :sub:`s` → μ\ :sup:`+` μ\ :sup:`-` , Phys. Rev. Lett. 110, 021801 (2013), 1211.2674
 
  [5] ATLAS Collaboration, G. Aad et al., Observation of a new particle
  in the search for the Standard Model Higgs boson with the ATLAS

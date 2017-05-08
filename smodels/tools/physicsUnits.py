@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-.. module:: tools.physicsUnits
+.. module:: physicsUnits
    :synopsis: This introduces physical units (GeV, fb) to the framework.
 
 .. moduleauthor:: Wolfgang Waltenberger <wolfgang.waltenberger@gmail.com>
@@ -9,10 +9,8 @@
 """
 
 import unum
-import logging
-
-logger = logging.getLogger(__name__)
-
+from unum import IncompatibleUnitsError
+from smodels.tools.smodelsLogging import logger
 
 # description see
 # http://home.scarlet.be/be052320/Unum.html
@@ -37,6 +35,7 @@ cm = unum.Unum.unit('cm', 0.01 * m )
 
 fb = unum.Unum.unit('fb')
 pb = unum.Unum.unit('pb', 1000 * fb)
+mb = unum.Unum.unit('mb', 10**12 * fb )
 
 eV = unum.Unum.unit('eV')
 keV = unum.Unum.unit('keV', 10 ** 3 * eV)

@@ -46,13 +46,27 @@ help:
 	@echo "  linkcheck  to check all external links for integrity"
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 
+recipes:
+	cd source/recipes && make
+
 clean:
 	rm -rf $(BUILDDIR)/*
 
-html:
+copy_files:
+	cp ../../parameters.ini source/images/
+	cp ../../etc/parameters_default.ini source/images/
+	cp ../../cpp/run.cpp source/images/
+
+RstFilesFromHelp:
+	rstFromHelpFiles.py
+
+html: copy_files recipes RstFilesFromHelp htmlnorecipes
+
+htmlnorecipes:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
+
 
 dirhtml:
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml

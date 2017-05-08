@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 """
-.. module:: tools.ioObjects
+.. module:: ioObjects
    :synopsis: Definitions of input/output parameters which are read from parameter.in.
     
-.. moduleauthor:: Ursula Laa <Ursula.Laa@assoc.oeaw.ac.at>    
+.. moduleauthor:: Ursula Laa <ursula.laa@lpsc.in2p3.fr>    
 .. moduleauthor:: Suchita Kulkarni <suchita.kulkarni@gmail.com>
 .. moduleauthor:: Andre Lessa <lessa.a.p@gmail.com>
 
@@ -13,14 +13,14 @@
 import os, sys
 from smodels.theory import lheReader
 from smodels.tools.physicsUnits import GeV, fb
+from smodels import installation
 import pyslha
 from smodels.particles import qNumbers, rEven
 from smodels.theory import crossSection
 from smodels.theory.theoryPrediction import TheoryPrediction
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
-import logging
-
-logger = logging.getLogger(__name__)
+from smodels.tools.smodelsLogging import logger
+from smodels.tools import runtime
 
 class ResultList(object):
     """
@@ -57,27 +57,27 @@ class ResultList(object):
         
         self.theoryPredictions.append(theoPred)
         return True
-
-    def getR(self, theoPred):
+    
+    def getR(self, theoPred, expected = False):
         """
         Calculate R value.
         
-        :paramtheoPredr theoPred: Theory Prediction object
+        :parameter theoPredr theoPred: Theory Prediction object
         :returns: R value = weight / upper limit        
         """
         
         expResult = theoPred.expResult
         datasetID = theoPred.dataset.dataInfo.dataId
-        dataType = expResult.datasets[0].dataInfo.dataType 
+        dataType = expResult.datasets[0].dataInfo.dataType
         
         if dataType == 'upperLimit':
-            ul = expResult.getUpperLimitFor(txname=theoPred.txnames[0],mass=theoPred.mass)
+            ul = expResult.getUpperLimitFor(txname=theoPred.txnames[0],mass=theoPred.mass, expected = expected)
         elif dataType == 'efficiencyMap':
-            ul = expResult.getUpperLimitFor(dataID=datasetID)
+            ul = expResult.getUpperLimitFor(dataID=datasetID, expected=expected)
         else:
             logger.error("Unknown dataType %s" %(str(dataType)))
         
-        return theoPred.value[0].value/ul
+        return (theoPred.xsection.value/ul).asNumber()    
 
     def sort(self):
         """
@@ -86,13 +86,25 @@ class ResultList(object):
         """
         self.theoryPredictions = sorted(self.theoryPredictions, key=self.getR, reverse=True)
 
-    def useBestResult(self):
-        """ 
-        Restricts the list of predictions to the best result only.        
+    def getBestExpected(self):
         """
-        self.sort()
-        if self.theoryPredictions:
-            self.theoryPredictions = [self.theoryPredictions[0]]
+        Find EM result with the highest expected R vaue.
+        :returns: Theory Prediction object
+        """
+        rexpMax = -1.
+        bestExp = None
+        for tP in self.theoryPredictions:
+            expResult = tP.expResult
+            datasetID = tP.dataset.dataInfo.dataId
+            dataType = expResult.datasets[0].dataInfo.dataType
+            if dataType != 'efficiencyMap':
+                continue
+            ulExp = expResult.getUpperLimitFor(dataID=datasetID, expected = True)
+            rexp = tP.value[0].value/ulExp
+            if rexp > rexpMax:
+                rexpMax = rexp
+                bestExp = tP
+        return bestExp
 
 
     def isEmpty(self):
@@ -101,7 +113,6 @@ class ResultList(object):
         
         """
         return len(self.theoryPredictions) == 0
-
 
 
 class OutputStatus(object):
@@ -115,14 +126,22 @@ class OutputStatus(object):
     :ivar outputfile: path to outputfile
     
     """
-    def __init__(self, status, inputFile, parameters, databaseVersion, outputfile):
+    def __init__( self, status, inputFile, parameters, databaseVersion):
         """
         Initialize output. If one of the checks failed, exit.
         
         """
 
-        self.outputfile = outputfile
-        self.inputfile = inputFile
+        try:
+            filename=os.path.join ( installation.installDirectory(),
+                                    'smodels/version' )
+            with open( filename, 'r') as versionFile:
+                version = versionFile.readline()
+            self.smodelsVersion = version.replace('\n','')
+        except IOError:
+            self.smodelsVersion = None
+
+        self.inputfile = inputFile.replace("//","/")
         self.parameters = parameters
         self.filestatus = status[0]
         self.warnings = status[1]
@@ -135,31 +154,10 @@ class OutputStatus(object):
                                1: "#decomposition was successful"}
 
         self.status = 0
-        if not self.databaseVersion or self.databaseVersion < 0:
+        if not self.databaseVersion:
             self.status = -4
         if self.filestatus < 0:
             self.status = -2
-        self.checkStatus()
-
-    def checkStatus(self):
-        """
-        Printout negative status.
-        
-        """
-        if self.status < 0:
-            # self.printout("stdout")
-            from smodels.tools import printer
-            tprinter = printer.TxTPrinter()
-            tprinter.output = 'stdout' 
-            tprinter.addObj ( self )
-            tprinter.close()
-            # self.printout("file", self.outputfile)
-            sprinter = printer.SummaryPrinter()
-            sprinter.output = 'file'
-            sprinter.filename = "summary.txt"
-            sprinter.addObj ( self )
-            sprinter.close()
-        return self.status
 
 
     def updateStatus(self, status):
@@ -170,7 +168,6 @@ class OutputStatus(object):
         
         """
         self.status = status
-        return self.checkStatus()
 
     def updateSLHAStatus(self, status):
         """
@@ -192,14 +189,6 @@ class OutputStatus(object):
         self.warnings += warning
         return
 
-    def formatData(self, outputLevel):
-        """
-        Access printout format.
-        
-        :param outputLevel: general control for the output depth to be printed 
-           (0 = no output, 1 = basic output, 2 = detailed output,...
-        """
-        return self.formatStatusData(outputLevel)
 
 
 class FileStatus(object):
@@ -219,7 +208,8 @@ class FileStatus(object):
         self.status = 0, "File not checked\n"
 
 
-    def checkFile(self, inputType, inputFile, sigmacut=None):
+    def checkFile(self, inputFile, sigmacut=None):
+        inputType = runtime.filetype ( inputFile )
 
         if inputType == 'lhe':
             self.filestatus = LheStatus(inputFile)
@@ -229,7 +219,7 @@ class FileStatus(object):
             self.status = self.filestatus.status
         else:
             self.filestatus = None
-            self.status = -5, 'Unknown input type: %s' % self.inputType
+            self.status = -5, 'Unknown input type: %s' % inputType 
 
 
 class LheStatus(object):
@@ -260,7 +250,7 @@ class LheStatus(object):
         elif not nevents:
             return -1, "No events found in the input LHE file %s" % self.filename
         elif (not type(totxsec) == type(1 * fb)) or (not totxsec.asNumber()):
-            return -1, "Total cross-section not found in the input LHE file %s" % self.filename
+            return -1, "Total cross section not found in the input LHE file %s" % self.filename
         return 1, "Input file ok"
 
 
@@ -284,7 +274,7 @@ class SlhaStatus(object):
     :ivar findLonglived: if True find stable charged particles and displaced vertices
     
     """
-    def __init__(self, filename, maxDisplacement=.01, sigmacut=.01 * fb,
+    def __init__(self, filename, maxDisplacement=.01, sigmacut=.03 * fb,
                  checkLSP=True, findMissingDecayBlocks=True,
                  findIllegalDecays=False, checkXsec=True, findLonglived=True):
         self.filename = filename
@@ -294,14 +284,17 @@ class SlhaStatus(object):
         if not self.slha:
             self.status = -3, "Could not read input SLHA file"
             return
-        self.lsp = self.findLSP()
-        self.lspStatus = self.testLSP(checkLSP)
-        self.illegalDecays = self.findIllegalDecay(findIllegalDecays)
-        self.xsec = self.hasXsec(checkXsec)
-        self.decayBlocksStatus = self.findMissingDecayBlocks(findMissingDecayBlocks)
-        self.longlived = self.findLonglivedParticles(findLonglived)
-
-        self.status = self.evaluateStatus()
+        try:
+            self.lsp = self.findLSP()
+            self.lspStatus = self.testLSP(checkLSP)
+            self.illegalDecays = self.findIllegalDecay(findIllegalDecays)
+            self.xsec = self.hasXsec(checkXsec)
+            self.decayBlocksStatus = self.findMissingDecayBlocks(findMissingDecayBlocks)
+            self.longlived = self.findLonglivedParticles(findLonglived)
+            self.status = self.evaluateStatus()
+        ## except Exception,e:
+        except (SModelSError,TypeError,IOError,ValueError,AttributeError) as e:
+            self.status = -4, "Error checking SLHA file: "+str(e)
 
 
     def read(self):
@@ -310,7 +303,8 @@ class SlhaStatus(object):
         
         """
         try: ret = pyslha.readSLHAFile(self.filename)
-        except: return None
+        except (pyslha.AccessError,pyslha.ParseError,IOError): 
+            return None
         if not ret.blocks["MASS"]: return None
         return ret
 
@@ -431,16 +425,16 @@ class SlhaStatus(object):
         """
         if not checkXsec:
             return 0, "Did not check for missing XSECTION table"
-        f = open(self.filename)
-        for line in f:
-            if "XSECTION" in line:
-                return 1, "XSECTION table present"
+        with open(self.filename) as f:
+            for line in f:
+                if "XSECTION" in line:
+                    return 1, "XSECTION table present"
 
-        msg = "XSECTION table is missing. Please include the cross-section information and try again.\n"
-        msg += "\n\t For MSSM models, it is possible to compute the MSSM cross-sections"
+        msg = "XSECTION table is missing. Please include the cross section information and try again.\n"
+        msg += "\n\t For MSSM models, it is possible to compute the MSSM cross sections"
         msg += " using Pythia through the command:\n\n"
-        msg += "\t  ./runTools.py xseccomputer -p -f " + self.filename + " \n\n"
-        msg += "\t For more options and information run: ./runTools.py xseccomputer -h\n"
+        msg += "\t  ./smodelsTools.py xseccomputer -p -f " + self.filename + " \n\n"
+        msg += "\t For more options and information run: ./smodelsTools.py xseccomputer -h\n"
         logger.error(msg)
         return -1, msg
 
@@ -606,7 +600,7 @@ class SlhaStatus(object):
         if not findLonglived:
             return 0, "Did not check for long lived particles"
 
-        # Get list of cross-sections:
+        # Get list of cross sections:
         xsecList = crossSection.getXsecFromSLHAFile(self.filename)
         # Check if any of particles being produced have visible displaced vertices
         # with a weight > sigmacut
@@ -705,7 +699,7 @@ class Qnumbers:
             self.charge3 = self.l[1]
             self.cdim = self.l[2]
 
-SMmasses = {1: 4.8e-3 , 2: 2.3e-3 , 3: 95e-2 , 4: 1.275 , 5: 4.18 , 6: 173.21 , 11: 0.51099e-3 , 12: 0, 13: 105.658e-3 , 14: 0 , 15: 1.177682 , 16: 0 , 21: 0 , 22: 0 , 23: 91.1876 , 24: 80.385 , 25: 125.5}
+SMmasses = {1: 4.8e-3 , 2: 2.3e-3 , 3: 95e-2 , 4: 1.275 , 5: 4.18 , 6: 173.21 , 11: 0.51099e-3 , 12: 0, 13: 105.658e-3 , 14: 0 , 15: 1.177682 , 16: 0 , 21: 0 , 22: 0 , 23: 91.1876 , 24: 80.385 , 25: 125.5, 111: 0.135, 211: 0.140}
 
-SMvisible = [1, 2, 3, 4, 5, 6, 11, 13, 15, 21, 22, 23, 24, 25]
+SMvisible = [1, 2, 3, 4, 5, 6, 11, 13, 15, 21, 22, 23, 24, 25, 211, 111]
 SMinvisible = [12, 14, 16]

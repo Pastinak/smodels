@@ -9,15 +9,10 @@
 
 """
 
-import logging,os,sys
+import os,sys
 from smodels.tools.physicsUnits import GeV, fb, TeV, pb
 from smodels.experiment.exceptions import SModelSExperimentError as SModelSError
-
-FORMAT = '%(levelname)s in %(module)s.%(funcName)s() in %(lineno)s: %(message)s'
-logging.basicConfig(format=FORMAT)
-logger = logging.getLogger(__name__)
-
-logger.setLevel(level=logging.WARNING)
+from smodels.tools.smodelsLogging import logger
 
 class Info(object):
     """
@@ -68,7 +63,7 @@ class Info(object):
     def addInfo(self,tag,value):
         """
         Adds the info field labeled by tag with value value to the object.
-        If the attribute contains
+        
         :param tag: information label (string)
         :param value: value for the field in string format 
         """
@@ -83,7 +78,9 @@ class Info(object):
             setattr(self,tag,value)             
         
     def getInfo(self, infoLabel):
-        """Returns the value of info field.
+        """
+        Returns the value of info field.
+        
         :param infoLabel: label of the info field (string). It must be an attribute
                           of the GlobalInfo object
         """
