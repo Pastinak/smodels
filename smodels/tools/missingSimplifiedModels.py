@@ -126,6 +126,10 @@ def missing_elem_list(missing_elements, mistop_sqrts):
         # Keep track of only unique particles for each branch.
         # Again, here the antiparticles are ignored:
         branches = unique_particles(pids, parts, masses)
+        hasmom = False
+        print elem.motherElements
+        if elem.motherElements:
+            hasmom = True
 
         tx = sms_name(elem)
 
@@ -136,7 +140,7 @@ def missing_elem_list(missing_elements, mistop_sqrts):
         else:
             elt = {'pids': str(pids_no_minus),
                     'ELweightPB': wt.asNumber(pb),
-                    'branch': branches, 'txname': tx}
+                    'branch': branches, 'txname': tx, 'compressed': hasmom}
             elementdict[pids_no_minus] = elt
     for elt in sorted(elementdict.values(), key=lambda x: x['ELweightPB'], reverse=True):
         missing_elts.append(elt)
