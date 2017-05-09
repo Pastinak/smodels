@@ -19,10 +19,9 @@ from smodels import particles
 
 
 
-def mlsp(smstoplist):
+def mlsp(elem):
     """
-    Given an object of type TopologyList (from smodels.theory.topology)
-    return the lightest particle mass.
+    Given an Element, return the lightest particle mass.
 
     >>> from smodels.theory import slhaDecomposer
     >>> smstoplist = slhaDecomposer.decompose('inputFiles/slha/complicated.slha')
@@ -48,13 +47,30 @@ def mlsp(smstoplist):
     # which should always be an lsp
     # To check if it is really the LSP and not a compressed particle on can get the mother
     # and whether the particle was actually compressed. Need to check this still.
-    elements = smstoplist.getElements()
     massesGeV = []
-    massesGev.extend([mass for mass in masses for el in elements for masses in el.getMasses()])
-    if massesGeV == []:
+    masses = elem.getMasses()
+    if not elem.motherElements:
+  #      print 'no mother elements'
+        massesGeV.extend([mass for mass in masses])
+    else:
+ #       print 'entered else'
+        for mom in elem.motherElements:
+                masses = mom[1].getMasses()
+#                print 'entered mom loop'
+                massesGeV.extend([mass for mass in masses])
+
+    #        if mom[1].elID == elem.elID:
+    #print 'entered if'
+#    massesGeV.extend([mass for mass in masses for masses in mom[1].getMasses()])
+#    massesGev.extend([mass for mass in masses for el in elements for masses in el.getMasses()])
+    if not massesGeV:
         return None
     else:
-        return min(massesGeV)
+ #       print massesGeV
+        
+#        print min(massesGeV)
+        #careful! massesGeV is a list of lists, return min(massesGeV) returns a branch
+        return min(min(massesGeV))
 
 def round_to_sign(x, sig=3):
     """
@@ -126,13 +142,15 @@ def missing_elem_list(missing_elements, mistop_sqrts):
         # Keep track of only unique particles for each branch.
         # Again, here the antiparticles are ignored:
         branches = unique_particles(pids, parts, masses)
+        # Check whether the element was compressed
         hasmom = False
       #  print elem.motherElements
         if elem.motherElements:
             hasmom = True
 
         tx = sms_name(elem)
-
+        # Get the neutralino mass
+        lspmass = mlsp(elem)
         # Add weight if it only concerns antiparticles:
         if pids_no_minus in elementdict:
             elementdict[pids_no_minus]['ELweightPB'] += wt.asNumber(pb)
@@ -140,7 +158,7 @@ def missing_elem_list(missing_elements, mistop_sqrts):
         else:
             elt = {'pids': str(pids_no_minus),
                     'ELweightPB': wt.asNumber(pb),
-                    'branch': branches, 'txname': tx, 'compressed': hasmom}
+                    'branch': branches, 'txname': tx, 'compressed': hasmom, 'neutralino mass': lspmass}
             elementdict[pids_no_minus] = elt
     for elt in sorted(elementdict.values(), key=lambda x: x['ELweightPB'], reverse=True):
         missing_elts.append(elt)
