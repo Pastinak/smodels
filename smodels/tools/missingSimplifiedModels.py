@@ -127,7 +127,7 @@ def missing_elem_list(missing_elements, mistop_sqrts):
         # Again, here the antiparticles are ignored:
         branches = unique_particles(pids, parts, masses)
         hasmom = False
-        print elem.motherElements
+      #  print elem.motherElements
         if elem.motherElements:
             hasmom = True
 
