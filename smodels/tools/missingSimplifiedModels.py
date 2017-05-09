@@ -49,26 +49,20 @@ def mlsp(elem):
     # and whether the particle was actually compressed. Need to check this still.
     massesGeV = []
     masses = elem.getMasses()
+    #check if the element was compressed
     if not elem.motherElements:
-  #      print 'no mother elements'
         massesGeV.extend([mass for mass in masses])
+    #if it was compressed, use the uncompressed element instead
     else:
- #       print 'entered else'
         for mom in elem.motherElements:
+            #if mom[1].elID == elem.elID: this was in Andre's code for solving double counting. Not sure what it does/if it's needed
                 masses = mom[1].getMasses()
-#                print 'entered mom loop'
                 massesGeV.extend([mass for mass in masses])
 
-    #        if mom[1].elID == elem.elID:
-    #print 'entered if'
-#    massesGeV.extend([mass for mass in masses for masses in mom[1].getMasses()])
-#    massesGev.extend([mass for mass in masses for el in elements for masses in el.getMasses()])
     if not massesGeV:
         return None
     else:
- #       print massesGeV
-        
-#        print min(massesGeV)
+        #return the lightest  SUSY particle in the cascade. Should always be the LSP
         #careful! massesGeV is a list of lists, return min(massesGeV) returns a branch
         return min(min(massesGeV))
 
@@ -142,6 +136,8 @@ def missing_elem_list(missing_elements, mistop_sqrts):
         # Keep track of only unique particles for each branch.
         # Again, here the antiparticles are ignored:
         branches = unique_particles(pids, parts, masses)
+        # Get nr of intermediate particles/branch length
+        brlen = {'Branch 1': elem.branches[0].getLength(), 'Branch 2': elem.branches[1].getLength() }
         # Check whether the element was compressed
         hasmom = False
       #  print elem.motherElements
@@ -158,7 +154,8 @@ def missing_elem_list(missing_elements, mistop_sqrts):
         else:
             elt = {'pids': str(pids_no_minus),
                     'ELweightPB': wt.asNumber(pb),
-                    'branch': branches, 'txname': tx, 'compressed': hasmom, 'neutralino mass': lspmass}
+                    'branch': branches, 'txname': tx, 'compressed': hasmom, 'neutralino mass': lspmass,
+                   'Nr intermediate Particles': brlen}
             elementdict[pids_no_minus] = elt
     for elt in sorted(elementdict.values(), key=lambda x: x['ELweightPB'], reverse=True):
         missing_elts.append(elt)
