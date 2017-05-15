@@ -907,12 +907,25 @@ class PyPrinter(BasicPrinter):
         # - mass of neutralino
         #     -- number of intermediate particles in first/second branch after compression OR alternatvely a boolean if more than 1 (=cascade decay)
         #     -- number of intermediate particles in first/second branch before compression OR  alternatively a boolean if compression was used
-        missing_sms_dictionary = misSMS.missing_sms_dict(obj.missingTopos, obj.missingTopos.sqrts)
 
+
+        
+
+        missing_sms_dictionary = {'missing': misSMS.missing_sms_dict(obj.missingTopos, obj.missingTopos.sqrts)}
+        #may need to include outsideGrid etc. in dictionary. example below does not work
+        """
+        missing_sms_dictionary['outsideGrid'] = misSMS.missing_sms_dict(obj.outsideGridTopos, obj.outsideGridTopos.sqrts)
+        missing_sms_dictionary['outsideGrid'] = 'bla'
+        print(missing_sms_dictionary['outsideGrid'])
+        print('D')
+        missing_sms_dictionary['Asymmetric Branches'] = misSMS.missing_sms_dict(obj.asymmetricBranches, obj.asymmetricBranches.sqrts)
+        print('E')
+        missing_sms_dictionary['Long Cascades'] = misSMS.missing_sms_dict(obj.longCascade, obj.longCascade.sqrts)
+        print('F')"""
         for topo in obj.missingTopos.topos[:nprint]:
 
             missed = {'sqrts (TeV)' : obj.sqrts.asNumber(TeV), 'weight (fb)' : topo.value,
-                                'element' : str(topo.topo) , 'topology designation' : misSMS.sms_name(topo.contributingElements[0])}
+                                'element' : str(topo.topo) , 'topology designation' : misSMS.sms_name(topo.contributingElements[0])}#only taking first contributing element! different elements lead to different topologies?
             missed['simplified_models'] = missing_sms_dictionary
             if hasattr(self,"addelementlist") and self.addelementlist:
                 contributing = []

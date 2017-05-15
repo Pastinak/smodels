@@ -101,15 +101,35 @@ def sms_name(elem):
 
     fs = str(finalstate).replace(' ', '')
     if fs in tdict.tdict:
-        return tdict.tdict[fs]
+       """ if check_production(elem,tdict.tdict[fs]):
+            return tdict.tdict[fs]
+        else:
+            return None
+"""
+       return tdict.tdict[fs]
     else:
         for finalstatestring in tdict.tdict:
             el = element.Element(finalstatestring)
             # Need literal eval or not? See examples above.
             if el.particlesMatch(elem):
-                # Check: is this working?
+                """if check_production(elem,tdict.tdict[fs]):
+                    return tdict.tdict[finalstatestring]
+                else:
+                    return None"""
                 return tdict.tdict[finalstatestring]
         return None
+#def check_production(elem,txname):
+    """
+    -- given an element and a txname, checks whether the production mechanism of the element matches the txname production mechanism
+    #create a dictionary that links txname to production mechanism.
+    """
+#    prod_pid_b1 = elem.branches[0].PIDs[0]
+ #   prod_pid_b2 = elem.branches[1].PIDs[0]
+    # format of txprod should be: key: [branch 1 progenitor, branch 2 progenitor]
+  #  if [prod_pid_b1,prod_pid_b2] == txprod[txname] or [prod_pid_b2,prod_pid_b1] == txprod[txname]:
+    #    return True
+   # else:
+     #   return False
 
 
 def missing_elem_list(missing_elements, mistop_sqrts):
@@ -184,7 +204,6 @@ def missing_sms_dict(missing_topos, sqrts, nprint=10):
         missing = {'name': topname, 'TOPweightPB': topweight, 'sqrts': str(mistop_sqrts)}
         missing['elem'] = missing_elem_list(mistop.contributingElements, mistop_sqrts)
         missing_topo_dict['topology'].append(missing)
-
     missing_topo_dict['topology'].sort(key=lambda x: x['TOPweightPB'], reverse=True)
     return missing_topo_dict
 
