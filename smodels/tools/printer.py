@@ -513,7 +513,7 @@ class TxTPrinter(BasicPrinter):
                             contributing.append(el.elID)
 
                         miss_el_dict = misSMS.missing_elem_list(topo.contributingElements, obj.missingTopos.sqrts)
-                        for elt in miss_el_dict[:3]:
+                        for elt in miss_el_dict[:]:#3]:
                             for k in elt:
                                 output += str(elt['branch'])
 
@@ -875,44 +875,99 @@ class PyPrinter(BasicPrinter):
 
         :param obj: A Uncovered object to be printed.
         """
+        #FIXME: need to prevent double counting in different topotype categories. Also implement outside mass grid category.
+        #New Attempt: 
+#        topotypes = [obj.longCascade.classes,obj.asymmetricBranches.classes,obj.missingTopos.topos]
+        missing_topos_list = []
 
+#            print(topotype)
+            #Get all Elements of the uncovered object
+        ElementList = misSMS.getElementList(obj.missingTopos.topos)
+#        print(obj.outsideGrid.topos)
+#        print(misSMS.getElementList(obj.outsideGrid.topos))
+        outside_grid_elements = misSMS.getElementList(obj.outsideGrid.topos)
+        #Get all txNames of the Uncovered object
+        TxNames = misSMS.getTxNames(ElementList,obj.sqrts) #format is [txWeights,txSorted,txElements]
+        #            print(TxNames[0])
+        missing_topos = OrderedDict()
+        print(obj.asymmetricBranches.classes[0].contributingElements)
+        for txname in TxNames[1]:#iterating of txSorted ensures sorting by weight in missing_topos!
+            infolist = [] #List of dictionaries containing elementinfos
+            for element in TxNames[2][txname]: #loop over all elements contributing to the txname
+                Elementinfo = OrderedDict()
+                hasmom = False
+                if element.motherElements:
+                    hasmom = True
+                b1masses = []
+                for mass in element.branches[0].masses:
+                    b1masses.append(mass.asNumber(GeV))
+                b2masses = []
+                for mass in element.branches[1].masses:
+                    b2masses.append(mass.asNumber(GeV))
+                long_casc = False
+                asym_branch = False
+                outside_grid = False
+                #FIXME: checking this way is very computation heavy. find better way. maybe go through long cascades and asym branches at the end and add tag then? would only have to iterate list once.
+                if element in obj.longCascade.classes[0].contributingElements:
+#                    print('found long decay')
+                    long_casc = True
+                if element in obj.asymmetricBranches.classes[0].contributingElements: #obj.asymmetricBranches.classes always has exactly one entry
+#                    print('found asym decay')
+                    asym_branch = True
+                if element in outside_grid_elements:
+                    print('found outside grid')
+                    outside_grid = True
+                branches = OrderedDict()
+                branches['Branch1'] = {'Branchlength': element.branches[0].getLength(), 'BranchPIDs': element.branches[0].PIDs[0], 'Branchmasses_GeV': b1masses}
+                branches['Branch2'] = {'Branchlength': element.branches[1].getLength(), 'BranchPIDs': element.branches[1].PIDs[0], 'Branchmasses_GeV': b2masses}
+                Elementinfo['ElementID'] = element.elID
+                Elementinfo['Finalstate'] = str(element.getParticles())
+                Elementinfo['Weight_pb'] = element.weight.getXsecsFor(obj.sqrts)[0].value.asNumber(pb)#element.missingX
+                Elementinfo['iscompressed'] = hasmom
+                Elementinfo['asym_branches'] = asym_branch
+                Elementinfo['outside_grid'] = outside_grid
+                Elementinfo['long_casc'] = long_casc
+                Elementinfo['m_lsp_GeV'] = misSMS.mlsp(element).asNumber(GeV)
+                Elementinfo['Branches'] = branches
+                infolist.append(Elementinfo)
+            infolist.sort(key=lambda x: x['Weight_pb'], reverse=True)
+            txnameinfos = OrderedDict()
+            txnameinfos['TopoWeight_pb'] = TxNames[0][txname]
+            txnameinfos['Elements'] = infolist
+#            if txname == 'None':#most elements fit this category
+#                txnameinfos['Elements'] = infolist[:10]#only display 10 entries in category 'None'
+            missing_topos[str(txname)] = txnameinfos
+#        missing_topos_list.append(missing_topos)
+#        missing_topos = sorted(missing_topos, key=lambda x: missing_topos[x]['Weight_pb'], reverse=True)#sort by topo weight
+        #Return dictionary that is printed into the output xml file.
+        #long_cascades: obj.longCascade.classes[]
+        #asym_branchse: obj.asymmetricBranches.classes[]
+
+        return({'Missing_Topologies': missing_topos})
+
+        """
         nprint = 10  # Number of missing topologies to be printed (ordered by cross sections)
 
         missedTopos = []
-        #tdict2 = {}
+        #misSMS.getElementList(obj.missingTopos.topos,obj.missingTopos.sqrts)
         
-      #  for key in tdict: #format dictionary to match 'element' format
-#            print(key)
-      #      new_key = key.replace(" ","")
-      #      new_key = key.replace("'","")
-#            print(new_key)
-      #      tdict2[new_key] = tdict[key]
-#        print(tdict2)
-        
-        
+        #this sorts by crosssection
         for topo in obj.missingTopos.topos:
-            if topo.value > 0.: continue
+            if topo.value > 0.:
+                continue
             for el in topo.contributingElements:
                 topo.value += el.missingX
         obj.missingTopos.topos = sorted(obj.missingTopos.topos, 
                                         key=lambda x: [x.value,str(x.topo)], 
                                         reverse=True)        
-        # Jory added:
-        # Add missing sms dictionary:
-        # This includes all missing simplified models.
-        # Still missing:
-        # - Add also asymmetric, long cascade, and outside mass grid?
-        # - if so, a boolean if simplified model does exist but is outside of mass bounds
-        # - if so, a boolean if asymmetric branches
-        # - mass of neutralino
-        #     -- number of intermediate particles in first/second branch after compression OR alternatvely a boolean if more than 1 (=cascade decay)
-        #     -- number of intermediate particles in first/second branch before compression OR  alternatively a boolean if compression was used
-
-
-        
+        #Malte notes:
+        #for resorting in terms of txname: iterate of (all?) elements
+        #and identify list of txnames/topologies.
+        #sum xsec for all elements with same topology, sort by xsec, display top nprint entries
 
         missing_sms_dictionary = {'missing': misSMS.missing_sms_dict(obj.missingTopos, obj.missingTopos.sqrts)}
         #may need to include outsideGrid etc. in dictionary. example below does not work
+        """
         """
         missing_sms_dictionary['outsideGrid'] = misSMS.missing_sms_dict(obj.outsideGridTopos, obj.outsideGridTopos.sqrts)
         missing_sms_dictionary['outsideGrid'] = 'bla'
@@ -922,10 +977,9 @@ class PyPrinter(BasicPrinter):
         print('E')
         missing_sms_dictionary['Long Cascades'] = misSMS.missing_sms_dict(obj.longCascade, obj.longCascade.sqrts)
         print('F')"""
+        """
         for topo in obj.missingTopos.topos[:nprint]:
-
-            missed = {'sqrts (TeV)' : obj.sqrts.asNumber(TeV), 'weight (fb)' : topo.value,
-                                'element' : str(topo.topo) , 'topology designation' : misSMS.sms_name(topo.contributingElements[0])}#only taking first contributing element! different elements lead to different topologies?
+            missed = {'sqrts (TeV)' : obj.sqrts.asNumber(TeV), 'weight (fb)' : topo.value}#, 'topology designation' : misSMS.sms_name(topo.contributingElements[0])}#only taking first contributing element! different elements lead to different topologies?                                'element' : str(topo.topo)
             missed['simplified_models'] = missing_sms_dictionary
             if hasattr(self,"addelementlist") and self.addelementlist:
                 contributing = []
@@ -933,7 +987,11 @@ class PyPrinter(BasicPrinter):
                     contributing.append(el.elID)
                 missed["element IDs"] = contributing
             missedTopos.append(missed)
-            
+#        print('A')
+#        print('obj.outsideGridTopos: ', obj.outsideGridTopos, 'obj.outsideGridTopos.sqrts: ', obj.outsideGridTopos.sqrts)
+#        print('B')
+        #outside_grid__dictionary = {'outside_grid': misSMS.missing_sms_dict(obj.outsideGridTopos, obj.outsideGridTopos.sqrts) }
+        #print('outside_grid__dictionary: ',outside_grid__dictionary)
         outsideGrid = []
         for topo in obj.outsideGrid.topos:
             if topo.value > 0.: continue
@@ -944,9 +1002,13 @@ class PyPrinter(BasicPrinter):
                                        reverse=True)        
         for topo in obj.outsideGrid.topos[:nprint]:
             outside = {'sqrts (TeV)' : obj.sqrts.asNumber(TeV), 'weight (fb)' : topo.value,
-                                'element' : str(topo.topo)}      
+                                'element' : str(topo.topo)}
+            #outside['outside_grid'] = outside_grid__dictionary
             outsideGrid.append(outside)     
-        
+
+
+
+        #long_cascades_dictionary = {'Long Cascades': misSMS.missing_sms_dict(obj.longCascade, obj.longCascade.sqrts)}
         longCascades = []        
         obj.longCascade.classes = sorted(obj.longCascade.classes, 
                                          key=lambda x: [x.getWeight(),x.motherPIDs], 
@@ -954,9 +1016,12 @@ class PyPrinter(BasicPrinter):
         for cascadeEntry in obj.longCascade.classes[:nprint]:
             longc = {'sqrts (TeV)' : obj.sqrts.asNumber(TeV),
                      'weight (fb)' : cascadeEntry.getWeight(), 
-                     'mother PIDs' : cascadeEntry.motherPIDs}        
+                     'mother PIDs' : cascadeEntry.motherPIDs}
+            #longc['long_cascades'] = long_cascades_dictionary
             longCascades.append(longc)
-        
+
+
+        #asym_branches_dictionary = {'Asymmetric Branches': misSMS.missing_sms_dict(obj.asymmetricBranches, obj.asymmetricBranches.sqrts)}
         asymmetricBranches = []
         obj.asymmetricBranches.classes = sorted(obj.asymmetricBranches.classes, 
                                                 key=lambda x: [x.getWeight(),x.motherPIDs],
@@ -964,14 +1029,15 @@ class PyPrinter(BasicPrinter):
         for asymmetricEntry in obj.asymmetricBranches.classes[:nprint]:
             asymmetric = {'sqrts (TeV)' : obj.sqrts.asNumber(TeV), 
                     'weight (fb)' : asymmetricEntry.getWeight(),
-                    'mother PIDs' : asymmetricEntry.motherPIDs}         
+                    'mother PIDs' : asymmetricEntry.motherPIDs}
+            #asymmetric['asym_branches'] = asym_branches_dictionary
             asymmetricBranches.append(asymmetric)
 
 
         # Here the missing_sms_dictionary is added:
-        return {'Missed Topologies': missedTopos, 'Long Cascades' : longCascades,
-                'Asymmetric Branches': asymmetricBranches, 'Outside Grid': outsideGrid, 'MissedSMS': missing_sms_dictionary}
-    
+        return {'Missed_Topologies': missedTopos, 'Long_Cascades' : longCascades,
+                'Asymmetric_Branches': asymmetricBranches, 'Outside_Grid': outsideGrid}#, 'MissedSMS': missing_sms_dictionary}
+    """
 
 
 class XmlPrinter(PyPrinter):
@@ -1012,7 +1078,7 @@ class XmlPrinter(PyPrinter):
         if not isinstance(pyObj,list) and not isinstance(pyObj,dict):
             parent.text = str(pyObj).lstrip().rstrip()
         elif isinstance(pyObj,dict):
-            for key,val in sorted(pyObj.items()):
+            for key,val in pyObj.items(): #sorted(pyObj.items()): #using sorted here results in OrderedDict being reordered in a different way
                 key = key.replace(" ","_").replace("(","").replace(")","")
                 newElement = ElementTree.Element(key)
                 self.convertToElement(val,newElement,tag=key)
