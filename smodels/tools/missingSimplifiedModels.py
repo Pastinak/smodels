@@ -96,7 +96,7 @@ def find_offshell_decay(branch1,branch2,elem):
     #Zoff = ["q,q","c,c","b,b","e,e","mu,mu","ta,ta"]
     #toff = ["W,b","b,W"]
     Woff = ["q,q","q,b","b,q","b,c","c,b","c,q","q,c","L,nu","nu,L","l,nu","nu,l","e,nu","nu,e","mu,nu","nu,mu","ta,nu","nu,ta","'q','q'","'q','b'","'b','q'","'b','c'","'c','b'","'c','q'","'q','c'","'L','nu'","'nu','L'","'l','nu'","'nu','l'","'e','nu'","'nu','e'","'mu','nu'","'nu','mu'","'ta','nu'","'nu','ta'"] #contains all (visible) decays of the W,Z,t. everything is in duplicate with different formats
-    Zoff = ["q,q","c,c","b,b","e,e","mu,mu","ta,ta","nu,nu","'q','q'","'c','c'","'b','b'","'e','e'","'mu','mu'","'ta','ta'","'nu','nu'"]
+    Zoff = ["q,q","c,c","b,b","e,e","mu,mu","ta,ta","'q','q'","'c','c'","'b','b'","'e','e'","'mu','mu'","'ta','ta'"]
     toff = ["W,b","b,W","'W','b'","'b','W'"]
     decayswithW = [['squark','squark'],['C','N'],['N','C'],['slepton','sneutrino'],['sneutrino','slepton']]
     decayswithZ = [['squark','squark'],['slepton','slepton'],['sneutrino','sneutrino'],['C','C'],['N','N']]
