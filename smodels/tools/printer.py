@@ -26,7 +26,7 @@ from collections import OrderedDict
 from xml.dom import minidom
 from xml.etree import ElementTree
 from math import floor, log10
-from smodels.tools.tdict import tdict
+#from smodels.tools.tdict import tdict
 import missingSimplifiedModels as misSMS
 
 
@@ -890,7 +890,15 @@ class PyPrinter(BasicPrinter):
         TxNames = misSMS.getTxNames(ElementList,obj.sqrts) #format is [txWeights,txSorted,txElements]
         #            print(TxNames[0])
         missing_topos = OrderedDict()
-        print(obj.asymmetricBranches.classes[0].contributingElements)
+        longcascadeIDlist = []
+        asym_branchesIDlist = []
+        for listelem in obj.longCascade.classes:
+            for el in listelem.contributingElements:
+                longcascadeIDlist.append(el.elID)
+        for listelem in obj.asymmetricBranches.classes:
+            for el in listelem.contributingElements:
+                asym_branchesIDlist.append(el.elID)
+        
         for txname in TxNames[1]:#iterating of txSorted ensures sorting by weight in missing_topos!
             infolist = [] #List of dictionaries containing elementinfos
             for element in TxNames[2][txname]: #loop over all elements contributing to the txname
@@ -908,15 +916,26 @@ class PyPrinter(BasicPrinter):
                 asym_branch = False
                 outside_grid = False
                 #FIXME: checking this way is very computation heavy. find better way. maybe go through long cascades and asym branches at the end and add tag then? would only have to iterate list once.
-                if element in obj.longCascade.classes[0].contributingElements:
-#                    print('found long decay')
-                    long_casc = True
-                if element in obj.asymmetricBranches.classes[0].contributingElements: #obj.asymmetricBranches.classes always has exactly one entry
-#                    print('found asym decay')
-                    asym_branch = True
+                for listelem in longcascadeIDlist:
+#                    print('A')
+                    if element.elID == listelem:
+#                        print('found long decay')
+                        long_casc = True
+                        longcascadeIDlist.remove(listelem) #as each element can only occur once, this should help to reduce computation time
+                        break
+                for listelem in asym_branchesIDlist:
+#                    print('B')
+                    if element.elID == listelem: 
+#                        print('found asym decay')
+                        asym_branch = True
+                        asym_branchesIDlist.remove(listelem)
+                        break
                 if element in outside_grid_elements:
-                    print('found outside grid')
+#                    print('C')
+#                    print('found outside grid')
                     outside_grid = True
+                    outside_grid_elements.remove(element)
+                    break
                 branches = OrderedDict()
                 branches['Branch1'] = {'Branchlength': element.branches[0].getLength(), 'BranchPIDs': element.branches[0].PIDs[0], 'Branchmasses_GeV': b1masses}
                 branches['Branch2'] = {'Branchlength': element.branches[1].getLength(), 'BranchPIDs': element.branches[1].PIDs[0], 'Branchmasses_GeV': b2masses}
@@ -942,7 +961,7 @@ class PyPrinter(BasicPrinter):
         #Return dictionary that is printed into the output xml file.
         #long_cascades: obj.longCascade.classes[]
         #asym_branchse: obj.asymmetricBranches.classes[]
-
+        print(len(longcascadeIDlist), len(asym_branchesIDlist))
         return({'Missing_Topologies': missing_topos})
 
         """
