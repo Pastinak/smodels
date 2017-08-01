@@ -885,7 +885,13 @@ class PyPrinter(BasicPrinter):
         ElementList = misSMS.getElementList(obj.missingTopos.topos)
 #        print(obj.outsideGrid.topos)
 #        print(misSMS.getElementList(obj.outsideGrid.topos))
-        outside_grid_elements = misSMS.getElementList(obj.outsideGrid.topos)
+        outside_grid_elements = misSMS.getElementList(obj.outsideGrid.topos)#these are NOT contained in Elementlist, FIX BELOW!
+        outside_grid_ids = []
+
+        for outside_grid_elem in outside_grid_elements:
+            outside_grid_ids.append(outside_grid_elem.elID)
+            ElementList.append(outside_grid_elem)
+
         #Get all txNames of the Uncovered object
         TxNames = misSMS.getTxNames(ElementList,obj.sqrts) #format is [txWeights,txSorted,txElements]
         #            print(TxNames[0])
@@ -916,25 +922,21 @@ class PyPrinter(BasicPrinter):
                 asym_branch = False
                 outside_grid = False
                 #FIXME: checking this way is very computation heavy. find better way. maybe go through long cascades and asym branches at the end and add tag then? would only have to iterate list once.
+                #Set booleans for long cascades, asymmetric branches and outside grid
                 for listelem in longcascadeIDlist:
-#                    print('A')
                     if element.elID == listelem:
 #                        print('found long decay')
                         long_casc = True
-                        longcascadeIDlist.remove(listelem) #as each element can only occur once, this should help to reduce computation time
+                        longcascadeIDlist.remove(listelem) #as each element can only occur once, removing the element after it was succefully found should help to reduce computation time
                         break
                 for listelem in asym_branchesIDlist:
-#                    print('B')
                     if element.elID == listelem: 
-#                        print('found asym decay')
                         asym_branch = True
                         asym_branchesIDlist.remove(listelem)
                         break
-                if element in outside_grid_elements:
-#                    print('C')
-#                    print('found outside grid')
+                if element.elID in outside_grid_ids:
                     outside_grid = True
-                    outside_grid_elements.remove(element)
+                    outside_grid_ids.remove(element.elID)
                     break
                 branches = OrderedDict()
                 branches['Branch1'] = {'Branchlength': element.branches[0].getLength(), 'BranchPIDs': element.branches[0].PIDs[0], 'Branchmasses_GeV': b1masses}
@@ -946,6 +948,10 @@ class PyPrinter(BasicPrinter):
                 Elementinfo['asym_branches'] = asym_branch
                 Elementinfo['outside_grid'] = outside_grid
                 Elementinfo['long_casc'] = long_casc
+                Elementinfo['m_Mother1'] = b1masses[0]
+                Elementinfo['Mother1PID'] = element.branches[0].PIDs[0][0]
+                Elementinfo['m_Mother2'] =  b2masses[0]
+                Elementinfo['Mother2PID'] = element.branches[1].PIDs[0][0]
                 Elementinfo['m_lsp_GeV'] = misSMS.mlsp(element).asNumber(GeV)
                 Elementinfo['Branches'] = branches
                 infolist.append(Elementinfo)
@@ -953,15 +959,11 @@ class PyPrinter(BasicPrinter):
             txnameinfos = OrderedDict()
             txnameinfos['TopoWeight_pb'] = TxNames[0][txname]
             txnameinfos['Elements'] = infolist
-#            if txname == 'None':#most elements fit this category
+#            if txname == 'None': #most elements fit this category, may be desired to restrict number of elements in output. Note that infolist is sorted, so infolist[:10] is a list of the 10 most weighted Elements
 #                txnameinfos['Elements'] = infolist[:10]#only display 10 entries in category 'None'
             missing_topos[str(txname)] = txnameinfos
-#        missing_topos_list.append(missing_topos)
 #        missing_topos = sorted(missing_topos, key=lambda x: missing_topos[x]['Weight_pb'], reverse=True)#sort by topo weight
         #Return dictionary that is printed into the output xml file.
-        #long_cascades: obj.longCascade.classes[]
-        #asym_branchse: obj.asymmetricBranches.classes[]
-        print(len(longcascadeIDlist), len(asym_branchesIDlist))
         return({'Missing_Topologies': missing_topos})
 
         """

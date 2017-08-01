@@ -12,11 +12,9 @@
 from smodels.tools import tdict
 from physicsUnits import GeV, pb
 from math import floor, log10
-from smodels.tools import txNames
 from smodels.tools import txDecays
 from smodels.theory import element
 from smodels import particles
-from smodels.tools import txNames
 
 
 def getElementList(missing_topos):
@@ -71,6 +69,7 @@ def findTxName(elem):
             branch1 = finalstate[0] #change to off-shell version of branch in order to feed into check_offshell_decay again (to find possible occurence of different offshell decay than the one found already)
             branch2 = finalstate[1]
             contains_offshell = True
+    #At This point, compression is removed! Is that a problem?
     inv_finalstate = [branch2,branch1]
     inv_intermediates = [sptcs_b2,sptcs_b1]
     targument = str((finalstate,intermediates)).replace(' ','').replace('"','').replace("'","")
@@ -92,9 +91,6 @@ def find_offshell_decay(branch1,branch2,elem):
     FIXME: no direct check if decay via sm particle is allowed for the sparticles involved in case of top quark
     """
     #List of decaymodes of W,Z,t
-    #Woff = ["q,q","q,b","b,q","b,c","c,b","c,q","q,c","L,nu","nu,L","l,nu","nu,l","e,nu","nu,e","mu,nu","nu,mu","ta,nu","nu,ta"] #contains all decays of the W boson
-    #Zoff = ["q,q","c,c","b,b","e,e","mu,mu","ta,ta"]
-    #toff = ["W,b","b,W"]
     Woff = ["q,q","q,b","b,q","b,c","c,b","c,q","q,c","L,nu","nu,L","l,nu","nu,l","e,nu","nu,e","mu,nu","nu,mu","ta,nu","nu,ta","'q','q'","'q','b'","'b','q'","'b','c'","'c','b'","'c','q'","'q','c'","'L','nu'","'nu','L'","'l','nu'","'nu','l'","'e','nu'","'nu','e'","'mu','nu'","'nu','mu'","'ta','nu'","'nu','ta'"] #contains all (visible) decays of the W,Z,t. everything is in duplicate with different formats
     Zoff = ["q,q","c,c","b,b","e,e","mu,mu","ta,ta","'q','q'","'c','c'","'b','b'","'e','e'","'mu','mu'","'ta','ta'"]
     toff = ["W,b","b,W","'W','b'","'b','W'"]
@@ -111,7 +107,7 @@ def find_offshell_decay(branch1,branch2,elem):
         if decaymode in ptcsb1:
             vertexnr = -1#branches always open 2 brackets before first particle, if decaymode is in 1st vertex, vertexnr will be 1
             #need to find vertex where 'decaymode' was found in order to compute correct mass difference. 
-            for char in ptcsb1[:ptcsb1.find(decaymode)]:# loops over every char in finalstate until it hits 'decaymode'
+            for char in ptcsb1[:ptcsb1.find(decaymode)]:# loops over every char in finalstate until it hits 'decaymode'. better implementation: count char in ptcsb1[:decaymode]?
                 if char == '[':
                     vertexnr +=1
             sptc1_pid = int(elem.branches[0].PIDs[0][vertexnr-1])#sparticles pid
@@ -226,7 +222,7 @@ def fs_offdecay(finalstate,os_ptc,branchnr,vertexnr,decaymode):
             charindex+=1
             if char == '[':
                 branchvertex+=1
-                if branchvertex == vertexnr:#charindex is now marks the beginning of the vertex where the decaymode was found
+                if branchvertex == vertexnr:#charindex now marks the beginning of the vertex where the decaymode was found
                     vertexlen = branch1[charindex:].find(']')#need this to limit replace function
                     break
         branch1 = branch1[:charindex] + branch1[charindex:charindex+vertexlen].replace(decaymode,os_ptc)+branch1[charindex+vertexlen:]
