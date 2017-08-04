@@ -1,3 +1,4 @@
+
                                ==============
                                 SModelS v1.1
                                ==============
@@ -6,25 +7,16 @@
 Installation
 ============
 
-SModelS is a Python library that requires Python version 2.6 or later (including
-version 3) with Python's setuptools installed.
+SModelS is a Python library that requires Python version 2.6 or later with the Python packages setuptools, unum, numpy, argparse, docutils (>=0.3), scipy (>=0.9.0),
+and pyslha (>=3.1.).
 if SModelS is to compute cross sections, it uses the following tools internally:
 
- * Pythia 8.223 (requires a C++ compiler)
+ * Pythia 8.226 (requires a C++ compiler)
  * Pythia 6.4.27 (obsolete)
  * NLL-fast 1.2 (7 TeV), 2.1 (8 TeV), and 3.1 (13 TeV) (requires a gfortran compiler)
 
 These tools are built into SModelS and require gfortran and C++.
-They need not be installed separately, as the SModelS build system takes care of that.
-In addition to setuptools, SModelS depends on the following *external* Python
-libraries:
-
- * unum
- * numpy
- * argparse
- * docutils>=0.3
- * scipy>=0.9.0
- * pyslha>=3.1.0
+They need not be installed separately, as the SModelS build system takes care of that. As per default, NLL-fast and both Pythia6 and Pythia8 are installed. However, the user can easily adapt the Makefile, to fit his or her needs.
 
 (The database browser interface provided by smodelsTools.py also requires IPython.
 However, all the other SModelS functionalities are independent of IPython.)
@@ -52,8 +44,8 @@ should list and check all internal tools (Pythia and NLL-fast) and external
 In case everything fails, please contact smodels-users@lists.oeaw.ac.at
 
 
-Installation on Ubuntu 16.04
-----------------------------
+Installation on Ubuntu >=16.04
+------------------------------
 
 Installation on Ubuntu machines should be straightforward with superuser privileges
 (if you do not have superuser privileges see instructions below):
@@ -129,39 +121,5 @@ Installation of C++ interface
 -----------------------------
 
 SModelS v1.1.1 comes with a simple C++ interface, see the cpp directory.
-Obviously, a C++ compiler is need, alongside with the python developers               (header) files (libpython-dev on ubuntu, python-devel on rpm-based distros).
-
-
-Running SModelS
-===============
-
-SModelS provides a command-line tool (runSModelS.py) for the basic functionalities,
-which can be executed as:
-
-./runSModelS.py -p <parameter file> -f <input file or directory> -o <output directory>
-
-For help instructions:
-
-./runSModelS.py -h
-
-An example file on how to call the SModelS libraries from your own
-Python code can be found in Example.py.
-
-Detailed explanations on how to use SModelS, including explanations of the
-output, can be found in the section ``Running SModelS'' of the SModelS manual
-(docs/Manual.html).
-
-A few example input files are provided in the inputFiles folder and can be
-used to test runSModelS.py.
-
-
-Citation
-========
-
-If you use this software please cite SModelS v1.1 as well as the programs
-it makes use of (Pythia8.223/Pythia6.4.27, NLL-fast and PySLHA). For your convenience, the relevant
-citations are provided in bibtex format in references.bib.
-
-For citing the experimental analyses in the database, you can use
-smodels-database/database.bib
-
+Obviously, a C++ compiler is needed, alongside with the python developers
+(header) files (libpython-dev on ubuntu, python-devel on rpm-based distros).
