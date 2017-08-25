@@ -1,36 +1,46 @@
 from collections import OrderedDict
 import os
+#particle/sparticle dictionaries
 q = {'q': 'squark', 'c': 'squark', 'b':'sbottom','t':'stop','toff':'stop'}
 l = {'e': 'slepton', 'mu': 'slepton','ta':'stau','nu':'sneutrino'}
 b = ['Z','Zoff','W','Woff']
 
+#Chargino decay dictionary
 Cdecays = {('q',q['q']):'q',('q',q['c']):'q',('q',q['b']):'q',('q',q['t']):'q',('c',q['q']):'c',('c',q['b']):'c',('c',q['t']):'c',('b',q['t']):'b',('t',q['b']):'t',('toff',q['b']):'toff',#quark vertices
            ('e','sneutrino'):'l',('mu','sneutrino'):'l',('ta','sneutrino'):'ta',#lepton vertices
            ('nu','slepton'):'nu',('nu','stau'):'nu', #neutrino vertices
            ('Z','C'):'Z',('Zoff','C'):'Zoff',#Z vertices
            ('W','N'):'W',('Woff','N'):'Woff'#W vertices
 }
+#Neutralino decay dictionary
 Ndecays = {('q',q['q']):'q',('c',q['c']):'c',('b',q['b']):'b',('t',q['t']):'t',('toff',q['toff']):'toff', #quark decays
            ('Z','N'):'Z',('Zoff','N'):'Zoff',#Z decays
            ('W','C'):'W',('Woff','C'):'Woff' #W decays
 }
-#only interested in decays to lsp for quarks -> trivial (Q,N) and (c,N)
+
+#for now, only interested in decays to lsp for quarks -> trivial (q,N) and (c,N)
+#'light' squark decay dictionary
 Sqdecays = {('q','N'):'q',('c','N'):'c'}
+#Scharm decay dictionary
 #Scdecays = {('c','N'):'c'} scharms not implemented in smodels
+#Sbottom decay dictionary
 Sbdecays = {('b','N'):'b'}
+#Stop decay dictionary
 Stdecays = {('t','N'):'t',('toff','N'):'toff'}
 
-
+#Slepton decay dictionary
 Sldecays = {('e','N'):'l',('mu','N'):'l',#to neutralino
             ('nu','C'):'nu'#to chargino
 }
+#Stau decay dictionary
 Staudecays = {('ta','N'):'ta',#to neutralino
               ('nu','C'):'nu'#to chargino
 }
+#Sneutrino decay dictionary
 Snudecays = {('nu','N'):'nu',#to neutralino
              ('e','C'):'l',('mu','C'):'mu',('ta','C'):'ta',#to chargino
 }
-#dictionary assigning the decays to use to the sparticle in question
+#dictionary assigning the decay dictionary to use to the sparticle in question
 whatdecay = {'squark': Sqdecays,
              'sbottom': Sbdecays,
              'stop': Stdecays,
@@ -40,27 +50,33 @@ whatdecay = {'squark': Sqdecays,
              'C': Cdecays,
              'N': Ndecays,
 }
-#dictionary to assign Tname to a given productionmode
+#dictionary to assign Tname prefix to a given productionmode
 tname = {('N','N'): 'ChiChi',
          ('C','C'): 'ChipChim',
          ('C','N'): 'ChiChipm',
          ('N','C'): 'ChiChipm',
          ('slepton','slepton'): 'SlepSlep'
 }
-#loop over 1st branch, loop over vertices, loop over nr of vertices
 #Chargino Chargino production
-branch1 = [('none','C')]
-branch2 = [('none','C')]
-progenitors = [('C','C'),('C','N'),('N','N'),('slepton','slepton')]
-dictkey = ''
-dictval = ''
-txnames = OrderedDict()
+branch1 = [('','')] #branch 1 particles. format: [('vtx0_sm_finalstate','branchmother'),(vtx1_sm_finalstate,1st_intermediate),...]
+branch2 = [('','')] #see above
+progenitors = [('C','C'),('C','N'),('N','N'),('slepton','slepton')] #production mode. format: ('branch1 mother','branch2 mother')
+dictkey = '' #tdict dictionary keys.
+#format: ([[['branch1_vtx1_ptc1','branch1_vtx1_ptc2',...],['branch1_vtx2_ptc1',...]],[['branch2_vtx1_ptc1','branch2_vtx1_ptc2',...],['branch2_vtx2_ptc1',...]]],[[branch1_mother,branch1_intermediate1,branch1_intermediate2,...][branch2_mother,branch2_intermediate1,...]])
+#e.g.: '([[[nu],[mu]],[[q],[q]]],[[C,slepton,N],[C,squark,N]])'
+dictval = '' #tdict dictionary values. format: T+'branch1_mother'+'branch2_mother'+'branch1_vtx1_finalstate'+'branch1_vtx2_finalstate'+...+'branch2_vtx1_finalstate'+...
+#e.g.: TChipChimnumuqq
+txnames = OrderedDict() #dictionary that is written to tdict.py. Using an ordered dict for increased readability. Standard python dict would work aswell
 
 
 def Fix_fs(branch1,branch2):
+    """
+    given a complete set of branches, create its txname and add to txnames dictionary
+    param branch1: first branch finalstate and intermediates
+    param branch2: second branch finalstate and intermediates
+    """
     if len(branch1) == 2 and len(branch2) == 2:#case of both branches with only 1 vertex
         dictkey = '([[[' +branch1[1][0]+']],[['+branch2[1][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+'],['+branch2[0][1]+','+branch2[1][1]+']])'#create tdict key format
-#        dictval = 'TChipChim'+branch1[1][0]+branch2[1][0]#create name
         dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch1[1][0]+branch2[1][0]#create name
     elif len(branch1) == 2 and len(branch2) == 3:
         dictkey = '([[[' +branch1[1][0]+']],[['+branch2[1][0]+'],['+branch2[2][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+'],['+branch2[0][1]+','+branch2[1][1]+','+branch2[2][1]+']])'
@@ -73,38 +89,84 @@ def Fix_fs(branch1,branch2):
         dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch1[1][0]+branch1[2][0]+branch2[1][0]
         """
     else:
-#        print 'no case found, should only be duplicates when considering branch symmetry'
+        print 'no branch configuration found!(should only occur for duplicates under branch symmetry)'
         return
     if not dictkey in txnames: #no duplicates, i.e. because of branch symmetry
         txnames[dictkey] = dictval                
             
         
     
-
-if len(branch1)>3 or len(branch2)>3:#test branchlength
+#test branchlength. should this be >2?
+if len(branch1)>3 or len(branch2)>3:
     print 'error: branchlength exceeded. branch1: ' + str(branch1) + ' ; branch2: '+str(branch2)
 
 for productionmode in progenitors:
+    """
+    In the following, (number) designates the loop in order of occurence, while the number of - mimics the indentation. + correspond to the else path of the last if statement at the same indentation
+    (1)-loop over all possible arrangements of branch progenitors, e.g. ('C','C') or ('slepton','slepton')
+    (2)--loop over all possible numbers of vertices in FIRST branch. For now, branches can be of length 1 or 2
+    (3)---select decay dictionary of last intermediate particle in the FIRST branch, then loop over all possible decays of that intermediate particle
+       ----if the vertex/intermediate selected is the last in the cascade (before the lsp) and the decay selected does not end in a neutralino, continue to next decaymode
+       ----append the decaymode to the FIRST branch
+    (4)----if the number of vertices allows for another vertex to be added to the FIRST branch, select decay dictionary of last intermediate particle in the FIRST branch, then loop over all possible decays of that intermediate particle
+       -----if the vertex/intermediate selected is the last in the cascade (before the lsp) and the decay selected does not end in a neutralino, continue to next decaymode #for now, this is always the case as the maximum branchlength is 2
+       -----append the decaymode to the FIRST branch
+    (5)-----loop over all possible numbers of vertices in SECOND branch.
+    (6)------select decay dictionary of last intermediate particle in the SECOND branch, then loop over all possible decays of that intermediate particle
+       -------if the vertex/intermediate selected is the last in the cascade (before the lsp) and the decay selected does not end in a neutralino, continue to next decaymode
+       -------append the decaymode to the SECOND branch
+    (7)-------if the number of vertices allows for another vertex to be added to the SECOND branch, select decay dictionary of last intermediate particle in the SECOND branch, then loop over all possible decays of that intermediate particle
+       --------if the vertex/intermediate selected is the last in the cascade (before the lsp) and the decay selected does not end in a neutralino, continue to next decaymode in loop (7)
+       --------append the decaymode to the SECOND branch
+       --------call Fix_fs(first branch,second branch)
+       --------remove the last element of the SECOND branch
+       --------go to next element of loop (7)
+       -------remove the last element of the SECOND branch
+       -------go to next element of loop (6)
+       +++++++call Fix_fs(first branch,second branch)
+       +++++++remove the last element of the SECOND branch
+       +++++++go to next element of loop (6)
+       ------go to next element of loop (5)
+       -----remove the last element of the FIRST branch
+       -----go to next element of loop (4)
+       ----remove the last element of the FIRST branch
+       ++++go to loop (5), ignore loop (4) and line directly above this one
+       ----go to next element of loop (3)
+       ---go to next element of loop (2)
+       --go to next element of loop (1)
+
+    
+
+    #for now, this script only goes to a branchlength of 2
+    #for now, this script only works for electroweak branch progenitors
+    """
     branch1 = [('none',productionmode[0])]
     branch2 = [('none',productionmode[1])]
     #how to select decays to lsp? if not Xdecays[sparticle] == 'N': continue
     for b1vertexnr in range(1,3):#loop over amount of vertices for branch 1.
+        #loop (1)
         for b1decay in whatdecay[branch1[-1][1]]:#selects the decay dictionary to loop over, then loops over it. branch1[-1][1] looks at last intermediate in branch1
+            #loop (2)
             if b1vertexnr == 1 and b1decay[1] != 'N':#if last vertex, only consider decays ending in neutralinos
+                #possible alternative if statement: if b1vertexnr-len(branch1) == 0 and b1decay[-1] != 'N': continue
                 continue
             branch1.append(b1decay) #add the decay to the branch
             if len(branch1)>3 or len(branch2)>3:#test branchlength
                 print 'error: branchlength exceeded. branch1: ' + str(branch1) + ' ; branch2: '+str(branch2)
             if b1vertexnr == 2:#if there is another vertex, go through all possible decays for the 2nd vertex. Only consider decays ending in neutralinos
+                #loop (3)
                 for b1v2decay in whatdecay[branch1[-1][1]]:
+                    #loop (4)
                     if b1v2decay[1] != 'N':#only consider decays ending in neutralinos, as this is the last vertex
                         continue
                     branch1.append(b1v2decay) #add the decay ending in a neutralino to the branch
                     if len(branch1)>3 or len(branch2)>3:#test branchlength
                         print 'error: branchlength exceeded. branch1: ' + str(branch1) + ' ; branch2: '+str(branch2)
-                    #do branch2, set finalstate
+                    #do branch2 and set finalstate
                     for b2vertexnr in range(1,3):#branch 2 can have 1 or 2 vertices
+                        #loop (5)
                         for b2decay in whatdecay[branch2[-1][1]]:#same as branch1
+                            #loop (6)
                             if b2vertexnr == 1 and b2decay[1] != 'N':
                                 continue
                             branch2.append(b2decay)
@@ -112,6 +174,7 @@ for productionmode in progenitors:
                                 print 'error: branchlength exceeded. branch1: ' + str(branch1) + ' ; branch2: '+str(branch2)
                             if b2vertexnr == 2:#consider cases with 2 vertices in branch2
                                 for b2v2decay in whatdecay[branch2[-1][1]]:
+                                    #loop (7)
                                     if b2v2decay[1] != 'N':#only consider decays ending in neutralinos
                                         continue
                                     branch2.append(b2v2decay)
@@ -123,7 +186,6 @@ for productionmode in progenitors:
                             else:#case of only 1 vertex in branch2
                                 Fix_fs(branch1,branch2)#fix finalstate and add to dict
                                 branch2.pop()
-
                     branch1.pop() #at this point, all possibilities stemming from the decay chosen for branch1 have been considered. remove last element of branch one and go to next element of the loop
                 branch1.pop()
             else:#case of only 1 vertex in branch1
