@@ -6,14 +6,14 @@ l = {'e': 'slepton', 'mu': 'slepton','ta':'stau','nu':'sneutrino'}
 b = ['Z','Zoff','W','Woff']
 
 #Chargino decay dictionary
-Cdecays = {('q',q['q']):'q',('q',q['c']):'q',('q',q['b']):'q',('q',q['t']):'q',('c',q['q']):'c',('c',q['b']):'c',('c',q['t']):'c',('b',q['t']):'b',('t',q['b']):'t',('toff',q['b']):'toff',#quark vertices
+Cdecays = {('q','squark'):'q',('q','squark'):'q',('q','sbottom'):'q',('q','stop'):'q',('c','squark'):'c',('c','sbottom'):'c',('c','stop'):'c',('b','stop'):'b',('t','sbottom'):'t',('toff','sbottom'):'toff',#quark vertices
            ('e','sneutrino'):'l',('mu','sneutrino'):'l',('ta','sneutrino'):'ta',#lepton vertices
            ('nu','slepton'):'nu',('nu','stau'):'nu', #neutrino vertices
            ('Z','C'):'Z',('Zoff','C'):'Zoff',#Z vertices
            ('W','N'):'W',('Woff','N'):'Woff'#W vertices
 }
 #Neutralino decay dictionary
-Ndecays = {('q',q['q']):'q',('c',q['c']):'c',('b',q['b']):'b',('t',q['t']):'t',('toff',q['toff']):'toff', #quark decays
+Ndecays = {('q','squark'):'q',('c','squark'):'c',('b','sbottom'):'b',('t','stop'):'t',('toff','stop'):'toff', #quark decays
            ('Z','N'):'Z',('Zoff','N'):'Zoff',#Z decays
            ('W','C'):'W',('Woff','C'):'Woff' #W decays
 }
@@ -76,34 +76,43 @@ def Fix_fs(branch1,branch2):
     param branch2: second branch finalstate and intermediates
     """
     if len(branch1) == 2 and len(branch2) == 2:#case of both branches with only 1 vertex
-        dictkey = '([[[' +branch1[1][0]+']],[['+branch2[1][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+'],['+branch2[0][1]+','+branch2[1][1]+']])'#create tdict key format
+        dictkey = '([[['+branch1[1][0]+']],[['+branch2[1][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+'],['+branch2[0][1]+','+branch2[1][1]+']])'#create tdict key format
         dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch1[1][0]+branch2[1][0]#create name
+        branch1,branch2 = branch2, branch1
+        invdictkey = '([[['+branch1[1][0]+']],[['+branch2[1][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+'],['+branch2[0][1]+','+branch2[1][1]+']])' #create branch symmetric version
     elif len(branch1) == 2 and len(branch2) == 3:
-        dictkey = '([[[' +branch1[1][0]+']],[['+branch2[1][0]+'],['+branch2[2][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+'],['+branch2[0][1]+','+branch2[1][1]+','+branch2[2][1]+']])'
+        dictkey = '([[['+branch1[1][0]+']],[['+branch2[1][0]+'],['+branch2[2][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+'],['+branch2[0][1]+','+branch2[1][1]+','+branch2[2][1]+']])'
         dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch1[1][0]+branch2[1][0]+branch2[2][0]
+        branch1,branch2 = branch2, branch1
+        invdictkey = '([[['+branch1[1][0]+'],['+branch1[2][0]+']],[['+branch2[1][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+','+branch1[2][1]+'],['+branch2[0][1]+','+branch2[1][1]+']])'
+        
     elif len(branch1) == 3 and len(branch2) == 3:
-        dictkey = '([[[' +branch1[1][0]+'],['+branch1[2][0]+']],[['+branch2[1][0]+'],['+branch2[2][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+','+branch1[2][1]+'],['+branch2[0][1]+','+branch2[1][1]+','+branch2[2][1]+']])'
+        dictkey = '([[['+branch1[1][0]+'],['+branch1[2][0]+']],[['+branch2[1][0]+'],['+branch2[2][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+','+branch1[2][1]+'],['+branch2[0][1]+','+branch2[1][1]+','+branch2[2][1]+']])'
         dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch1[1][0]+branch1[2][0]+branch2[1][0]+branch2[2][0]
-        """    elif len(branch2) == 2 and len(branch1) == 3:#these should be duplicates when imposing branch symmetry
-        dictkey = '([[[' +branch1[1][0]+'],['+branch1[2][0]+']],[['+branch2[1][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+','+branch1[2][1]+'],['+branch2[0][1]+','+branch2[1][1]+']])'
+        branch1,branch2 = branch2,branch1
+        invdictkey = '([[['+branch1[1][0]+'],['+branch1[2][0]+']],[['+branch2[1][0]+'],['+branch2[2][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+','+branch1[2][1]+'],['+branch2[0][1]+','+branch2[1][1]+','+branch2[2][1]+']])'
+    elif len(branch1) == 3 and len(branch1) == 2:#these should be duplicates when imposing branch symmetry
+        dictkey = '([[['+branch1[1][0]+'],['+branch1[2][0]+']],[['+branch2[1][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+','+branch1[2][1]+'],['+branch2[0][1]+','+branch2[1][1]+']])'
         dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch1[1][0]+branch1[2][0]+branch2[1][0]
-        """
+        branch1,branch2 = branch2,branch1
+        invdictkey = '([[['+branch1[1][0]+']],[['+branch2[1][0]+'],['+branch2[2][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+'],['+branch2[0][1]+','+branch2[1][1]+','+branch2[2][1]+']])'
+        
     else:
-        print 'no branch configuration found!(should only occur for duplicates under branch symmetry)'
+        print 'no valid branch configuration'
         return
-    if not dictkey in txnames: #no duplicates, i.e. because of branch symmetry
+    if not dictkey,invdictkey in txnames: #no duplicates, i.e. because of branch symmetry
         txnames[dictkey] = dictval                
             
         
     
-#test branchlength. should this be >2?
+#test branchlength.
 if len(branch1)>3 or len(branch2)>3:
     print 'error: branchlength exceeded. branch1: ' + str(branch1) + ' ; branch2: '+str(branch2)
 
 for productionmode in progenitors:
     """
     In the following, (number) designates the loop in order of occurence, while the number of - mimics the indentation. + correspond to the else path of the last if statement at the same indentation
-    (1)-loop over all possible arrangements of branch progenitors, e.g. ('C','C') or ('slepton','slepton')
+    (1)-loop over all possible arrangements of branch progenitors, e.g. ('C','C') or ('slepton','slepton'). See list 'progenitors'
     (2)--loop over all possible numbers of vertices in FIRST branch. For now, branches can be of length 1 or 2
     (3)---select decay dictionary of last intermediate particle in the FIRST branch, then loop over all possible decays of that intermediate particle
        ----if the vertex/intermediate selected is the last in the cascade (before the lsp) and the decay selected does not end in a neutralino, continue to next decaymode
@@ -140,13 +149,14 @@ for productionmode in progenitors:
     #for now, this script only goes to a branchlength of 2
     #for now, this script only works for electroweak branch progenitors
     """
+    #loop (1)
     branch1 = [('none',productionmode[0])]
     branch2 = [('none',productionmode[1])]
     #how to select decays to lsp? if not Xdecays[sparticle] == 'N': continue
     for b1vertexnr in range(1,3):#loop over amount of vertices for branch 1.
-        #loop (1)
+        #loop (2)
         for b1decay in whatdecay[branch1[-1][1]]:#selects the decay dictionary to loop over, then loops over it. branch1[-1][1] looks at last intermediate in branch1
-            #loop (2)
+            #loop (3)
             if b1vertexnr == 1 and b1decay[1] != 'N':#if last vertex, only consider decays ending in neutralinos
                 #possible alternative if statement: if b1vertexnr-len(branch1) == 0 and b1decay[-1] != 'N': continue
                 continue
@@ -154,7 +164,6 @@ for productionmode in progenitors:
             if len(branch1)>3 or len(branch2)>3:#test branchlength
                 print 'error: branchlength exceeded. branch1: ' + str(branch1) + ' ; branch2: '+str(branch2)
             if b1vertexnr == 2:#if there is another vertex, go through all possible decays for the 2nd vertex. Only consider decays ending in neutralinos
-                #loop (3)
                 for b1v2decay in whatdecay[branch1[-1][1]]:
                     #loop (4)
                     if b1v2decay[1] != 'N':#only consider decays ending in neutralinos, as this is the last vertex
@@ -214,6 +223,8 @@ for productionmode in progenitors:
 
                 branch1.pop()#all possibilities of branchlength 1 in 1st branch stemming from chosen decay have been done, go to next decay in the loop
 
+
+#simplified models from smodels website and manual additions
 smstxnames = {"([[[q,q]],[[q,q]]],[[gluino,N],[gluino,N]])": 'T1',
               "([[[b,b]],[[b,b]]],[[gluino,N],[gluino,N]])": 'T1bbbb',
               "([[[b,b]],[[b,t]]],[[gluino,N],[gluino,N]])": 'T1bbbt',
