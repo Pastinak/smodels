@@ -937,7 +937,7 @@ class PyPrinter(BasicPrinter):
                 if element.elID in outside_grid_ids:
                     outside_grid = True
                     outside_grid_ids.remove(element.elID)
-                    break
+#                    break
                 branches = OrderedDict()
                 branches['Branch1'] = {'Branchlength': element.branches[0].getLength(), 'BranchPIDs': element.branches[0].PIDs[0], 'Branchmasses_GeV': b1masses}
                 branches['Branch2'] = {'Branchlength': element.branches[1].getLength(), 'BranchPIDs': element.branches[1].PIDs[0], 'Branchmasses_GeV': b2masses}
