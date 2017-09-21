@@ -76,12 +76,12 @@ def findTxName(elem):
     inv_targument = str((inv_finalstate,inv_intermediates)).replace(' ','').replace('"','').replace("'","")
     if targument in tdict.txnames: #need to either fix the order of particles or check every permutation
         #print 'found txname!'
-        return tdict.txnames[targument]
+        return tdict.txnames[targument],targument
     elif inv_targument in tdict.txnames:
-        return tdict.txnames[inv_targument]
+        return tdict.txnames[inv_targument],inv_targument
     else:
         #print targument
-        return 'None'
+        return 'None','None'
 def find_offshell_decay(branch1,branch2,elem):
     """
     Given the branches of an Element, finds off-shell decays in the finalstate.
@@ -250,16 +250,18 @@ def getTxNames(el_list,mistop_sqrts):
     
     txWeights = {}#dictionary containing txname as key and the weight as value {'txname': weight[pb]}
     txElements = {}#dictionary containing all contributing elements to a txname {'txname': [contributing elements]}
+    txFinalstate = {}#dictionary mapping the txname to a finalstate
     for el in el_list:
         txName = findTxName(el)
         #if txname already in txList, add element weight to its corresponding topology weight
-        if txName in txWeights:
-            txWeights[txName] += el.weight.getXsecsFor(mistop_sqrts)[0].value.asNumber(pb)
-            txElements[txName].append(el)
+        if txName[0] in txWeights:
+            txWeights[txName[0]] += el.weight.getXsecsFor(mistop_sqrts)[0].value.asNumber(pb)
+            txElements[txName[0]].append(el)
         #else create an entry in txElements and in txWeights
         else:
-            txWeights[txName] = el.weight.getXsecsFor(mistop_sqrts)[0].value.asNumber(pb)
-            txElements[txName] = [el]
+            txWeights[txName[0]] = el.weight.getXsecsFor(mistop_sqrts)[0].value.asNumber(pb)
+            txElements[txName[0]] = [el]
+            txFinalstate[txName[0]] = txName[1]
             #convert weights to pb
 #    print txWeights
     """for weight in txWeights.values():
@@ -269,7 +271,7 @@ def getTxNames(el_list,mistop_sqrts):
         print weight"""
     #sort txWeights
     txSorted = sorted(txWeights, key=txWeights.__getitem__, reverse=True)
-    return txWeights, txSorted, txElements
+    return txWeights, txSorted, txElements, txFinalstate
     
 
     

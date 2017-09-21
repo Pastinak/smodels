@@ -893,7 +893,7 @@ class PyPrinter(BasicPrinter):
             ElementList.append(outside_grid_elem)
 
         #Get all txNames of the Uncovered object
-        TxNames = misSMS.getTxNames(ElementList,obj.sqrts) #format is [txWeights,txSorted,txElements]
+        TxNames = misSMS.getTxNames(ElementList,obj.sqrts) #format is [txWeights,txSorted,txElements,TxBracket]; TxBracket is a dictionary mapping the txname to the finalstate in bracket notation
         #            print(TxNames[0])
         missing_topos = OrderedDict()
         longcascadeIDlist = []
@@ -907,6 +907,7 @@ class PyPrinter(BasicPrinter):
         
         for txname in TxNames[1]:#iterating of txSorted ensures sorting by weight in missing_topos!
             infolist = [] #List of dictionaries containing elementinfos
+            outside_grid_weight = 0. #Seperate weight used for all outside grid elements
             for element in TxNames[2][txname]: #loop over all elements contributing to the txname
                 Elementinfo = OrderedDict()
                 hasmom = False
@@ -936,6 +937,7 @@ class PyPrinter(BasicPrinter):
                         break
                 if element.elID in outside_grid_ids:
                     outside_grid = True
+                    outside_grid_weight += element.weight.getXsecsFor(obj.sqrts)[0].value.asNumber(pb)
                     outside_grid_ids.remove(element.elID)
 #                    break
                 branches = OrderedDict()
@@ -957,10 +959,14 @@ class PyPrinter(BasicPrinter):
                 infolist.append(Elementinfo)
             infolist.sort(key=lambda x: x['Weight_pb'], reverse=True)
             txnameinfos = OrderedDict()
+            txnameinfos['Finalstate'] = str(TxNames[3][str(txname)])
             txnameinfos['TopoWeight_pb'] = TxNames[0][txname]
+            txnameinfos['Outside_grid_pb'] = outside_grid_weight
+            txnameinfos['No_OS_pb'] = TxNames[0][txname]-outside_grid_weight
             txnameinfos['Elements'] = infolist
-#            if txname == 'None': #most elements fit this category, may be desired to restrict number of elements in output. Note that infolist is sorted, so infolist[:10] is a list of the 10 most weighted Elements
-#                txnameinfos['Elements'] = infolist[:10]#only display 10 entries in category 'None'
+            #            if txname == 'None': #most elements fit this category, may be desired to restrict number of elements in output. Note that infolist is sorted, so infolist[:10] is a list of the 10 most weighted Elements
+            #                txnameinfos['Elements'] = infolist[:10]#only display 10 entries in category 'None'
+            
             missing_topos[str(txname)] = txnameinfos
 #        missing_topos = sorted(missing_topos, key=lambda x: missing_topos[x]['Weight_pb'], reverse=True)#sort by topo weight
         #Return dictionary that is printed into the output xml file.
