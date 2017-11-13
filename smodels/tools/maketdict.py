@@ -10,11 +10,16 @@ Cdecays = {('q','squark'):'q',('q','squark'):'q',('q','sbottom'):'q',('q','stop'
            ('e','sneutrino'):'l',('mu','sneutrino'):'l',('ta','sneutrino'):'ta',#lepton vertices
            ('nu','slepton'):'nu',('nu','stau'):'nu', #neutrino vertices
            ('Z','C'):'Z',('Zoff','C'):'Zoff',#Z vertices
+           ('photon','C'):'ga',#photon
+           ('higgs','C'):'h',#('H','C'):'H',('A','C'):'A',#via higgs
+#           ('Hpm','N'):'Hpm' #via charged higgs
            ('W','N'):'W',('Woff','N'):'Woff'#W vertices
 }
 #Neutralino decay dictionary
 Ndecays = {('q','squark'):'q',('c','squark'):'c',('b','sbottom'):'b',('t','stop'):'t',('toff','stop'):'toff', #quark decays
            ('Z','N'):'Z',('Zoff','N'):'Zoff',#Z decays
+           ('photon','N'):'ga',#Via photon
+           ('higgs','N'):'h',#('H','N'):'H',('A','N'):'A',#via higgs
            ('W','C'):'W',('Woff','C'):'Woff' #W decays
 }
 
@@ -75,7 +80,32 @@ def Fix_fs(branch1,branch2):
     param branch1: first branch finalstate and intermediates
     param branch2: second branch finalstate and intermediates
     """
-    if len(branch1) == 2 and len(branch2) == 2:#case of both branches with only 1 vertex
+    if len(branch1) == 1 and len(branch2) == 1:
+        dictkey = '([[[]],[[]]],[['+branch1[0][1]+'],['+branch2[0][1]+']])'#create tdict key format
+        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]#create name
+        branch1,branch2 = branch2, branch1
+        invdictkey = '([[[]],[[]]],[['+branch1[0][1]+'],['+branch2[0][1]+']])' #create branch symmetric version
+    elif len(branch1) == 1 and len(branch2) == 2:
+        dictkey = '([[[]],[['+branch2[1][0]+']]],[['+branch1[0][1]+'],['+branch2[0][1]+','+branch2[1][1]+']])'#create tdict key format
+        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch2[1][0]#create name
+        branch1,branch2 = branch2, branch1
+        invdictkey = '([[['+branch1[1][0]+']],[[]]],[['+branch1[0][1]+','+branch1[1][1]+'],['+branch2[0][1]+']])' #create branch symmetric version
+    elif len(branch1) == 1 and len(branch2) == 3:
+        dictkey = '([[[]],[['+branch2[1][0]+branch2[2][0]+']]],[['+branch1[0][1]+'],['+branch2[0][1]+','+branch2[1][1]+','+branch2[2][1]+']])'#create tdict key format
+        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch2[1][0]+branch2[2][0]#create name
+        branch1,branch2 = branch2, branch1
+        invdictkey = '([[['+branch1[1][0]+branch1[2][0]+']],[[]]],[['+branch1[0][1]+','+branch1[1][1]+','+branch1[2][1]+'],['+branch2[0][1]+']])' #create branch symmetric version
+    elif len(branch1) == 2 and len(branch2) == 1:
+        dictkey = '([[['+branch1[1][0]+']],[[]]],[['+branch1[0][1]+','+branch1[1][1]+'],['+branch2[0][1]+']])'#create tdict key format
+        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch1[1][0]#create name
+        branch1,branch2 = branch2, branch1
+        invdictkey = '([[[]],[['+branch2[1][0]+']]],[['+branch1[0][1]+'],['+branch2[0][1]+','+branch2[1][1]+']])' #create branch symmetric version
+    elif len(branch1) == 3 and len(branch2) == 1:
+        dictkey = '([[['+branch1[1][0]+branch1[2][0]+']],[[]]],[['+branch1[0][1]+','+branch1[1][1]+','+branch1[2][1]+'],['+branch2[0][1]+']])'#create tdict key format
+        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch1[1][0]+branch1[2][0]#create name
+        branch1,branch2 = branch2, branch1
+        invdictkey = '([[[]],[['+branch2[1][0]+branch2[2][0]+']]],[['+branch1[0][1]+'],['+branch2[0][1]+','+branch2[1][1]+','+branch2[2][1]+']])' #create branch symmetric version    
+    elif len(branch1) == 2 and len(branch2) == 2:#case of both branches with only 1 vertex
         dictkey = '([[['+branch1[1][0]+']],[['+branch2[1][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+'],['+branch2[0][1]+','+branch2[1][1]+']])'#create tdict key format
         dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch1[1][0]+branch2[1][0]#create name
         branch1,branch2 = branch2, branch1
@@ -91,16 +121,15 @@ def Fix_fs(branch1,branch2):
         dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch1[1][0]+branch1[2][0]+branch2[1][0]+branch2[2][0]
         branch1,branch2 = branch2,branch1
         invdictkey = '([[['+branch1[1][0]+'],['+branch1[2][0]+']],[['+branch2[1][0]+'],['+branch2[2][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+','+branch1[2][1]+'],['+branch2[0][1]+','+branch2[1][1]+','+branch2[2][1]+']])'
-    elif len(branch1) == 3 and len(branch1) == 2:#these should be duplicates when imposing branch symmetry
+    elif len(branch1) == 3 and len(branch2) == 2:#these should be duplicates when imposing branch symmetry
         dictkey = '([[['+branch1[1][0]+'],['+branch1[2][0]+']],[['+branch2[1][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+','+branch1[2][1]+'],['+branch2[0][1]+','+branch2[1][1]+']])'
         dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch1[1][0]+branch1[2][0]+branch2[1][0]
         branch1,branch2 = branch2,branch1
         invdictkey = '([[['+branch1[1][0]+']],[['+branch2[1][0]+'],['+branch2[2][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+'],['+branch2[0][1]+','+branch2[1][1]+','+branch2[2][1]+']])'
-        
     else:
-        print 'no valid branch configuration'
+        print 'no valid branch configuration', 'b1length: ',len(branch1) ,'b2length: ',len(branch2)
         return
-    if not dictkey,invdictkey in txnames: #no duplicates, i.e. because of branch symmetry
+    if not dictkey in txnames and not invdictkey in txnames: #no duplicates, i.e. because of branch symmetry
         txnames[dictkey] = dictval                
             
         
@@ -149,18 +178,54 @@ for productionmode in progenitors:
     #for now, this script only goes to a branchlength of 2
     #for now, this script only works for electroweak branch progenitors
     """
+    #FIXME: include zero vertex branches!
+    #better implementation: make 'create_branch' function that creates branches independently, then recombine all permutations of branches.
+    
     #loop (1)
     branch1 = [('none',productionmode[0])]
     branch2 = [('none',productionmode[1])]
     #how to select decays to lsp? if not Xdecays[sparticle] == 'N': continue
-    for b1vertexnr in range(1,3):#loop over amount of vertices for branch 1.
+    for b1vertexnr in range(3):#loop over amount of vertices for branch 1.
+        if b1vertexnr == 0:
+            if productionmode[0] != 'N':
+                continue
+        for b2vertexnr in range(3):#branch 2 can have 1 or 2 vertices
+            #loop (5)
+            if b2vertexnr == 0:
+                if productionmode[1] != 'N':
+                    continue
+                Fix_fs(branch1,branch2)
+                continue
+            for b2decay in whatdecay[branch2[-1][1]]:#same as branch1
+                #loop (6)
+                if b2vertexnr == 1 and b2decay[1] != 'N':
+                    continue
+                branch2.append(b2decay)
+                if b2vertexnr == 1:
+                    Fix_fs(branch1,branch2)#fix finalstate and add to dict
+                    branch2.pop()
+                    continue
+                if len(branch1)>3 or len(branch2)>3:#test branchlength
+                    print 'error: branchlength exceeded. branch1: ' + str(branch1) + ' ; branch2: '+str(branch2)
+                if b2vertexnr == 2:#consider cases with 2 vertices in branch2
+                    for b2v2decay in whatdecay[branch2[-1][1]]:
+                        #loop (7)
+                        if b2v2decay[1] != 'N':#only consider decays ending in neutralinos
+                            continue
+                        branch2.append(b2v2decay)
+                        if len(branch1)>3 or len(branch2)>3:#test branchlength
+                            print 'error: branchlength exceeded. branch1: ' + str(branch1) + ' ; branch2: '+str(branch2)
+                        Fix_fs(branch1,branch2)#fix the finalstate and add to dict
+                        branch2.pop()
+                    branch2.pop()
         #loop (2)
         for b1decay in whatdecay[branch1[-1][1]]:#selects the decay dictionary to loop over, then loops over it. branch1[-1][1] looks at last intermediate in branch1
             #loop (3)
             if b1vertexnr == 1 and b1decay[1] != 'N':#if last vertex, only consider decays ending in neutralinos
                 #possible alternative if statement: if b1vertexnr-len(branch1) == 0 and b1decay[-1] != 'N': continue
                 continue
-            branch1.append(b1decay) #add the decay to the branch
+            if b1vertexnr != 0:
+                branch1.append(b1decay) #add the decay to the branch
             if len(branch1)>3 or len(branch2)>3:#test branchlength
                 print 'error: branchlength exceeded. branch1: ' + str(branch1) + ' ; branch2: '+str(branch2)
             if b1vertexnr == 2:#if there is another vertex, go through all possible decays for the 2nd vertex. Only consider decays ending in neutralinos
@@ -172,13 +237,22 @@ for productionmode in progenitors:
                     if len(branch1)>3 or len(branch2)>3:#test branchlength
                         print 'error: branchlength exceeded. branch1: ' + str(branch1) + ' ; branch2: '+str(branch2)
                     #do branch2 and set finalstate
-                    for b2vertexnr in range(1,3):#branch 2 can have 1 or 2 vertices
+                    for b2vertexnr in range(3):#branch 2 can have 1 or 2 vertices
                         #loop (5)
+                        if b2vertexnr == 0:
+                            if productionmode[1] != 'N':
+                                continue
+                            Fix_fs(branch1,branch2)
+                            continue
                         for b2decay in whatdecay[branch2[-1][1]]:#same as branch1
                             #loop (6)
                             if b2vertexnr == 1 and b2decay[1] != 'N':
                                 continue
                             branch2.append(b2decay)
+                            if b2vertexnr == 1:
+                                Fix_fs(branch1,branch2)#fix finalstate and add to dict
+                                branch2.pop()
+                                continue
                             if len(branch1)>3 or len(branch2)>3:#test branchlength
                                 print 'error: branchlength exceeded. branch1: ' + str(branch1) + ' ; branch2: '+str(branch2)
                             if b2vertexnr == 2:#consider cases with 2 vertices in branch2
@@ -192,14 +266,17 @@ for productionmode in progenitors:
                                     Fix_fs(branch1,branch2)#fix the finalstate and add to dict
                                     branch2.pop()
                                 branch2.pop()
-                            else:#case of only 1 vertex in branch2
-                                Fix_fs(branch1,branch2)#fix finalstate and add to dict
-                                branch2.pop()
                     branch1.pop() #at this point, all possibilities stemming from the decay chosen for branch1 have been considered. remove last element of branch one and go to next element of the loop
                 branch1.pop()
-            else:#case of only 1 vertex in branch1
+            if b1vertexnr ==1:#case of only 1 vertex in branch1
                 #do branch2, set finalstate
-                for b2vertexnr in range(1,3):
+                for b2vertexnr in range(3):
+                    if b2vertexnr == 0:
+                        if productionmode[1] != 'N':
+                            continue
+                        else:
+                            Fix_fs(branch1,branch2)
+                            continue
                     for b2decay in whatdecay[branch2[-1][1]]:
                         if b2vertexnr == 1 and b2decay[1] != 'N':
                             continue
@@ -313,5 +390,5 @@ with open('./smodels/tools/tdict.py','w') as tdict:
     tdict.write('txnames = ')
     tdict.write(str(txnames))
 #print 'tdict: ',txnames
-print '#entries in tdict: ',len(txnames)
+#print '#entries in tdict: ',len(txnames)
         
