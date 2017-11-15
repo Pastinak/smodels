@@ -31,7 +31,6 @@ def findTxName(elem):
     Given an element, find its TxName. The tdict needs the finalstate and the intermediates to determine the txname without ambiguity.
     """
     finalstate = str(elem.getParticles()).replace(' ', '').replace('+','').replace('-','').replace('jet','q')#.replace("'mu','nu'","'L','nu'").replace("'e','nu'","'L','nu'").replace("'ta','nu'","'L','nu'")
-    
     #finalstate format is [[Branch1_smparticles],[Branch2_smparticles]]
     #intermediates format is [[Branch1_intermediates],[Branch2_intermediates]]
     prod_pid_b1 = elem.branches[0].PIDs[0]
@@ -75,15 +74,26 @@ def findTxName(elem):
     inv_intermediates = [sptcs_b2,sptcs_b1]
     targument = str((finalstate,intermediates)).replace(' ','').replace('"','').replace("'","")
     inv_targument = str((inv_finalstate,inv_intermediates)).replace(' ','').replace('"','').replace("'","")
-    if str(elem.getParticles()) == "[[['q'], ['W+']], [['q', 'q'], ['higgs']]]":
-        print targument, inv_targument
+    vertex_ambiguities = {'q,c':'c,q','c,q':'q,c',
+                          'q,t':'t,q','t,q':'q,t',
+                          'q,b':'b,q','b,q':'q,b',
+                          'c,b':'b,c','b,c':'c,b',
+                          'c,t':'t,c','t,c':'c,t',
+                          'b,t':'t,b','t,b':'b,t'
+    }
     if targument in tdict.txnames: #need to either fix the order of particles or check every permutation
-        #print 'found txname!'
         return tdict.txnames[targument],targument
     elif inv_targument in tdict.txnames:
         return tdict.txnames[inv_targument],inv_targument
+    for ambiguity in vertex_ambiguities:
+        while targument.find(ambiguity) != -1:
+            targument = targument.replace(ambiguity,vertex_ambiguities[ambiguity])
+            inv_targument = inv_targument.replace(ambiguity,vertex_ambiguities[ambiguity])
+            if targument in tdict.txnames: #need to either fix the order of particles or check every permutation
+                return tdict.txnames[targument],targument
+            elif inv_targument in tdict.txnames:
+                return tdict.txnames[inv_targument],inv_targument
     else:
-        #print targument
         return 'None','None'
 def find_offshell_decay(branch1,branch2,elem):
     """
