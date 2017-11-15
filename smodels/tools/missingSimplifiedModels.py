@@ -31,6 +31,7 @@ def findTxName(elem):
     Given an element, find its TxName. The tdict needs the finalstate and the intermediates to determine the txname without ambiguity.
     """
     finalstate = str(elem.getParticles()).replace(' ', '').replace('+','').replace('-','').replace('jet','q')#.replace("'mu','nu'","'L','nu'").replace("'e','nu'","'L','nu'").replace("'ta','nu'","'L','nu'")
+    
     #finalstate format is [[Branch1_smparticles],[Branch2_smparticles]]
     #intermediates format is [[Branch1_intermediates],[Branch2_intermediates]]
     prod_pid_b1 = elem.branches[0].PIDs[0]
@@ -49,11 +50,11 @@ def findTxName(elem):
         # change neutralino/chargino designation to not distinguish between the different charginos/neutralinos, e.g. C1 to C
     intermediates = [sptcs_b1,sptcs_b2]
     
-    branch1 = elem.branches[0]
-    branch2 = elem.branches[1]
+    branch1 = str(elem.branches[0].particles).replace(' ', '').replace('+','').replace('-','').replace('jet','q')
+    branch2 = str(elem.branches[1].particles).replace(' ', '').replace('+','').replace('-','').replace('jet','q')
     if elem.motherElements:
-        branch1 = elem.motherElements[0][1].branches[0]
-        branch2 = elem.motherElements[0][1].branches[1]
+        branch1 = str(elem.motherElements[0][1].branches[0].particles).replace(' ', '').replace('+','').replace('-','').replace('jet','q')
+        branch2 = str(elem.motherElements[0][1].branches[1].particles).replace(' ', '').replace('+','').replace('-','').replace('jet','q')
 #    print branch1, branch2
     contains_offshell = True
     while contains_offshell: #while iteration to get rid of all off shell decays, not just the first one that is found
@@ -74,6 +75,8 @@ def findTxName(elem):
     inv_intermediates = [sptcs_b2,sptcs_b1]
     targument = str((finalstate,intermediates)).replace(' ','').replace('"','').replace("'","")
     inv_targument = str((inv_finalstate,inv_intermediates)).replace(' ','').replace('"','').replace("'","")
+    if str(elem.getParticles()) == "[[['q'], ['W+']], [['q', 'q'], ['higgs']]]":
+        print targument, inv_targument
     if targument in tdict.txnames: #need to either fix the order of particles or check every permutation
         #print 'found txname!'
         return tdict.txnames[targument],targument

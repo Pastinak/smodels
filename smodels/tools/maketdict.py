@@ -13,25 +13,37 @@ Cdecays = {('q','squark'):'q',('q','squark'):'q',('q','sbottom'):'q',('q','stop'
            ('photon','C'):'ga',#photon
            ('higgs','C'):'h',#('H','C'):'H',('A','C'):'A',#via higgs
 #           ('Hpm','N'):'Hpm' #via charged higgs
-           ('W','N'):'W',('Woff','N'):'Woff'#W vertices
+           ('W','N'):'W',('Woff','N'):'Woff',#W vertices
+           ('q,q','gluino'):'qq', ('q,c','gluino'):'qc', ('q,b','gluino'):'qb',('c,b','gluino'):'cb',('t,b','gluino'):'tb',('t,q','gluino'):'tq',
 }
 #Neutralino decay dictionary
 Ndecays = {('q','squark'):'q',('c','squark'):'c',('b','sbottom'):'b',('t','stop'):'t',('toff','stop'):'toff', #quark decays
            ('Z','N'):'Z',('Zoff','N'):'Zoff',#Z decays
            ('photon','N'):'ga',#Via photon
            ('higgs','N'):'h',#('H','N'):'H',('A','N'):'A',#via higgs
-           ('W','C'):'W',('Woff','C'):'Woff' #W decays
+           ('W','C'):'W',('Woff','C'):'Woff', #W decays
+           ('q,q','gluino'):'qq',('c,c','gluino'):'cc',('b,b','gluino'):'bb',('t,t','gluino'):'tt',
 }
 
 #for now, only interested in decays to lsp for quarks -> trivial (q,N) and (c,N)
 #'light' squark decay dictionary
-Sqdecays = {('q','N'):'q',('c','N'):'c'}
+Sqdecays = {('q','N'):'q',
+            
+            ('q','C'):'q',('c','C'):'c',('b','C'):'b',('t','C'):'t',
+            ('g','gluino'):'g'
+}
 #Scharm decay dictionary
-#Scdecays = {('c','N'):'c'} scharms not implemented in smodels
+#Scdecays = {('c','N'):'c',
+#            ('g','gluino'):'g'
+#} scharms not implemented in smodels
 #Sbottom decay dictionary
-Sbdecays = {('b','N'):'b'}
+Sbdecays = {('b','N'):'b',
+            ('g','gluino'):'g'
+}
 #Stop decay dictionary
-Stdecays = {('t','N'):'t',('toff','N'):'toff'}
+Stdecays = {('t','N'):'t',('toff','N'):'toff',
+            ('g','gluino'):'g'
+}
 
 #Slepton decay dictionary
 Sldecays = {('e','N'):'l',('mu','N'):'l',#to neutralino
@@ -43,7 +55,11 @@ Staudecays = {('ta','N'):'ta',#to neutralino
 }
 #Sneutrino decay dictionary
 Snudecays = {('nu','N'):'nu',#to neutralino
-             ('e','C'):'l',('mu','C'):'mu',('ta','C'):'ta',#to chargino
+             ('e','C'):'l',('mu','C'):'l',('ta','C'):'ta',#to chargino #use generic l for leptons or e&mu?
+}
+Gldecays = {('q,q','N'):'qq',('c,c','N'):'cc',('t,t','N'):'tt',('b,b','N'):'bb',
+            ('q,q','C'):'qq', ('q,c','C'):'qc', ('q,b','C'):'qb',('c,b','C'):'cb',('t,b','C'):'tb',('t,q','C'):'tq',
+            ('q','squark'):'q',('c','squark'):'c',('b','sbottom'):'b',('t','stop'):'t'
 }
 #dictionary assigning the decay dictionary to use to the sparticle in question
 whatdecay = {'squark': Sqdecays,
@@ -54,18 +70,24 @@ whatdecay = {'squark': Sqdecays,
              'sneutrino': Snudecays,
              'C': Cdecays,
              'N': Ndecays,
+             'gluino': Gldecays
 }
 #dictionary to assign Tname prefix to a given productionmode
 tname = {('N','N'): 'ChiChi',
          ('C','C'): 'ChipChim',
          ('C','N'): 'ChiChipm',
          ('N','C'): 'ChiChipm',
-         ('slepton','slepton'): 'SlepSlep'
+         ('slepton','slepton'): 'SlepSlep',
+         ('gluino','gluino'): '1',
+         ('squark','squark'): '2',
+         ('gluino','squark'): 'GQ',
+         ('squark','gluino'): 'GQ'
+
 }
 #Chargino Chargino production
 branch1 = [('','')] #branch 1 particles. format: [('vtx0_sm_finalstate','branchmother'),(vtx1_sm_finalstate,1st_intermediate),...]
 branch2 = [('','')] #see above
-progenitors = [('C','C'),('C','N'),('N','N'),('slepton','slepton')] #production mode. format: ('branch1 mother','branch2 mother')
+progenitors = [('C','C'),('C','N'),('N','N'),('slepton','slepton'),('gluino','gluino'),('squark','squark'),('gluino','squark')] #production mode. format: ('branch1 mother','branch2 mother')
 dictkey = '' #tdict dictionary keys.
 #format: ([[['branch1_vtx1_ptc1','branch1_vtx1_ptc2',...],['branch1_vtx2_ptc1',...]],[['branch2_vtx1_ptc1','branch2_vtx1_ptc2',...],['branch2_vtx2_ptc1',...]]],[[branch1_mother,branch1_intermediate1,branch1_intermediate2,...][branch2_mother,branch2_intermediate1,...]])
 #e.g.: '([[[nu],[mu]],[[q],[q]]],[[C,slepton,N],[C,squark,N]])'
@@ -81,49 +103,54 @@ def Fix_fs(branch1,branch2):
     param branch2: second branch finalstate and intermediates
     """
     if len(branch1) == 1 and len(branch2) == 1:
+        if branch1[0][1] != 'N' or branch2[0][1] != 'N': return
         dictkey = '([[[]],[[]]],[['+branch1[0][1]+'],['+branch2[0][1]+']])'#create tdict key format
-        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]#create name
+        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])].replace(',','')#create name
         branch1,branch2 = branch2, branch1
         invdictkey = '([[[]],[[]]],[['+branch1[0][1]+'],['+branch2[0][1]+']])' #create branch symmetric version
     elif len(branch1) == 1 and len(branch2) == 2:
+        if branch1[0][1] != 'N': return
         dictkey = '([[[]],[['+branch2[1][0]+']]],[['+branch1[0][1]+'],['+branch2[0][1]+','+branch2[1][1]+']])'#create tdict key format
-        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch2[1][0]#create name
+        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch2[1][0].replace(',','').replace('photon','ga').replace('higgs','h')#create name
         branch1,branch2 = branch2, branch1
         invdictkey = '([[['+branch1[1][0]+']],[[]]],[['+branch1[0][1]+','+branch1[1][1]+'],['+branch2[0][1]+']])' #create branch symmetric version
     elif len(branch1) == 1 and len(branch2) == 3:
-        dictkey = '([[[]],[['+branch2[1][0]+branch2[2][0]+']]],[['+branch1[0][1]+'],['+branch2[0][1]+','+branch2[1][1]+','+branch2[2][1]+']])'#create tdict key format
-        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch2[1][0]+branch2[2][0]#create name
+        if branch1[0][1] != 'N': return
+        dictkey = '([[[]],[['+branch2[1][0]+'],['+branch2[2][0]+']]],[['+branch1[0][1]+'],['+branch2[0][1]+','+branch2[1][1]+','+branch2[2][1]+']])'#create tdict key format
+        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+(branch2[1][0]+branch2[2][0]).replace(',','').replace('photon','ga').replace('higgs','h')#create name
         branch1,branch2 = branch2, branch1
-        invdictkey = '([[['+branch1[1][0]+branch1[2][0]+']],[[]]],[['+branch1[0][1]+','+branch1[1][1]+','+branch1[2][1]+'],['+branch2[0][1]+']])' #create branch symmetric version
+        invdictkey = '([[['+branch1[1][0]+'],['+branch1[2][0]+']],[[]]],[['+branch1[0][1]+','+branch1[1][1]+','+branch1[2][1]+'],['+branch2[0][1]+']])' #create branch symmetric version
     elif len(branch1) == 2 and len(branch2) == 1:
+        if branch2[0][1] != 'N': return
         dictkey = '([[['+branch1[1][0]+']],[[]]],[['+branch1[0][1]+','+branch1[1][1]+'],['+branch2[0][1]+']])'#create tdict key format
-        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch1[1][0]#create name
+        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+(branch1[1][0]).replace(',','').replace('photon','ga').replace('higgs','h')#create name
         branch1,branch2 = branch2, branch1
         invdictkey = '([[[]],[['+branch2[1][0]+']]],[['+branch1[0][1]+'],['+branch2[0][1]+','+branch2[1][1]+']])' #create branch symmetric version
     elif len(branch1) == 3 and len(branch2) == 1:
-        dictkey = '([[['+branch1[1][0]+branch1[2][0]+']],[[]]],[['+branch1[0][1]+','+branch1[1][1]+','+branch1[2][1]+'],['+branch2[0][1]+']])'#create tdict key format
-        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch1[1][0]+branch1[2][0]#create name
+        if branch2[0][1] != 'N': return
+        dictkey = '([[['+branch1[1][0]+'],['+branch1[2][0]+']],[[]]],[['+branch1[0][1]+','+branch1[1][1]+','+branch1[2][1]+'],['+branch2[0][1]+']])'#create tdict key format
+        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+(branch1[1][0]+branch1[2][0]).replace(',','').replace('photon','ga').replace('higgs','h')#create name
         branch1,branch2 = branch2, branch1
-        invdictkey = '([[[]],[['+branch2[1][0]+branch2[2][0]+']]],[['+branch1[0][1]+'],['+branch2[0][1]+','+branch2[1][1]+','+branch2[2][1]+']])' #create branch symmetric version    
+        invdictkey = '([[[]],[['+branch2[1][0]+'],['+branch2[2][0]+']]],[['+branch1[0][1]+'],['+branch2[0][1]+','+branch2[1][1]+','+branch2[2][1]+']])' #create branch symmetric version    
     elif len(branch1) == 2 and len(branch2) == 2:#case of both branches with only 1 vertex
         dictkey = '([[['+branch1[1][0]+']],[['+branch2[1][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+'],['+branch2[0][1]+','+branch2[1][1]+']])'#create tdict key format
-        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch1[1][0]+branch2[1][0]#create name
+        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+(branch1[1][0]+branch2[1][0]).replace(',','').replace('photon','ga').replace('higgs','h')#create name
         branch1,branch2 = branch2, branch1
         invdictkey = '([[['+branch1[1][0]+']],[['+branch2[1][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+'],['+branch2[0][1]+','+branch2[1][1]+']])' #create branch symmetric version
     elif len(branch1) == 2 and len(branch2) == 3:
         dictkey = '([[['+branch1[1][0]+']],[['+branch2[1][0]+'],['+branch2[2][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+'],['+branch2[0][1]+','+branch2[1][1]+','+branch2[2][1]+']])'
-        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch1[1][0]+branch2[1][0]+branch2[2][0]
+        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+(branch1[1][0]+branch2[1][0]+branch2[2][0]).replace(',','').replace('photon','ga').replace('higgs','h')
         branch1,branch2 = branch2, branch1
         invdictkey = '([[['+branch1[1][0]+'],['+branch1[2][0]+']],[['+branch2[1][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+','+branch1[2][1]+'],['+branch2[0][1]+','+branch2[1][1]+']])'
         
     elif len(branch1) == 3 and len(branch2) == 3:
         dictkey = '([[['+branch1[1][0]+'],['+branch1[2][0]+']],[['+branch2[1][0]+'],['+branch2[2][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+','+branch1[2][1]+'],['+branch2[0][1]+','+branch2[1][1]+','+branch2[2][1]+']])'
-        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch1[1][0]+branch1[2][0]+branch2[1][0]+branch2[2][0]
+        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+(branch1[1][0]+branch1[2][0]+branch2[1][0]+branch2[2][0]).replace(',','').replace('photon','ga').replace('higgs','h')
         branch1,branch2 = branch2,branch1
         invdictkey = '([[['+branch1[1][0]+'],['+branch1[2][0]+']],[['+branch2[1][0]+'],['+branch2[2][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+','+branch1[2][1]+'],['+branch2[0][1]+','+branch2[1][1]+','+branch2[2][1]+']])'
     elif len(branch1) == 3 and len(branch2) == 2:#these should be duplicates when imposing branch symmetry
         dictkey = '([[['+branch1[1][0]+'],['+branch1[2][0]+']],[['+branch2[1][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+','+branch1[2][1]+'],['+branch2[0][1]+','+branch2[1][1]+']])'
-        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+branch1[1][0]+branch1[2][0]+branch2[1][0]
+        dictval = 'T'+tname[(branch1[0][1],branch2[0][1])]+(branch1[1][0]+branch1[2][0]+branch2[1][0]).replace(',','').replace('photon','ga').replace('higgs','h')
         branch1,branch2 = branch2,branch1
         invdictkey = '([[['+branch1[1][0]+']],[['+branch2[1][0]+'],['+branch2[2][0]+']]],[['+branch1[0][1]+','+branch1[1][1]+'],['+branch2[0][1]+','+branch2[1][1]+','+branch2[2][1]+']])'
     else:
@@ -390,5 +417,5 @@ with open('./smodels/tools/tdict.py','w') as tdict:
     tdict.write('txnames = ')
     tdict.write(str(txnames))
 #print 'tdict: ',txnames
-#print '#entries in tdict: ',len(txnames)
+print '#entries in tdict: ',len(txnames)
         
