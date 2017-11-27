@@ -6,6 +6,8 @@
               build a missing simplified modellist.
 
 .. moduleauthor:: Jory Sonneveld <jory@opmijnfiets.nl>
+.. moduleauthor:: Malte Mrowietz <m.mrowietz@gmail.com>
+
 
 """
 
@@ -72,27 +74,30 @@ def findTxName(elem):
     #At This point, compression is removed! Is that a problem?
     inv_finalstate = [branch2,branch1]
     inv_intermediates = [sptcs_b2,sptcs_b1]
-    targument = str((finalstate,intermediates)).replace(' ','').replace('"','').replace("'","")
-    inv_targument = str((inv_finalstate,inv_intermediates)).replace(' ','').replace('"','').replace("'","")
-    vertex_ambiguities = {'q,c':'c,q','c,q':'q,c',
-                          'q,t':'t,q','t,q':'q,t',
-                          'q,b':'b,q','b,q':'q,b',
-                          'c,b':'b,c','b,c':'c,b',
-                          'c,t':'t,c','t,c':'c,t',
-                          'b,t':'t,b','t,b':'b,t'
+    targument = str((finalstate,intermediates)).replace(' ','').replace('"','').replace("'","").replace("[]","[[]]")
+    inv_targument = str((inv_finalstate,inv_intermediates)).replace(' ','').replace('"','').replace("'","").replace("[]","[[]]")
+    vertex_ambiguities = {'q,c':'c,q', 'c,q':'q,c',
+                          'q,t':'t,q', 't,q':'q,t',
+                          'q,b':'b,q', 'b,q':'q,b',
+                          'c,b':'b,c', 'b,c':'c,b',
+                          'c,t':'t,c', 't,c':'c,t',
+                          'b,t':'t,b', 't,b':'b,t'
     }
-    if targument in tdict.txnames: #need to either fix the order of particles or check every permutation
-        return tdict.txnames[targument],targument
-    elif inv_targument in tdict.txnames:
-        return tdict.txnames[inv_targument],inv_targument
-    for ambiguity in vertex_ambiguities:
-        while targument.find(ambiguity) != -1:
-            targument = targument.replace(ambiguity,vertex_ambiguities[ambiguity])
-            inv_targument = inv_targument.replace(ambiguity,vertex_ambiguities[ambiguity])
-            if targument in tdict.txnames: #need to either fix the order of particles or check every permutation
-                return tdict.txnames[targument],targument
-            elif inv_targument in tdict.txnames:
-                return tdict.txnames[inv_targument],inv_targument
+    if not len(intermediates[0])>3 and not len(intermediates[1])>3:
+        if targument in tdict.txnames: #need to either fix the order of particles or check every permutation
+            return tdict.txnames[targument],targument
+        elif inv_targument in tdict.txnames:
+            return tdict.txnames[inv_targument],inv_targument
+        for ambiguity in vertex_ambiguities:#FIX ME: in case of multiple ambiguities, not all combinations are checked
+            while targument.find(ambiguity) != -1:
+                targument = targument[:targument.find(ambiguity)+len(ambiguity)].replace(ambiguity,vertex_ambiguities[ambiguity])+targument[targument.find(ambiguity)+len(ambiguity):]
+                inv_targument = inv_targument[:inv_targument.find(ambiguity)+len(ambiguity)].replace(ambiguity,vertex_ambiguities[ambiguity])+inv_targument[inv_targument.find(ambiguity)+len(ambiguity):]
+                if targument in tdict.txnames: #need to either fix the order of particles or check every permutation
+                    return tdict.txnames[targument],targument
+                elif inv_targument in tdict.txnames:
+                    return tdict.txnames[inv_targument],inv_targument
+        print "No tdict entry for ", targument," and ", inv_targument , ' and vertex variations.'
+        return 'None','None'
     else:
         return 'None','None'
 def find_offshell_decay(branch1,branch2,elem):

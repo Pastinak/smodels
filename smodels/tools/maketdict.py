@@ -27,10 +27,9 @@ Ndecays = {('q','squark'):'q',('c','squark'):'c',('b','sbottom'):'b',('t','stop'
 
 #for now, only interested in decays to lsp for quarks -> trivial (q,N) and (c,N)
 #'light' squark decay dictionary
-Sqdecays = {('q','N'):'q',
-            
+Sqdecays = {('q','N'):'q',('c','N'):'c',
             ('q','C'):'q',('c','C'):'c',('b','C'):'b',('t','C'):'t',
-            ('g','gluino'):'g'
+            ('q','gluino'):'q'
 }
 #Scharm decay dictionary
 #Scdecays = {('c','N'):'c',
@@ -38,10 +37,12 @@ Sqdecays = {('q','N'):'q',
 #} scharms not implemented in smodels
 #Sbottom decay dictionary
 Sbdecays = {('b','N'):'b',
+            ('t','C'):'b',
             ('g','gluino'):'g'
 }
 #Stop decay dictionary
 Stdecays = {('t','N'):'t',('toff','N'):'toff',
+            ('b','C'):'b',
             ('g','gluino'):'g'
 }
 
@@ -79,15 +80,47 @@ tname = {('N','N'): 'ChiChi',
          ('N','C'): 'ChiChipm',
          ('slepton','slepton'): 'SlepSlep',
          ('gluino','gluino'): '1',
+         
          ('squark','squark'): '2',
+         ('sbottom','sbottom'): '2',
+         ('stop','stop'): '2',
+
+         ('squark','sbottom'): '2',
+         ('squark','stop'): '2',
+         ('sbottom','squark'): '2',
+         ('stop','squark'): '2',
+         ('sbottom','stop'): '2',
+         ('stop','sbottom'): '2',
          ('gluino','squark'): 'GQ',
-         ('squark','gluino'): 'GQ'
+         ('gluino','sbottom'): 'GQ',
+         ('gluino','stop'): 'GQ',
+         ('squark','gluino'): 'GQ',
+         ('sbottom','gluino'): 'GQ',
+         ('stop','gluino'): 'GQ',
+         
+         ('C','squark'): 'ChipmQ',
+         ('C','sbottom'): 'ChipmQ',
+         ('C','stop'): 'ChipmQ',
+         ('squark','C'): 'ChipmQ',
+         ('sbottom','C'): 'ChipmQ',
+         ('stop','C'): 'ChipmQ',
+         ('N','squark'): 'ChiQ',
+         ('N','sbottom'): 'ChiQ',
+         ('N','stop'): 'ChiQ',
+         ('squark','N'): 'ChiQ',
+         ('sbottom','N'): 'ChiQ',
+         ('stop','N'): 'ChiQ',
+         
+         ('N','gluino'): 'ChiG',
+         ('gluino','N'): 'ChiG',
+         ('C','gluino'): 'ChipmG',
+         ('gluino','C'): 'ChipmG'
 
 }
 #Chargino Chargino production
 branch1 = [('','')] #branch 1 particles. format: [('vtx0_sm_finalstate','branchmother'),(vtx1_sm_finalstate,1st_intermediate),...]
 branch2 = [('','')] #see above
-progenitors = [('C','C'),('C','N'),('N','N'),('slepton','slepton'),('gluino','gluino'),('squark','squark'),('gluino','squark')] #production mode. format: ('branch1 mother','branch2 mother')
+progenitors = [('C','C'),('C','N'),('N','N'),('slepton','slepton'),('gluino','gluino'),('squark','squark'),('sbottom','sbottom'),('stop','stop'),('squark','sbottom'),('squark','stop'),('sbottom','stop'),('gluino','squark'),('gluino','sbottom'),('gluino','stop'),('C','squark'),('C','sbottom'),('C','stop'),('N','squark'),('N','sbottom'),('N','stop'),('N','gluino'),('C','gluino')] #production mode. format: ('branch1 mother','branch2 mother')
 dictkey = '' #tdict dictionary keys.
 #format: ([[['branch1_vtx1_ptc1','branch1_vtx1_ptc2',...],['branch1_vtx2_ptc1',...]],[['branch2_vtx1_ptc1','branch2_vtx1_ptc2',...],['branch2_vtx2_ptc1',...]]],[[branch1_mother,branch1_intermediate1,branch1_intermediate2,...][branch2_mother,branch2_intermediate1,...]])
 #e.g.: '([[[nu],[mu]],[[q],[q]]],[[C,slepton,N],[C,squark,N]])'
