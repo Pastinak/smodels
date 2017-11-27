@@ -90,12 +90,35 @@ def findTxName(elem):
             return tdict.txnames[inv_targument],inv_targument
         for ambiguity in vertex_ambiguities:#FIX ME: in case of multiple ambiguities, not all combinations are checked
             while targument.find(ambiguity) != -1:
+                if targument[targument.find('gluino')+len('gluino'):].find('gluino') != -1:#more than one gluino!
+                    for ambiguity2 in vertex_ambiguities:
+                        if ambiguity2 == ambiguity or vertex_ambiguities[ambiguity2] == ambiguity:
+                            continue
+                        while targument.find(ambiguity2) !=-1:
+                            targument = targument[:targument.find(ambiguity2)+len(ambiguity2)].replace(ambiguity2,vertex_ambiguities[ambiguity2])+targument[targument.find(ambiguity2)+len(ambiguity2):]
+                            inv_targument = inv_targument[:inv_targument.find(ambiguity2)+len(ambiguity2)].replace(ambiguity2,vertex_ambiguities[ambiguity2])+inv_targument[inv_targument.find(ambiguity2)+len(ambiguity2):]
+                            if targument in tdict.txnames: #need to either fix the order of particles or check every permutation
+                                return tdict.txnames[targument],targument
+                            elif inv_targument in tdict.txnames:
+                                return tdict.txnames[inv_targument],inv_targument
                 targument = targument[:targument.find(ambiguity)+len(ambiguity)].replace(ambiguity,vertex_ambiguities[ambiguity])+targument[targument.find(ambiguity)+len(ambiguity):]
                 inv_targument = inv_targument[:inv_targument.find(ambiguity)+len(ambiguity)].replace(ambiguity,vertex_ambiguities[ambiguity])+inv_targument[inv_targument.find(ambiguity)+len(ambiguity):]
                 if targument in tdict.txnames: #need to either fix the order of particles or check every permutation
                     return tdict.txnames[targument],targument
                 elif inv_targument in tdict.txnames:
                     return tdict.txnames[inv_targument],inv_targument
+                if targument[targument.find('gluino')+len('gluino'):].find('gluino') != -1:#more than one gluino!
+                    for ambiguity2 in vertex_ambiguities:
+                        if ambiguity2 == ambiguity or vertex_ambiguities[ambiguity2] == ambiguity:
+                            print ambiguity
+                            continue
+                    while targument.find(ambiguity2) !=-1:
+                        targument = targument[:targument.find(ambiguity2)+len(ambiguity2)].replace(ambiguity2,vertex_ambiguities[ambiguity2])+targument[targument.find(ambiguity2)+len(ambiguity2):]
+                        inv_targument = inv_targument[:inv_targument.find(ambiguity2)+len(ambiguity2)].replace(ambiguity2,vertex_ambiguities[ambiguity2])+inv_targument[inv_targument.find(ambiguity2)+len(ambiguity2):]
+                        if targument in tdict.txnames: #need to either fix the order of particles or check every permutation
+                            return tdict.txnames[targument],targument
+                        elif inv_targument in tdict.txnames:
+                            return tdict.txnames[inv_targument],inv_targument
         print "No tdict entry for ", targument," and ", inv_targument , ' and vertex variations.'
         return 'None','None'
     else:
