@@ -11,8 +11,8 @@ Cdecays = {('q','squark'):'q',('q','squark'):'q',('q','sbottom'):'q',('q','stop'
            ('nu','slepton'):'nu',('nu','stau'):'nu', #neutrino vertices
            ('Z','C'):'Z',('Zoff','C'):'Zoff',#Z vertices
            ('photon','C'):'ga',#photon
-           ('higgs','C'):'h',#('H','C'):'H',('A','C'):'A',#via higgs
-#           ('Hpm','N'):'Hpm' #via charged higgs
+           ('higgs','C'):'h',('H0','C'):'H',('A0','C'):'A',#via higgs
+           ('H','N'):'Hpm', #via charged higgs
            ('W','N'):'W',('Woff','N'):'Woff',#W vertices
            ('q,q','gluino'):'qq', ('q,c','gluino'):'qc', ('q,b','gluino'):'qb',('c,b','gluino'):'cb',('t,b','gluino'):'tb',('t,q','gluino'):'tq',
 }
@@ -20,8 +20,8 @@ Cdecays = {('q','squark'):'q',('q','squark'):'q',('q','sbottom'):'q',('q','stop'
 Ndecays = {('q','squark'):'q',('c','squark'):'c',('b','sbottom'):'b',('t','stop'):'t',('toff','stop'):'toff', #quark decays
            ('Z','N'):'Z',('Zoff','N'):'Zoff',#Z decays
            ('photon','N'):'ga',#Via photon
-           ('higgs','N'):'h',#('H','N'):'H',('A','N'):'A',#via higgs
-           ('W','C'):'W',('Woff','C'):'Woff', #W decays
+           ('higgs','N'):'h',('H0','N'):'H',('A0','N'):'A',#via higgs
+           ('W','C'):'W',('Woff','C'):'Woff',('H','C'):'Hpm', #t chargino
            ('q,q','gluino'):'qq',('c,c','gluino'):'cc',('b,b','gluino'):'bb',('t,t','gluino'):'tt',
 }
 
@@ -442,9 +442,9 @@ smstxnames = {"([[[q,q]],[[q,q]]],[[gluino,N],[gluino,N]])": 'T1',
 
 
 
-for key in smstxnames.keys(): #add txnames from smodels dictionary if not already contained under the new naming scheme
-    if key not in txnames:
-        txnames[key] = smstxnames[key]
+#for key in smstxnames.keys(): #add txnames from smodels dictionary if not already contained under the new naming scheme
+#    if key not in txnames:
+#        txnames[key] = smstxnames[key]
 with open('./smodels/tools/tdict.py','w') as tdict:
     tdict.write('from collections import OrderedDict \n')
     tdict.write('txnames = ')
