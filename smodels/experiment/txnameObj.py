@@ -377,8 +377,7 @@ class TxNameData(object):
         return ret
 
     def interpolate(self, uvw, fill_value=np.nan):
-        tol = 1e-6
-        # tol = sys.float_info.epsilon * 1e10
+        tol = 0.5 #How far away (in GeV) we can be from a simplex
         simplex = self.tri.find_simplex(uvw, tol=tol)
         if simplex[0]==-1: ## not inside any simplex?
             return fill_value
@@ -399,90 +398,6 @@ class TxNameData(object):
             ret = minXsec
         return float(ret)
 
-
-    def _estimateExtrapolationError ( self, massarray ):
-        """ when projecting a point p from n to the point P in m dimensions, we
-            estimate the expected extrapolation error with the following
-            strategy: we compute the gradient at point P, and let alpha be the
-            distance between p and P. We then walk one step of length alpha in
-            the direction of the greatest ascent, and the opposite direction.
-            Whichever relative change is greater is reported as the expected
-            extrapolation error.
-        """
-        #p=self.flattenMassArray ( massarray ) ## point p in n dimensions
-        porig=self.flattenMassArray ( massarray ) ## flatten
-        p= ( (np.matrix(porig)[0] - self.delta_x ) ).tolist()[0]
-        P=np.dot(p,self._V)                    ## projected point p in n dimensions
-        ## P[self.dimensionality:] is project point p in m dimensions
-        # m=self.countNonZeros ( P ) ## dimensionality of input
-        ## how far are we away from the "plane": distance alpha
-        alpha = float ( np.sqrt ( np.dot ( P[self.dimensionality:],
-                        P[self.dimensionality:] ) ) )
-        if alpha == 0.:
-            ## no distance to the plane, so no extrapolation error
-            return 0.
-        ## the value of the grid at the point projected to the "plane"
-
-        ## compute gradient
-        gradient=[]
-        for i in range ( self.dimensionality ):
-            P2=copy.deepcopy(P)
-            P2[i]+=alpha
-            pv = self.interpolate ( [ P2[:self.dimensionality] ] )
-            g=float ( ( pv - self.projected_value ) / alpha )
-            if math.isnan ( g ):
-                ## if we cannot compute a gradient, we return nan
-                return float("nan")
-            gradient.append(g)
-        ## normalize gradient
-        C= float(np.sqrt( np.dot ( gradient, gradient ) ))
-        if C == 0.:
-            ## zero gradient? we return 0.
-            return 0.
-        for i,grad in enumerate(gradient):
-            gradient[i]=grad/C*alpha
-        ## walk one alpha along gradient
-        P3=copy.deepcopy(P)
-        P4=copy.deepcopy(P)
-        for grad in gradient:
-            P3[i]+= grad
-            P4[i]-= grad
-        agp=self.interpolate ( [ P3[:self.dimensionality] ] )
-        agm=self.interpolate ( [ P4[:self.dimensionality] ] )
-        dep,dem=0.,0.
-        if self.projected_value == 0.:
-            if agp!=0.:
-                dep =1.0
-            if agm!=0.:
-                dem =1.0
-        else:
-            dep=abs ( agp - self.projected_value) / self.projected_value
-            dem=abs ( agm - self.projected_value ) / self.projected_value
-        de=dep
-        if dem > de: de=dem
-        return de
-
-    def _interpolateOutsideConvexHull ( self, massarray ):
-        """ experimental routine, meant to check if we can interpolate outside
-            convex hull """
-        de = self._estimateExtrapolationError(massarray)
-        if de < self._accept_errors_upto:
-            return self._returnProjectedValue()
-        if not math.isnan(de):
-            logger.debug ( "Expected propagation error of %f too large to " \
-                           "propagate." % de )
-        return None
-
-    def _returnProjectedValue ( self ):
-        ## None is returned without units'
-        if self.projected_value is None or math.isnan(self.projected_value):
-            logger.debug ( "projected value is None. Projected point not in " \
-                    "convex hull? original point=%s" % self.massarray )
-            return None
-        #Set value to zero if it is lower than machine precision (avoids fake negative values)
-        if abs(self.projected_value) < 100.*sys.float_info.epsilon:
-            self.projected_value = 0.
-        return self.projected_value * self.unit
 
     def countNonZeros ( self, mp ):
         """ count the nonzeros in a vector """
