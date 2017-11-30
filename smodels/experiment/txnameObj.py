@@ -25,7 +25,6 @@ from scipy.linalg import svd
 import scipy.spatial.qhull as qhull
 import numpy as np
 import unum
-import copy
 import math
 from math import floor, log10
 
@@ -223,16 +222,14 @@ class TxNameData(object):
     """
     _keep_values = False ## keep the original values, only for debugging
 
-    def __init__(self,value,datatag,Id,accept_errors_upto=.05):
+    def __init__(self,value,datatag,Id,accept_errors_upto=0.5):
         """
         :param value: values in string format
         :param dataTag: the dataTag (upperLimits or efficiencyMap)
         :param Id: an identifier, must be unique for each TxNameData!
-        :param _accept_errors_upto: If None, do not allow extrapolations outside of
-                convex hull.  If float value given, allow that much relative
-                uncertainty on the upper limit / efficiency
-                when extrapolating outside convex hull.
-                This method can be used to loosen the equal branches assumption.
+        :param accept_errors_upto: If None, do not allow extrapolations outside of
+                convex hull.  If float value given, allow that much absolute
+                displacement away from the data grid (in GeV).
         """
         self.dataTag = datatag
         self._id = Id
@@ -356,12 +353,9 @@ class TxNameData(object):
         dp=self.countNonZeros(P)
         self.projected_value = self.interpolate([ P[:self.dimensionality] ])
         if dp > self.dimensionality: ## we have data in different dimensions
-            if self._accept_errors_upto == None:
+            #Allow to be at most xx*GeV outside the grid in each direction:
+            if max(P[self.dimensionality:]) > self._accept_errors_upto:
                 return None
-            logger.debug( "attempting to interpolate outside of convex hull "\
-                    "(d=%d,dp=%d,masses=%s)" %
-                     ( self.dimensionality, dp, str(massarray) ) )            
-            return self._interpolateOutsideConvexHull( massarray )
 
         return self._returnProjectedValue()
 
@@ -377,7 +371,7 @@ class TxNameData(object):
         return ret
 
     def interpolate(self, uvw, fill_value=np.nan):
-        tol = 0.5 #How far away (in GeV) we can be from a simplex
+        tol = self._accept_errors_upto #How far away (in GeV) we can be from a simplex
         simplex = self.tri.find_simplex(uvw, tol=tol)
         if simplex[0]==-1: ## not inside any simplex?
             return fill_value
@@ -397,6 +391,17 @@ class TxNameData(object):
             logger.debug('Interpolation below simplex values. Will take the smallest simplex value.')
             ret = minXsec
         return float(ret)
+    
+    def _returnProjectedValue ( self ):
+        ## None is returned without units'
+        if self.projected_value is None or math.isnan(self.projected_value):
+            logger.debug ( "projected value is None. Projected point not in " \
+                    "convex hull? original point=%s" % self.massarray )
+            return None
+        #Set value to zero if it is lower than machine precision (avoids fake negative values)
+        if abs(self.projected_value) < 100.*sys.float_info.epsilon:
+            self.projected_value = 0.
+        return self.projected_value * self.unit    
 
 
     def countNonZeros ( self, mp ):
