@@ -879,29 +879,27 @@ class PyPrinter(BasicPrinter):
         #New Attempt: 
 #        topotypes = [obj.longCascade.classes,obj.asymmetricBranches.classes,obj.missingTopos.topos]
         missing_topos_list = []
-        missing_constraints = []
+        missing_constraints = {}
         for ix, uncovEntry in enumerate([obj.missingTopos, obj.outsideGrid]):
             for topo in uncovEntry.topos:
                 if topo.value > 0.: continue
                 for el in topo.contributingElements:
-#                    topo.value += el.missingX
                     topo.value += el.weight.getXsecsFor(obj.sqrts)[0].value.asNumber(pb)
+                                
             sorted_missing_topos_list = sorted(uncovEntry.topos, key=lambda x: x.value, reverse=True)[:10]
+            topolist = []
             for topology in sorted_missing_topos_list:
-                missing_constraints.append((str(topology.topo),topology.value))#.asNumber(pb)
-#                if hasattr(self, "addcoverageid") and self.addcoverageid:
-#                        contributing = []
-#                        for el in topo.contributingElements:
-#                            contributing.append(el.elID)
-#            print(topotype)
+                topolist.append((topology.topo,topology.value))
+            if ix == 1:
+                missing_constraints['Outside_Grid'] = topolist
+            else:
+                missing_constraints['Missing'] = topolist
+            
             #Get all Elements of the uncovered object
         ElementList = misSMS.getElementList(obj.missingTopos.topos)
-#        print(obj.outsideGrid.topos)
-#        print(misSMS.getElementList(obj.outsideGrid.topos))
         outside_grid_elements = misSMS.getElementList(obj.outsideGrid.topos)#these are NOT contained in Elementlist, FIX BELOW!
         outside_grid_ids = []
-#        print('missing topos: ',obj.missingTopos.topos)
-#        print('outside grid topos: ',obj.outsideGrid.topos)
+
         for outside_grid_elem in outside_grid_elements:
             outside_grid_ids.append(outside_grid_elem.elID)
             ElementList.append(outside_grid_elem)
@@ -977,16 +975,14 @@ class PyPrinter(BasicPrinter):
             txnameinfos['TopoWeight_pb'] = TxNames[0][txname]
             txnameinfos['Outside_grid_pb'] = outside_grid_weight
             txnameinfos['No_OS_pb'] = TxNames[0][txname]-outside_grid_weight
-            txnameinfos['Elements'] = infolist
-            #            if txname == 'None': #most elements fit this category, may be desired to restrict number of elements in output. Note that infolist is sorted, so infolist[:10] is a list of the 10 most weighted Elements
-            #                txnameinfos['Elements'] = infolist[:10]#only display 10 entries in category 'None'
-            
+            txnameinfos['Elements'] = infolist            
             missing_topos[str(txname)] = txnameinfos
-#        missing_topos = sorted(missing_topos, key=lambda x: missing_topos[x]['Weight_pb'], reverse=True)#sort by topo weight
         #Return dictionary that is printed into the output xml file.
-
-        return({'Missing_Topologies': missing_topos, 'Missing_Constraints': missing_constraints})
-
+        print(missing_constraints)
+        print('==================================================================================')
+        print(missing_topos)
+        return({'Missing_Constraints': missing_constraints,'Missing_Topologies': missing_topos})
+#'Missing_Topologies': missing_topos
         """
         nprint = 10  # Number of missing topologies to be printed (ordered by cross sections)
 
