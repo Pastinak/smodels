@@ -879,7 +879,20 @@ class PyPrinter(BasicPrinter):
         #New Attempt: 
 #        topotypes = [obj.longCascade.classes,obj.asymmetricBranches.classes,obj.missingTopos.topos]
         missing_topos_list = []
-
+        missing_constraints = []
+        for ix, uncovEntry in enumerate([obj.missingTopos, obj.outsideGrid]):
+            for topo in uncovEntry.topos:
+                if topo.value > 0.: continue
+                for el in topo.contributingElements:
+#                    topo.value += el.missingX
+                    topo.value += el.weight.getXsecsFor(obj.sqrts)[0].value.asNumber(pb)
+            sorted_missing_topos_list = sorted(uncovEntry.topos, key=lambda x: x.value, reverse=True)[:10]
+            for topology in sorted_missing_topos_list:
+                missing_constraints.append((str(topology.topo),topology.value))#.asNumber(pb)
+#                if hasattr(self, "addcoverageid") and self.addcoverageid:
+#                        contributing = []
+#                        for el in topo.contributingElements:
+#                            contributing.append(el.elID)
 #            print(topotype)
             #Get all Elements of the uncovered object
         ElementList = misSMS.getElementList(obj.missingTopos.topos)
@@ -887,7 +900,8 @@ class PyPrinter(BasicPrinter):
 #        print(misSMS.getElementList(obj.outsideGrid.topos))
         outside_grid_elements = misSMS.getElementList(obj.outsideGrid.topos)#these are NOT contained in Elementlist, FIX BELOW!
         outside_grid_ids = []
-
+#        print('missing topos: ',obj.missingTopos.topos)
+#        print('outside grid topos: ',obj.outsideGrid.topos)
         for outside_grid_elem in outside_grid_elements:
             outside_grid_ids.append(outside_grid_elem.elID)
             ElementList.append(outside_grid_elem)
@@ -970,7 +984,8 @@ class PyPrinter(BasicPrinter):
             missing_topos[str(txname)] = txnameinfos
 #        missing_topos = sorted(missing_topos, key=lambda x: missing_topos[x]['Weight_pb'], reverse=True)#sort by topo weight
         #Return dictionary that is printed into the output xml file.
-        return({'Missing_Topologies': missing_topos})
+
+        return({'Missing_Topologies': missing_topos, 'Missing_Constraints': missing_constraints})
 
         """
         nprint = 10  # Number of missing topologies to be printed (ordered by cross sections)
