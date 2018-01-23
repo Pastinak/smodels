@@ -879,7 +879,7 @@ class PyPrinter(BasicPrinter):
         #New Attempt: 
 #        topotypes = [obj.longCascade.classes,obj.asymmetricBranches.classes,obj.missingTopos.topos]
         missing_topos_list = []
-        missing_constraints = {}
+        missing_constraints = OrderedDict()
         for ix, uncovEntry in enumerate([obj.missingTopos, obj.outsideGrid]):
             for topo in uncovEntry.topos:
                 if topo.value > 0.: continue
@@ -888,12 +888,18 @@ class PyPrinter(BasicPrinter):
                                 
             sorted_missing_topos_list = sorted(uncovEntry.topos, key=lambda x: x.value, reverse=True)[:10]
             topolist = []
+            topovallist = []
             for topology in sorted_missing_topos_list:
-                topolist.append((topology.topo,topology.value))
+                topolist.append(topology.topo)
+                topovallist.append(topology.value)
             if ix == 1:
-                missing_constraints['Outside_Grid'] = topolist
+                missing_constraints['Outside_Grid'] = OrderedDict()
+                missing_constraints['Outside_Grid']['Constraints'] = topolist
+                missing_constraints['Outside_Grid']['Weight_pb'] = topovallist
             else:
-                missing_constraints['Missing'] = topolist
+                missing_constraints['Missing'] = OrderedDict()
+                missing_constraints['Missing']['Constraints'] = topolist
+                missing_constraints['Missing']['Weight_pb']  = topovallist
             
             #Get all Elements of the uncovered object
         ElementList = misSMS.getElementList(obj.missingTopos.topos)
@@ -978,9 +984,6 @@ class PyPrinter(BasicPrinter):
             txnameinfos['Elements'] = infolist            
             missing_topos[str(txname)] = txnameinfos
         #Return dictionary that is printed into the output xml file.
-        print(missing_constraints)
-        print('==================================================================================')
-        print(missing_topos)
         return({'Missing_Constraints': missing_constraints,'Missing_Topologies': missing_topos})
 #'Missing_Topologies': missing_topos
         """
