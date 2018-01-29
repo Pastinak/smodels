@@ -900,7 +900,6 @@ class PyPrinter(BasicPrinter):
                 infodict = OrderedDict()
                 infodict['FinalState'] = str(topology.topo)
                 infodict['Weight_pb'] = str(topology.value)
-                print(infodict)
                 if ix == 1:
                     missing_constraints['Outside_Grid']['Constraint'].append(infodict)
                 else:
@@ -908,7 +907,7 @@ class PyPrinter(BasicPrinter):
             
             #Get all Elements of the uncovered object
         ElementList = misSMS.getElementList(obj.missingTopos.topos)
-        outside_grid_elements = misSMS.getElementList(obj.outsideGrid.topos)#these are NOT contained in Elementlist, FIX BELOW!
+        outside_grid_elements = misSMS.getElementList(obj.outsideGrid.topos)
         outside_grid_ids = []
 
         for outside_grid_elem in outside_grid_elements:
@@ -917,7 +916,6 @@ class PyPrinter(BasicPrinter):
 
         #Get all txNames of the Uncovered object
         TxNames = misSMS.getTxNames(ElementList,obj.sqrts) #format is [txWeights,txSorted,txElements,TxBracket]; TxBracket is a dictionary mapping the txname to the finalstate in bracket notation
-        #            print(TxNames[0])
         missing_topos = OrderedDict()
         longcascadeIDlist = []
         asym_branchesIDlist = []

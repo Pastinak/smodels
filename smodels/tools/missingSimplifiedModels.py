@@ -386,15 +386,12 @@ def sms_name(elem):#Currently not used
 
     #tx = txNames.getTx(elem)
     finalstate = elem.getParticles()
-#    print(finalstate)
-    #print(tx, pids, parts)
     #decays = txDecays.decays
     #txes = {'T2': 'signature': "[[[jet]],[[jet]]]", 'particles': "[[[1000002, 1000022], [1000021, 1000022]]]"}
     #{'T2': 'signature': "[[[jet]],[[jet]]]", 'particles': "[[[1000002, 1000022], [1000021, 1000022]]]"}
 
     #remove charges and rename/group various particles to match tdict. In case of Woff decay into leptons, all leptons are possible decaymodes, thus change to L
     fs = str(finalstate).replace(' ', '').replace('+','').replace('-','').replace('q','jet').replace("'mu','nu'","'L','nu'").replace("'e','nu'","'L','nu'").replace("'ta','nu'","'L','nu'")
-#    print fs
     if fs in tdict.tdict:
         if check_production(elem,tdict.tdict[fs]):
             return tdict.tdict[fs]

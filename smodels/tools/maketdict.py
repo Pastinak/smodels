@@ -199,10 +199,9 @@ def Fix_fs(branch1,branch2):
     else:
         print 'no valid branch configuration', 'b1length: ',len(branch1) ,'b2length: ',len(branch2)
         return
-    txnames[dictkey] = dictval                
 
-#    if not dictkey in txnames and not invdictkey in txnames: #no duplicates, i.e. because of branch symmetry
-#        txnames[dictkey] = dictval                
+    if not dictkey in txnames and not invdictkey in txnames: #no duplicates, i.e. because of branch symmetry
+        txnames[dictkey] = dictval                
             
         
     
