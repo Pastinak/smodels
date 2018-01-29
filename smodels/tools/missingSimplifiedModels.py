@@ -17,7 +17,7 @@ from math import floor, log10
 from smodels.tools import txDecays
 from smodels.theory import element
 from smodels import particles
-
+from smodels.tools.smodelsLogging import logger
 
 def getElementList(missing_topos):
     """
@@ -39,6 +39,9 @@ def findTxName(elem):
     sptcs_b1 = []
     sptcs_b2 = [] 
     prod_pid_b2 = elem.branches[1].PIDs[0]
+    if elem.motherElements:
+        prod_pid_b1 = elem.motherElements[0][1].branches[0].PIDs[0]
+        prod_pid_b2 = elem.motherElements[0][1].branches[1].PIDs[0]
     #use particles.py to convert pids to strings, as squark pids are not unique
     for pid in prod_pid_b1:
         pid = particles.rOdd[abs(int(pid))].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')
@@ -56,6 +59,7 @@ def findTxName(elem):
     if elem.motherElements:
         branch1 = str(elem.motherElements[0][1].branches[0].particles).replace(' ', '').replace('+','').replace('-','').replace('jet','q')
         branch2 = str(elem.motherElements[0][1].branches[1].particles).replace(' ', '').replace('+','').replace('-','').replace('jet','q')
+        finalstate = str(elem.motherElements[0][1].getParticles()).replace(' ', '').replace('+','').replace('-','').replace('jet','q')#.replace("'mu','nu'","'L','nu'").replace("'e','nu'","'L','nu'").replace("'ta','nu'","'L','nu'")
 #    print branch1, branch2
     contains_offshell = True
     while contains_offshell: #while iteration to get rid of all off shell decays, not just the first one that is found
@@ -81,7 +85,9 @@ def findTxName(elem):
                           'q,b':'b,q', 'b,q':'q,b',
                           'c,b':'b,c', 'b,c':'c,b',
                           'c,t':'t,c', 't,c':'c,t',
-                          'b,t':'t,b', 't,b':'b,t'
+                          'b,t':'t,b', 't,b':'b,t',
+                          'e,nu':'nu,e', 'mu,nu':'nu,mu'
+                          
     }
     if not len(intermediates[0])>3 and not len(intermediates[1])>3:
         if targument in tdict.txnames: #need to either fix the order of particles or check every permutation
@@ -107,7 +113,8 @@ def findTxName(elem):
                     return tdict.txnames[targument],targument
                 elif inv_targument in tdict.txnames:
                     return tdict.txnames[inv_targument],inv_targument
-        print "No tdict entry for ", targument," and ", inv_targument , ' and vertex variations.'
+#        warningstring = "No tdict entry for ", str(targument)," and ", inv_targument , ' and vertex variations.'
+        logger.warning("No tdict entry for " + targument + " and " + inv_targument + ' and vertex variations.')
         return 'None','None'
     else:
         return 'None','None'
@@ -121,7 +128,7 @@ def find_offshell_decay(branch1,branch2,elem):
     """
     #List of decaymodes of W,Z,t
     Woff = ["q,q","q,b","b,q","b,c","c,b","c,q","q,c","L,nu","nu,L","l,nu","nu,l","e,nu","nu,e","mu,nu","nu,mu","ta,nu","nu,ta","'q','q'","'q','b'","'b','q'","'b','c'","'c','b'","'c','q'","'q','c'","'L','nu'","'nu','L'","'l','nu'","'nu','l'","'e','nu'","'nu','e'","'mu','nu'","'nu','mu'","'ta','nu'","'nu','ta'"] #contains all (visible) decays of the W,Z,t. everything is in duplicate with different formats
-    Zoff = ["q,q","c,c","b,b","e,e","mu,mu","ta,ta","'q','q'","'c','c'","'b','b'","'e','e'","'mu','mu'","'ta','ta'"]
+    Zoff = ["q,q","c,c","b,b","e,e","mu,mu","ta,ta","'q','q'","'c','c'","'b','b'","'e','e'","'mu','mu'","'ta','ta'","nu,nu","'nu,nu'"]
     toff = ["W,b","b,W","'W','b'","'b','W'"]
     decayswithW = [['squark','squark'],['C','N'],['N','C'],['slepton','sneutrino'],['sneutrino','slepton']]
     decayswithZ = [['squark','squark'],['slepton','slepton'],['sneutrino','sneutrino'],['C','C'],['N','N']]

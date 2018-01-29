@@ -18,7 +18,7 @@ Cdecays = {('q','squark'):'q',('q','squark'):'q',('q','sbottom'):'q',('q','stop'
 }
 #Neutralino decay dictionary
 Ndecays = {('q','squark'):'q',('c','squark'):'c',('b','sbottom'):'b',('t','stop'):'t',('toff','stop'):'toff', #quark decays
-           ('Z','N'):'Z',('Zoff','N'):'Zoff',#Z decays
+           ('Z','N'):'Z',('nu,nu','N'):'Z',('','N'):'Z',('Zoff','N'):'Zoff',#Z decays
            ('photon','N'):'ga',#Via photon
            ('higgs','N'):'h',('H0','N'):'H',('A0','N'):'A',#via higgs
            ('W','C'):'W',('Woff','C'):'Woff',('H','C'):'Hpm', #t chargino
@@ -55,7 +55,7 @@ Staudecays = {('ta','N'):'ta',#to neutralino
               ('nu','C'):'nu'#to chargino
 }
 #Sneutrino decay dictionary
-Snudecays = {('nu','N'):'nu',#to neutralino
+Snudecays = {('nu','N'):'nu',('','N'):'nu',#to neutralino
              ('e','C'):'l',('mu','C'):'l',('ta','C'):'ta',#to chargino #use generic l for leptons or e&mu?
 }
 Gldecays = {('q,q','N'):'qq',('c,c','N'):'cc',('t,t','N'):'tt',('b,b','N'):'bb',
@@ -79,6 +79,16 @@ tname = {('N','N'): 'ChiChi',
          ('C','N'): 'ChiChipm',
          ('N','C'): 'ChiChipm',
          ('slepton','slepton'): 'SlepSlep',
+         ('sneutrino','sneutrino'): 'SnuSnu',
+         ('slepton','sneutrino'): 'SlepSnu',
+         ('sneutrino','slepton'): 'SlepSnu',
+
+#         ('sneutrino','squark'): 'SnuSq',
+#         ('sneutrino','sbottom'): 'SnuSb',
+#         ('sneutrino','scharm'): 'SnuSc',
+         ('stau','sneutrino'): 'StauSnu',
+         ('sneutrino','stau'): 'StauSnu',
+
          ('gluino','gluino'): '1',
          
          ('squark','squark'): '2',
@@ -120,7 +130,7 @@ tname = {('N','N'): 'ChiChi',
 #Chargino Chargino production
 branch1 = [('','')] #branch 1 particles. format: [('vtx0_sm_finalstate','branchmother'),(vtx1_sm_finalstate,1st_intermediate),...]
 branch2 = [('','')] #see above
-progenitors = [('C','C'),('C','N'),('N','N'),('slepton','slepton'),('gluino','gluino'),('squark','squark'),('sbottom','sbottom'),('stop','stop'),('squark','sbottom'),('squark','stop'),('sbottom','stop'),('gluino','squark'),('gluino','sbottom'),('gluino','stop'),('C','squark'),('C','sbottom'),('C','stop'),('N','squark'),('N','sbottom'),('N','stop'),('N','gluino'),('C','gluino')] #production mode. format: ('branch1 mother','branch2 mother')
+progenitors = [('C','C'),('C','N'),('N','N'),('slepton','slepton'),('slepton','sneutrino'),('sneutrino','sneutrino'),('stau','sneutrino'),('gluino','gluino'),('squark','squark'),('sbottom','sbottom'),('stop','stop'),('squark','sbottom'),('squark','stop'),('sbottom','stop'),('gluino','squark'),('gluino','sbottom'),('gluino','stop'),('C','squark'),('C','sbottom'),('C','stop'),('N','squark'),('N','sbottom'),('N','stop'),('N','gluino'),('C','gluino')] #production mode. format: ('branch1 mother','branch2 mother')
 dictkey = '' #tdict dictionary keys.
 #format: ([[['branch1_vtx1_ptc1','branch1_vtx1_ptc2',...],['branch1_vtx2_ptc1',...]],[['branch2_vtx1_ptc1','branch2_vtx1_ptc2',...],['branch2_vtx2_ptc1',...]]],[[branch1_mother,branch1_intermediate1,branch1_intermediate2,...][branch2_mother,branch2_intermediate1,...]])
 #e.g.: '([[[nu],[mu]],[[q],[q]]],[[C,slepton,N],[C,squark,N]])'
@@ -189,8 +199,10 @@ def Fix_fs(branch1,branch2):
     else:
         print 'no valid branch configuration', 'b1length: ',len(branch1) ,'b2length: ',len(branch2)
         return
-    if not dictkey in txnames and not invdictkey in txnames: #no duplicates, i.e. because of branch symmetry
-        txnames[dictkey] = dictval                
+    txnames[dictkey] = dictval                
+
+#    if not dictkey in txnames and not invdictkey in txnames: #no duplicates, i.e. because of branch symmetry
+#        txnames[dictkey] = dictval                
             
         
     
