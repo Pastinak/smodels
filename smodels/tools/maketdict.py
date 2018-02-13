@@ -23,13 +23,18 @@ Ndecays = {('q','squark'):'q',('c','squark'):'c',('b','sbottom'):'b',('t','stop'
            ('higgs','N'):'h',('H0','N'):'H',('A0','N'):'A',#via higgs
            ('W','C'):'W',('Woff','C'):'Woff',('H','C'):'Hpm', #t chargino
            ('q,q','gluino'):'qq',('c,c','gluino'):'cc',('b,b','gluino'):'bb',('t,t','gluino'):'tt',
+           ('g','gluino'):'g',
+           ('nu','sneutrino'):'nu',
+           ('e','slepton'):'e', ('mu','slepton'):'mu',('ta','stau'):'mu',
+
 }
 
 #for now, only interested in decays to lsp for quarks -> trivial (q,N) and (c,N)
 #'light' squark decay dictionary
 Sqdecays = {('q','N'):'q',('c','N'):'c',
             ('q','C'):'q',('c','C'):'c',('b','C'):'b',('t','C'):'t',
-            ('q','gluino'):'q'
+            ('q','gluino'):'q',
+            ('c','gluino'):'c'
 }
 #Scharm decay dictionary
 #Scdecays = {('c','N'):'c',
@@ -38,12 +43,18 @@ Sqdecays = {('q','N'):'q',('c','N'):'c',
 #Sbottom decay dictionary
 Sbdecays = {('b','N'):'b',
             ('t','C'):'b',
-            ('g','gluino'):'g'
+            #('g','gluino'):'g',
+            ('b','gluino'):'b',
+            ('higgs','sbottom'):'h'
+
 }
 #Stop decay dictionary
 Stdecays = {('t','N'):'t',('toff','N'):'toff',
             ('b','C'):'b',
-            ('g','gluino'):'g'
+            ('W','sbottom'):'b',
+#            ('g','gluino'):'g',
+            ('t','gluino'):'t',
+            ('higgs','stop'):'h'
 }
 
 #Slepton decay dictionary
@@ -60,7 +71,9 @@ Snudecays = {('nu','N'):'nu',('','N'):'nu',#to neutralino
 }
 Gldecays = {('q,q','N'):'qq',('c,c','N'):'cc',('t,t','N'):'tt',('b,b','N'):'bb',
             ('q,q','C'):'qq', ('q,c','C'):'qc', ('q,b','C'):'qb',('c,b','C'):'cb',('t,b','C'):'tb',('t,q','C'):'tq',
-            ('q','squark'):'q',('c','squark'):'c',('b','sbottom'):'b',('t','stop'):'t'
+            ('q','squark'):'q',('c','squark'):'c',('b','sbottom'):'b',('t','stop'):'t',
+            ('g','N'):'g'
+            
 }
 #dictionary assigning the decay dictionary to use to the sparticle in question
 whatdecay = {'squark': Sqdecays,
@@ -82,7 +95,9 @@ tname = {('N','N'): 'ChiChi',
          ('sneutrino','sneutrino'): 'SnuSnu',
          ('slepton','sneutrino'): 'SlepSnu',
          ('sneutrino','slepton'): 'SlepSnu',
-
+         ('slepton','stau'): 'SlepStau',
+         ('stau','slepton'): 'SlepStau',
+         ('stau','stau'): 'StauStau',
 #         ('sneutrino','squark'): 'SnuSq',
 #         ('sneutrino','sbottom'): 'SnuSb',
 #         ('sneutrino','scharm'): 'SnuSc',
@@ -130,13 +145,13 @@ tname = {('N','N'): 'ChiChi',
 #Chargino Chargino production
 branch1 = [('','')] #branch 1 particles. format: [('vtx0_sm_finalstate','branchmother'),(vtx1_sm_finalstate,1st_intermediate),...]
 branch2 = [('','')] #see above
-progenitors = [('C','C'),('C','N'),('N','N'),('slepton','slepton'),('slepton','sneutrino'),('sneutrino','sneutrino'),('stau','sneutrino'),('gluino','gluino'),('squark','squark'),('sbottom','sbottom'),('stop','stop'),('squark','sbottom'),('squark','stop'),('sbottom','stop'),('gluino','squark'),('gluino','sbottom'),('gluino','stop'),('C','squark'),('C','sbottom'),('C','stop'),('N','squark'),('N','sbottom'),('N','stop'),('N','gluino'),('C','gluino')] #production mode. format: ('branch1 mother','branch2 mother')
+progenitors = [('C','C'),('N','C'),('N','N'),('slepton','slepton'),('slepton','sneutrino'),('sneutrino','sneutrino'),('stau','sneutrino'),('stau','stau'),('slepton','stau'),('gluino','gluino'),('squark','squark'),('sbottom','sbottom'),('stop','stop'),('squark','sbottom'),('squark','stop'),('sbottom','stop'),('gluino','squark'),('gluino','sbottom'),('gluino','stop'),('C','squark'),('C','sbottom'),('C','stop'),('N','squark'),('N','sbottom'),('N','stop'),('N','gluino'),('C','gluino')] #production mode. format: ('branch1 mother','branch2 mother')
 dictkey = '' #tdict dictionary keys.
 #format: ([[['branch1_vtx1_ptc1','branch1_vtx1_ptc2',...],['branch1_vtx2_ptc1',...]],[['branch2_vtx1_ptc1','branch2_vtx1_ptc2',...],['branch2_vtx2_ptc1',...]]],[[branch1_mother,branch1_intermediate1,branch1_intermediate2,...][branch2_mother,branch2_intermediate1,...]])
 #e.g.: '([[[nu],[mu]],[[q],[q]]],[[C,slepton,N],[C,squark,N]])'
 dictval = '' #tdict dictionary values. format: T+'branch1_mother'+'branch2_mother'+'branch1_vtx1_finalstate'+'branch1_vtx2_finalstate'+...+'branch2_vtx1_finalstate'+...
 #e.g.: TChipChimnumuqq
-txnames = OrderedDict() #dictionary that is written to tdict.py. Using an ordered dict for increased readability. Standard python dict would work aswell
+txnames = {} #dictionary that is written to tdict.py. Using an ordered dict for increased readability. Standard python dict would work aswell
 
 
 def Fix_fs(branch1,branch2):

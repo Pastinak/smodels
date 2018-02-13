@@ -18,6 +18,89 @@ from smodels.tools import txDecays
 from smodels.theory import element
 from smodels import particles
 from smodels.tools.smodelsLogging import logger
+prefixdict = {('N','N'): 'ChiChi',
+         ('C','C'): 'ChipChim',
+         ('C','N'): 'ChiChipm',
+         ('N','C'): 'ChiChipm',
+         ('slepton','slepton'): 'SlepSlep',
+         ('sneutrino','sneutrino'): 'SnuSnu',
+         ('slepton','sneutrino'): 'SlepSnu',
+         ('sneutrino','slepton'): 'SlepSnu',
+         ('slepton','stau'): 'SlepStau',
+         ('stau','slepton'): 'SlepStau',
+         ('stau','stau'): 'StauStau',
+#         ('sneutrino','squark'): 'SnuSq',
+#         ('sneutrino','sbottom'): 'SnuSb',
+#         ('sneutrino','scharm'): 'SnuSc',
+         ('stau','sneutrino'): 'StauSnu',
+         ('sneutrino','stau'): 'StauSnu',
+
+         ('gluino','gluino'): '1',
+         
+         ('squark','squark'): '2',
+         ('sbottom','sbottom'): '2',
+         ('stop','stop'): '2',
+
+         ('squark','sbottom'): '2',
+         ('squark','stop'): '2',
+         ('sbottom','squark'): '2',
+         ('stop','squark'): '2',
+         ('sbottom','stop'): '2',
+         ('stop','sbottom'): '2',
+         ('gluino','squark'): 'GQ',
+         ('gluino','sbottom'): 'GQ',
+         ('gluino','stop'): 'GQ',
+         ('squark','gluino'): 'GQ',
+         ('sbottom','gluino'): 'GQ',
+         ('stop','gluino'): 'GQ',
+         
+         ('C','squark'): 'ChipmQ',
+         ('C','sbottom'): 'ChipmQ',
+         ('C','stop'): 'ChipmQ',
+         ('squark','C'): 'ChipmQ',
+         ('sbottom','C'): 'ChipmQ',
+         ('stop','C'): 'ChipmQ',
+         ('N','squark'): 'ChiQ',
+         ('N','sbottom'): 'ChiQ',
+         ('N','stop'): 'ChiQ',
+         ('squark','N'): 'ChiQ',
+         ('sbottom','N'): 'ChiQ',
+         ('stop','N'): 'ChiQ',
+         
+         ('N','gluino'): 'ChiG',
+         ('gluino','N'): 'ChiG',
+         ('C','gluino'): 'ChipmG',
+         ('gluino','C'): 'ChipmG'
+
+}
+def MkTdictEntry(bracket,inv_bracket):
+    finalstate = bracket.split(']],[[')[:2]
+    sparticles = bracket.split(']],[[')[2:]
+    prefixkey = []
+    for branch in sparticles[0].split('],['):
+        prefixkey.append(branch.split(',')[0].replace(']','').replace(')',''))
+    TxName = 'T'+prefixdict[(prefixkey[0],prefixkey[1])]
+  
+    for branch in finalstate:
+        for vtx in branch.split('],['):
+            TxName += vtx.replace('(','').replace('[','').replace(']','').replace(',','')
+    
+#    print bracket, prefixkey, TxName
+    tmpdict = open('smodels/tools/tdict.py','a')
+    if not bracket in tdict.txnames and not inv_bracket in tdict.txnames:
+#        print tdict.txnames
+#        print "txnames['"+bracket+"'] = " + "'"+TxName+"'"
+        tdict.txnames[str(bracket)] = str(TxName)
+        tmpdict.write('\n')
+        tmpdict.write("txnames['"+bracket+"'] = " + "'"+TxName+"'")
+#    print tdict.txnames
+    tmpdict.close()
+#    reload(tdict)
+#    print tdict.txnames
+
+    return TxName
+    
+    
 
 def getElementList(missing_topos):
     """
@@ -89,6 +172,7 @@ def findTxName(elem):
                           'e,nu':'nu,e', 'mu,nu':'nu,mu'
                           
     }
+
     if not len(intermediates[0])>3 and not len(intermediates[1])>3:
         if targument in tdict.txnames: #need to either fix the order of particles or check every permutation
             return tdict.txnames[targument],targument
@@ -113,11 +197,10 @@ def findTxName(elem):
                     return tdict.txnames[targument],targument
                 elif inv_targument in tdict.txnames:
                     return tdict.txnames[inv_targument],inv_targument
-#        warningstring = "No tdict entry for ", str(targument)," and ", inv_targument , ' and vertex variations.'
-        logger.warning("No tdict entry for " + targument + " and " + inv_targument + ' and vertex variations.')
-        return 'None','None'
+        logger.info("No tdict entry for " + targument + " and " + inv_targument + ' and vertex variations. Creating tdict entry.')
+        return MkTdictEntry(targument,inv_targument),targument
     else:
-        return 'None','None'
+        return MkTdictEntry(targument,inv_targument),targument
 def find_offshell_decay(branch1,branch2,elem):
     """
     Given the branches of an Element, finds off-shell decays in the finalstate.
@@ -128,7 +211,7 @@ def find_offshell_decay(branch1,branch2,elem):
     """
     #List of decaymodes of W,Z,t
     Woff = ["q,q","q,b","b,q","b,c","c,b","c,q","q,c","L,nu","nu,L","l,nu","nu,l","e,nu","nu,e","mu,nu","nu,mu","ta,nu","nu,ta","'q','q'","'q','b'","'b','q'","'b','c'","'c','b'","'c','q'","'q','c'","'L','nu'","'nu','L'","'l','nu'","'nu','l'","'e','nu'","'nu','e'","'mu','nu'","'nu','mu'","'ta','nu'","'nu','ta'"] #contains all (visible) decays of the W,Z,t. everything is in duplicate with different formats
-    Zoff = ["q,q","c,c","b,b","e,e","mu,mu","ta,ta","'q','q'","'c','c'","'b','b'","'e','e'","'mu','mu'","'ta','ta'","nu,nu","'nu,nu'"]
+    Zoff = ["q,q","c,c","b,b","e,e","mu,mu","ta,ta","'q','q'","'c','c'","'b','b'","'e','e'","'mu','mu'","'ta','ta'","nu,nu","'nu','nu'"]
     toff = ["W,b","b,W","'W','b'","'b','W'"]
     decayswithW = [['squark','squark'],['C','N'],['N','C'],['slepton','sneutrino'],['sneutrino','slepton']]
     decayswithZ = [['squark','squark'],['slepton','slepton'],['sneutrino','sneutrino'],['C','C'],['N','N']]
