@@ -74,13 +74,18 @@ prefixdict = {('N','N'): 'ChiChi',
 
 }
 def MkTdictEntry(bracket,inv_bracket):
+    if inv_bracket > bracket:
+        temp = bracket
+        bracket = inv_bracket
+        inv_bracket = temp
+        
     finalstate = bracket.split(']],[[')[:2]
     sparticles = bracket.split(']],[[')[2:]
     prefixkey = []
     for branch in sparticles[0].split('],['):
         prefixkey.append(branch.split(',')[0].replace(']','').replace(')',''))
     TxName = 'T'+prefixdict[(prefixkey[0],prefixkey[1])]
-  
+    
     for branch in finalstate:
         for vtx in branch.split('],['):
             TxName += vtx.replace('(','').replace('[','').replace(']','').replace(',','')
@@ -122,9 +127,9 @@ def findTxName(elem):
     sptcs_b1 = []
     sptcs_b2 = [] 
     prod_pid_b2 = elem.branches[1].PIDs[0]
-    if elem.motherElements:
-        prod_pid_b1 = elem.motherElements[0][1].branches[0].PIDs[0]
-        prod_pid_b2 = elem.motherElements[0][1].branches[1].PIDs[0]
+#    if elem.motherElements:
+#        prod_pid_b1 = elem.motherElements[0][1].branches[0].PIDs[0]
+#        prod_pid_b2 = elem.motherElements[0][1].branches[1].PIDs[0]
     #use particles.py to convert pids to strings, as squark pids are not unique
     for pid in prod_pid_b1:
         pid = particles.rOdd[abs(int(pid))].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')
@@ -139,15 +144,15 @@ def findTxName(elem):
     
     branch1 = str(elem.branches[0].particles).replace(' ', '').replace('+','').replace('-','').replace('jet','q')
     branch2 = str(elem.branches[1].particles).replace(' ', '').replace('+','').replace('-','').replace('jet','q')
-    if elem.motherElements:
-        branch1 = str(elem.motherElements[0][1].branches[0].particles).replace(' ', '').replace('+','').replace('-','').replace('jet','q')
-        branch2 = str(elem.motherElements[0][1].branches[1].particles).replace(' ', '').replace('+','').replace('-','').replace('jet','q')
-        finalstate = str(elem.motherElements[0][1].getParticles()).replace(' ', '').replace('+','').replace('-','').replace('jet','q')#.replace("'mu','nu'","'L','nu'").replace("'e','nu'","'L','nu'").replace("'ta','nu'","'L','nu'")
+#    if elem.motherElements:
+#        branch1 = str(elem.motherElements[0][1].branches[0].particles).replace(' ', '').replace('+','').replace('-','').replace('jet','q')
+#        branch2 = str(elem.motherElements[0][1].branches[1].particles).replace(' ', '').replace('+','').replace('-','').replace('jet','q')
+#        finalstate = str(elem.motherElements[0][1].getParticles()).replace(' ', '').replace('+','').replace('-','').replace('jet','q')#.replace("'mu','nu'","'L','nu'").replace("'e','nu'","'L','nu'").replace("'ta','nu'","'L','nu'")
 #    print branch1, branch2
     contains_offshell = True
     while contains_offshell: #while iteration to get rid of all off shell decays, not just the first one that is found
         contains_offshell = False
-        if elem.motherElements:
+        if False:#elem.motherElements:
             os_decayinfo = find_offshell_decay(branch1,branch2,elem.motherElements[0][1])#need uncompressed element to determine offshell decays
         else:
             os_decayinfo = find_offshell_decay(branch1,branch2,elem)
