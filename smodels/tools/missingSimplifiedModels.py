@@ -10,14 +10,21 @@
 
 
 """
-
-from smodels.tools import tdict
+#from smodels.tools import tdict
+import os
 from physicsUnits import GeV, pb
 from math import floor, log10
 from smodels.tools import txDecays
 from smodels.theory import element
 from smodels import particles
 from smodels.tools.smodelsLogging import logger
+#print os.getcwd()
+#CWD = os.getcwd()
+#os.chdir('..')#this is ugly.
+#print os.getcwd()
+#from .. import tdict
+#os.chdir(CWD)
+#print tdict
 prefixdict = {('N','N'): 'ChiChi',
          ('C','C'): 'ChipChim',
          ('C','N'): 'ChiChipm',
@@ -73,7 +80,8 @@ prefixdict = {('N','N'): 'ChiChi',
          ('gluino','C'): 'ChipmG'
 
 }
-def MkTdictEntry(bracket,inv_bracket):
+tdict = {}
+def MkTdictEntry(bracket,inv_bracket): #no longer write to external dictionarz
     if inv_bracket > bracket:
         temp = bracket
         bracket = inv_bracket
@@ -89,22 +97,21 @@ def MkTdictEntry(bracket,inv_bracket):
     for branch in finalstate:
         for vtx in branch.split('],['):
             TxName += vtx.replace('(','').replace('[','').replace(']','').replace(',','')
+        TxName+='_'
     
 #    print bracket, prefixkey, TxName
-    tmpdict = open('smodels/tools/tdict.py','a')
-    if not bracket in tdict.txnames and not inv_bracket in tdict.txnames:
-#        print tdict.txnames
-#        print "txnames['"+bracket+"'] = " + "'"+TxName+"'"
-        tdict.txnames[str(bracket)] = str(TxName)
-        tmpdict.write('\n')
-        tmpdict.write("txnames['"+bracket+"'] = " + "'"+TxName+"'")
+#    tmpdict = open('../tdict.py','a')
+    if not bracket in tdict and not inv_bracket in tdict:
+        tdict[str(bracket)] = str(TxName)
+#        tmpdict.write('\n')
+#        tmpdict.write("txnames['"+bracket+"'] = " + "'"+TxName+"'")
 #    print tdict.txnames
-    tmpdict.close()
+#    tmpdict.close()
 #    reload(tdict)
 #    print tdict.txnames
 
     return TxName
-    
+
     
 
 def getElementList(missing_topos):
@@ -179,10 +186,10 @@ def findTxName(elem):
     }
 
     if not len(intermediates[0])>3 and not len(intermediates[1])>3:
-        if targument in tdict.txnames: #need to either fix the order of particles or check every permutation
-            return tdict.txnames[targument],targument
-        elif inv_targument in tdict.txnames:
-            return tdict.txnames[inv_targument],inv_targument
+        if targument in tdict: #need to either fix the order of particles or check every permutation
+            return tdict[targument],targument
+        elif inv_targument in tdict:
+            return tdict[inv_targument],inv_targument
         for ambiguity in vertex_ambiguities:#FIX ME: in case of multiple ambiguities, not all combinations are checked
             while targument.find(ambiguity) != -1:
                 if targument[targument.find('gluino')+len('gluino'):].find('gluino') != -1:#more than one gluino!
@@ -192,17 +199,17 @@ def findTxName(elem):
                         while targument.find(ambiguity2) !=-1:
                             targument = targument[:targument.find(ambiguity2)+len(ambiguity2)].replace(ambiguity2,vertex_ambiguities[ambiguity2])+targument[targument.find(ambiguity2)+len(ambiguity2):]
                             inv_targument = inv_targument[:inv_targument.find(ambiguity2)+len(ambiguity2)].replace(ambiguity2,vertex_ambiguities[ambiguity2])+inv_targument[inv_targument.find(ambiguity2)+len(ambiguity2):]
-                            if targument in tdict.txnames: #need to either fix the order of particles or check every permutation
-                                return tdict.txnames[targument],targument
-                            elif inv_targument in tdict.txnames:
-                                return tdict.txnames[inv_targument],inv_targument
+                            if targument in tdict: #need to either fix the order of particles or check every permutation
+                                return tdict[targument],targument
+                            elif inv_targument in tdict:
+                                return tdict[inv_targument],inv_targument
                 targument = targument[:targument.find(ambiguity)+len(ambiguity)].replace(ambiguity,vertex_ambiguities[ambiguity])+targument[targument.find(ambiguity)+len(ambiguity):]
                 inv_targument = inv_targument[:inv_targument.find(ambiguity)+len(ambiguity)].replace(ambiguity,vertex_ambiguities[ambiguity])+inv_targument[inv_targument.find(ambiguity)+len(ambiguity):]
-                if targument in tdict.txnames: #need to either fix the order of particles or check every permutation
-                    return tdict.txnames[targument],targument
-                elif inv_targument in tdict.txnames:
-                    return tdict.txnames[inv_targument],inv_targument
-        logger.info("No tdict entry for " + targument + " and " + inv_targument + ' and vertex variations. Creating tdict entry.')
+                if targument in tdict: #need to either fix the order of particles or check every permutation
+                    return tdict[targument],targument
+                elif inv_targument in tdict:
+                    return tdict[inv_targument],inv_targument
+#        logger.info("No tdict entry for " + targument + " and " + inv_targument + ' and vertex variations. Creating tdict entry.')
         return MkTdictEntry(targument,inv_targument),targument
     else:
         return MkTdictEntry(targument,inv_targument),targument
@@ -455,22 +462,9 @@ def round_to_sign(x, sig=3):#currently not used
         return int(x)
     else:
         return round(x, rounding)
-
+    """
 def sms_name(elem):#Currently not used
-    """
-    Return sms name from tdict given the element from which a final state can be extracted.
-    >>> el = element.Element("[[['t'],['W']],[['t'],['W']]]")
-    >>> print el
-    [[[t],[W]],[[t],[W]]]
-    >>> el2 = element.Element("[[['t'],['W']],[['W'],['t']]]")
-    >>> print el2
-    [[[t],[W]],[[W],[t]]]
-    >>> el.particlesMatch(el)
-    True
-    >>> el2.sortBranches()
-    >>> print el2
-    [[[W],[t]],[[t],[W]]]
-    """
+
 
     #tx = txNames.getTx(elem)
     finalstate = elem.getParticles()
@@ -500,12 +494,14 @@ def sms_name(elem):#Currently not used
                 else:
                     return None
         return None
-def check_production(elem,txname):#Currently not used
+    """
+#def check_production(elem,txname):#Currently not used
     """
     -- given an element and a txname, checks whether the production mechanism of the element matches the txname production mechanism
     #create a dictionary that links txname to production mechanism.
     # currently made additional dictionary manually in tdict. need to change maketdict to include new dictionary, otherwise it gets lost when maketdict is executed
     # double names not included
+    """
     """
     prod_pid_b1 = abs(elem.branches[0].PIDs[0][0])
     prod_pid_b2 = abs(elem.branches[1].PIDs[0][0])
@@ -556,13 +552,14 @@ def check_production(elem,txname):#Currently not used
             return True
     else:
         return False
+    """
 
-
-def missing_elem_list(missing_elements, mistop_sqrts): 
+#def missing_elem_list(missing_elements, mistop_sqrts): 
     """
     Given a bunch of elements, aggregate them into a list
     (ordered by weight) ignoring antiparticles and order,
     and group for like masses.
+    """
     """
     missing_elts = []
     elementdict = {}
@@ -606,9 +603,9 @@ def missing_elem_list(missing_elements, mistop_sqrts):
     for elt in sorted(elementdict.values(), key=lambda x: x['ELweightPB'], reverse=True):
         missing_elts.append(elt)
     return missing_elts
+    """
 
-
-def missing_sms_dict(missing_topos, sqrts, nprint=10):#Currently not used
+#def missing_sms_dict(missing_topos, sqrts, nprint=10):#Currently not used
     """(MissingTopos)-> [list]
 
     Given a missing topology, which can be quite general
@@ -617,6 +614,7 @@ def missing_sms_dict(missing_topos, sqrts, nprint=10):#Currently not used
     be called missing simplified models.
 
     >>> 
+    """
     """
     mistop_sqrts = sqrts
     missing_topo_dict = {'topology': []}
@@ -633,9 +631,9 @@ def missing_sms_dict(missing_topos, sqrts, nprint=10):#Currently not used
         missing_topo_dict['topology'].append(missing)
     missing_topo_dict['topology'].sort(key=lambda x: x['TOPweightPB'], reverse=True)
     return missing_topo_dict
+    """
 
-
-def unique_particles(pids, final_states, masses):#Currently not used
+#def unique_particles(pids, final_states, masses):#Currently not used
     """([int], [str], [unum.Unum]) -> list of dicts
     Given the masses, final state particles and pids
     of a certain element, build a dictionary for each
@@ -659,6 +657,7 @@ def unique_particles(pids, final_states, masses):#Currently not used
 
 
     """
+    """
     branches = []
 
     for branchno in range(len(final_states)):
@@ -678,7 +677,7 @@ def unique_particles(pids, final_states, masses):#Currently not used
         branches.append({'finalstate': branchname, 'particle':
             particles})
     return branches
-
+    """
 
 
     """
