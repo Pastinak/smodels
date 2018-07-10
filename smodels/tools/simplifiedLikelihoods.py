@@ -84,6 +84,10 @@ class Data:
             cov_tot = self.covariance+ self.var_s(nsig)
         return cov_tot
 
+    def profiledNSig ( self, theta, nsig ):
+        """ the profiled nsig vector for the
+            nuisance theta. """
+        return nsig*(1+theta)
 
     def zeroSignal(self):
         """
@@ -365,10 +369,11 @@ class LikelihoodComputer:
         :params nll: if True, compute negative log likelihood """
         # theta = array ( thetaA )
         theta = theta_all[:-1]
+        thetas = theta_all[-1]
         # ntot = self.model.backgrounds + self.nsig
         # lmbda = theta + self.ntot ## the lambda for the Poissonian
         if self.model.isLinear():
-            lmbda = self.model.backgrounds + self.nsig + theta
+            lmbda = self.model.backgrounds + self.nsig * ( 1 + thetas ) + theta
         else:
             lmbda = self.nsig + self.model.A + theta + self.model.C * theta**2 / self.model.B**2
         lmbda[lmbda<=0.] = 1e-30 ## turn zeroes to small values
@@ -383,9 +388,13 @@ class LikelihoodComputer:
             if nll:
                 gaussian = stats.multivariate_normal.logpdf(theta,mean=[0.]*len(theta),cov=self.model.totalCovariance(self.nsig))
                 # gaussian = stats.multivariate_normal.logpdf(theta,mean=[0.]*len(theta),cov=self.model.V)
+                if self.model.deltas_rel > 1e-10:
+                    gaussian += stats.norm.logpdf(thetas,0.,self.model.deltas_rel)
                 ret = - gaussian - sum(poisson)
             else:
                 gaussian = stats.multivariate_normal.pdf(theta,mean=[0.]*len(theta),cov=self.model.totalCovariance(self.nsig))
+                if self.model.deltas_rel > 1e-10:
+                    gaussian = gaussian * stats.norm.pdf(thetas,0.,self.model.deltas_rel)
                 # gaussian = stats.multivariate_normal.pdf(theta,mean=[0.]*len(theta),cov=self.model.V)
                 ret = gaussian * ( reduce(lambda x, y: x*y, poisson) )
             return ret
@@ -406,18 +415,27 @@ class LikelihoodComputer:
         theta_all is nuisance vector, last entry nuisance of signal.
         """
         theta = theta_all[:-1]
+        thetas = theta_all[-1]
         if self.model.isLinear():
-            xtot = theta + self.model.backgrounds + self.nsig
+            xtot = theta + self.model.backgrounds + self.nsig * ( 1 + thetas )
             xtot[xtot<=0.] = 1e-30 ## turn zeroes to small values
             nllp_ = self.ones - self.model.observed / xtot + NP.dot( theta , self.weight )
-            nllp_ = NP.append ( nllp_, 0. ) ## append for signal nuisance
+            if self.model.deltas_rel > 1e-10:
+                nllp_sig = sum ( self.nsig - self.model.observed / xtot * self.nsig ) + thetas / (self.model.deltas_rel**2)
+                nllp_ = NP.append ( nllp_, nllp_sig )
+            else:
+                nllp_ = NP.append ( nllp_, 0. )
             return nllp_
         lmbda = self.nsig + self.model.A + theta + self.model.C * theta**2 / self.model.B**2
         lmbda[lmbda<=0.] = 1e-30 ## turn zeroes to small values
         # nllp_ = ( self.ones - self.model.observed / lmbda + NP.dot( theta , self.weight ) ) * ( self.ones + 2*self.model.C * theta / self.model.B**2 )
         T=self.ones + 2*self.model.C/self.model.B**2*theta
         nllp_ = T - self.model.observed / lmbda * ( T ) + NP.dot( theta , self.weight )
-        nllp_ = NP.append ( nllp_, 0. )
+        if self.model.deltas_rel > 1e-10:
+            nllp_sig = sum ( T*self.nsig - self.model.observed / lmbda * T * self.nsig ) + thetas / (self.models.deltas_rel**2)
+            nllp_ = NP.append ( nllp_, nllp_sig )
+        else:
+            nllp_ = NP.append ( nllp_, 0. )
         return nllp_
 
     def nllHess( self, theta_all ):
@@ -429,7 +447,10 @@ class LikelihoodComputer:
             xtot = theta + self.model.backgrounds + self.nsig
             xtot[xtot<=0.] = 1e-30 ## turn zeroes to small values
             nllh_ = self.weight + NP.diag ( self.model.observed / (xtot**2) )
-            nllh_ = NP.pad ( nllh_, (0,1), "constant" )
+            nllh_ = NP.pad ( nllh_, (0,1), "constant" ) ## adding zeroes
+            if self.model.deltas_rel > 1e-10:
+                ## FIXME write this.
+                nllh_[-1,-1] = 0.
             return nllh_
         lmbda = self.nsig + self.model.A + theta + self.model.C * theta**2 / self.model.B**2
         lmbda[lmbda<=0.] = 1e-30 ## turn zeroes to small values
