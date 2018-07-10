@@ -339,7 +339,8 @@ class LikelihoodComputer:
                     widener=widener*1.5
                     continue
             mu_hat = optimize.brentq ( self.dLdMu, lower, upper, args=(signal_rel, theta_hat ) )
-            theta_hat,_ = self.findThetaHat( mu_hat*signal_rel)
+            theta_hat_all,_ = self.findThetaHat( mu_hat*signal_rel)
+            theta_hat = theta_hat_all[:-1]
             ctr+=1
 
         return mu_hat
@@ -359,10 +360,11 @@ class LikelihoodComputer:
 
     #Define integrand (gaussian_(bg+signal)*poisson(nobs)):
     # def prob(x0, x1 )
-    def probMV(self, nll, thetaA ):
+    def probMV(self, nll, theta_all ):
         """ probability, for nuicance parameters theta
         :params nll: if True, compute negative log likelihood """
-        theta = array ( thetaA )
+        # theta = array ( thetaA )
+        theta = theta_all[:-1]
         # ntot = self.model.backgrounds + self.nsig
         # lmbda = theta + self.ntot ## the lambda for the Poissonian
         if self.model.isLinear():
@@ -393,38 +395,48 @@ class LikelihoodComputer:
 
     def nll( self, theta ):
         """ probability, for nuicance parameters theta,
-        as a negative log likelihood. """
-        return self.probMV(True,theta)
+        as a negative log likelihood. 
+        theta is nuisance vector, last entry is nuisance of signal 
+        """
+        ret = self.probMV(True,theta) 
+        return ret
 
-    def nllprime( self, theta ):
+    def nllprime( self, theta_all ):
         """ the derivative of nll as a function of the thetas.
-        Makes it easier to find the maximum likelihood. """
+        theta_all is nuisance vector, last entry nuisance of signal.
+        """
+        theta = theta_all[:-1]
         if self.model.isLinear():
             xtot = theta + self.model.backgrounds + self.nsig
             xtot[xtot<=0.] = 1e-30 ## turn zeroes to small values
             nllp_ = self.ones - self.model.observed / xtot + NP.dot( theta , self.weight )
+            nllp_ = NP.append ( nllp_, 0. ) ## append for signal nuisance
             return nllp_
         lmbda = self.nsig + self.model.A + theta + self.model.C * theta**2 / self.model.B**2
         lmbda[lmbda<=0.] = 1e-30 ## turn zeroes to small values
         # nllp_ = ( self.ones - self.model.observed / lmbda + NP.dot( theta , self.weight ) ) * ( self.ones + 2*self.model.C * theta / self.model.B**2 )
         T=self.ones + 2*self.model.C/self.model.B**2*theta
         nllp_ = T - self.model.observed / lmbda * ( T ) + NP.dot( theta , self.weight )
+        nllp_ = NP.append ( nllp_, 0. )
         return nllp_
 
-    def nllHess( self, theta ):
+    def nllHess( self, theta_all ):
         """ the Hessian of nll as a function of the thetas.
         Makes it easier to find the maximum likelihood. """
+        theta = theta_all[:-1]
         # xtot = theta + self.ntot
         if self.model.isLinear():
             xtot = theta + self.model.backgrounds + self.nsig
             xtot[xtot<=0.] = 1e-30 ## turn zeroes to small values
             nllh_ = self.weight + NP.diag ( self.model.observed / (xtot**2) )
+            nllh_ = NP.pad ( nllh_, (0,1), "constant" )
             return nllh_
         lmbda = self.nsig + self.model.A + theta + self.model.C * theta**2 / self.model.B**2
         lmbda[lmbda<=0.] = 1e-30 ## turn zeroes to small values
         T=self.ones + 2*self.model.C/self.model.B**2*theta
         # T_i = 1_i + 2*c_i/B_i**2 * theta_i
         nllh_ = self.weight + NP.diag ( self.model.observed * T**2 / (lmbda**2) ) - NP.diag ( self.model.observed / lmbda * 2 * self.model.C / self.model.B**2 ) + NP.diag ( 2*self.model.C/self.model.B**2 )
+        nllh_ = NP.pad ( nllh_, (0,1), "constant" )
         return nllh_
 
     def getThetaHat(self, nobs, nb, nsig, covb, max_iterations ):
@@ -482,6 +494,7 @@ class LikelihoodComputer:
                         raise Exception("diverging when computing thetamax: %f > %f" % ( d1, d2 ))
                     if d1 < 1e-5:
                         return thetamax
+            thetamax = NP.append ( thetamax, 0. ) ## initial guess for signal profiling: 0
             return thetamax
 
     def findThetaHat(self, nsig):
@@ -512,6 +525,7 @@ class LikelihoodComputer:
                     bounds = [ ( -10*self.model.observed, 10*self.model.observed ) ]
                 else:
                     bounds = [ ( -10*x, 10*x ) for x in self.model.observed ]
+                    bounds.append ( ( -.1, .1 ) ) # artificial bounds for signal uncertainty
                 ini = ret_c
                 ret_c = optimize.fmin_tnc ( self.nll, ret_c[0], fprime=self.nllprime,
                                             disp=0, bounds=bounds )
@@ -526,7 +540,7 @@ class LikelihoodComputer:
                 return ret,-2
             except Exception as e:
                 logger.error("exception: %s. ini[-3:]=%s" % (e,ini[-3:]) )
-                raise Exception("cov-1=%s" % (self.model.covariance+self.model.var_s(nsig))**(-1))
+                raise Exception("cov-1=%s" % (self.model.totalCovariance(nsig)))
             return ini,-1
 
     def marginalizedLLHD1D(self, nsig, nll):
