@@ -54,6 +54,7 @@ def decompose(slhafile, sigcut=.1 * fb, doCompress=False, doInvisible=False,
     xSectionList = crossSection.getXsecFromSLHAFile(slhafile, useXSecs)
     # Get BRs and masses from file
     brDic, massDic = _getDictionariesFromSLHA(slhafile)
+    massDic[9999] = 0. * GeV
     # Only use the highest order cross sections for each process
     xSectionList.removeLowerOrder()
     # Order xsections by PDGs to improve performance
@@ -224,7 +225,8 @@ def _getPromptDecays(slhafile,brDic,l_inner=1.*mm,gb_inner=1.3,l_outer=10.*m,gb_
     #Get the widths:
     res = pyslha.readSLHAFile(slhafile)
     decays = res.decays    
-        
+    addDisplaced = False    
+    
     for pid in brDic:
         width = abs(decays[abs(pid)].totalwidth)*GeV
         Fprompt = 1. - math.exp(-width*l_inner/(gb_inner*hc))
@@ -233,13 +235,24 @@ def _getPromptDecays(slhafile,brDic,l_inner=1.*mm,gb_inner=1.3,l_outer=10.*m,gb_
             decay.br *= Fprompt  #Reweight by prompt fraction
             
         #Add long-lived fraction:
+        Fdisp = 1 - Flong - Fprompt
         if Flong > 1e-50:
             stableFraction = pyslha.Decay(br=Flong,ids=[],nda=0)
-            brDic[pid].append(stableFraction) 
+            brDic[pid].append(stableFraction)
+        if Fdisp > 0.01:
+            addDisplaced = True
+            #displacedFraction = pyslha.Decay(br=Fdisp, ids=[9999, 99], nda=2)
+            displacedFraction = pyslha.Decay(br=Fdisp, ids=[9999], nda=1)
+            brDic[pid].append(displacedFraction)
         if (Flong+Fprompt) > 1.:
             logger.error("Sum of decay fractions > 1 for "+str(pid))
             return False
         if (Flong+Fprompt) < 0.8:
             logger.info("Particle with PDG %i has a considerable fraction of displaced decays, which will be ignored." %pid)
         
+    if addDisplaced:
+        displacedDec = pyslha.Decay(br=1., ids=[], nda=0)
+        brDic[99] = [displacedDec]
+        brDic[9999] = [displacedDec]
+
     return brDic
