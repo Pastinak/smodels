@@ -61,7 +61,7 @@ The third level of the directory hierarchy encodes the |ExpRess|:
 * ...
 
 
-* **The Database folder is described by the** `Database Class <../../../documentation/build/html/experiment.html#experiment.databaseObj.Database>`_
+* **The Database folder is described by the** `Database Class <experiment.html#experiment.databaseObj.Database>`_
 
 Experimental Result Folder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -79,8 +79,8 @@ data.  Here is the content of CMS-SUS-12-024/globalInfo.txt as an example:
 .. literalinclude:: /literals/globalInfo.txt
    :lines: 1-11
 
-* **Experimental Result folder is described by the** `ExpResult Class <../../../documentation/build/html/experiment.html#experiment.expResultObj.ExpResult>`_
-* **globalInfo files  are descrived by the** `Info Class <../../../documentation/build/html/experiment.html#experiment.infoObj.Info>`_
+* **Experimental Result folder is described by the** `ExpResult Class <experiment.html#experiment.expResultObj.ExpResult>`_
+* **globalInfo files  are descrived by the** `Info Class <experiment.html#experiment.infoObj.Info>`_
 
 Data Set Folder
 ^^^^^^^^^^^^^^^
@@ -90,9 +90,9 @@ Each |Dataset| folder (e.g. ``data``) contains:
 * the Upper Limit maps for |ULrs| or Efficiency maps for |EMrs| (``TxName.txt`` files)
 * a ``dataInfo.txt`` file containing meta information about the |Dataset|
 
-* **Data Set folders are  described by the** `DataSet Class <../../../documentation/build/html/experiment.html#experiment.datasetObj.DataSet>`_
-* **TxName files are described by the** `TxName Class <../../../documentation/build/html/experiment.html#experiment.txnameObj.TxName>`_
-* **dataInfo files are described by the** `Info Class <../../../documentation/build/html/experiment.html#experiment.infoObj.Info>`_
+* **Data Set folders are  described by the** `DataSet Class <experiment.html#experiment.datasetObj.DataSet>`_
+* **TxName files are described by the** `TxName Class <experiment.html#experiment.txnameObj.TxName>`_
+* **dataInfo files are described by the** `Info Class <experiment.html#experiment.infoObj.Info>`_
 
 Data Set Folder: Upper Limit Type
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -112,14 +112,27 @@ first few lines of CMS-SUS-12-024/data/T1tttt.txt read:
 
 .. literalinclude:: /literals/T1tttt.txt
    :lines: 1-8
+
+If the finalState property is not provided, the simplified model is assumed to 
+contain neutral BSM final states in each branch, leading to a MET signature.
+However, if this is not the case, the non-MET final states must be explicitly listed
+in the  ``TxName.txt`` file (see :ref:`final state classes <final stateOdd>` for more details).
+An example from the CMS-EXO-12-026/data/THSCPM1b.txt file is shown below:
+
+.. literalinclude:: /literals/THSCPM1b.txt
+   :lines: 1,2,7,9,10
+
    
-The second block of data contains the upper limits as a function of the BSM masses:
+The second block of data in the  ``TxName.txt`` file contains the upper limits as a function of the BSM masses:
 
 .. literalinclude:: /literals/T1tttt.txt
    :lines: 9-19
 
 As we can see, the UL map is given as a Python array with the structure: 
 :math:`[[\mbox{masses},\mbox{upper limit}], [\mbox{masses},\mbox{upper limit}],...]`.
+
+
+
 
 Data Set Folder: Efficiency Map Type
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -146,6 +159,10 @@ information about the |element| (:math:`[[[\mbox{jet}]],[[\mbox{jet}]]]`)
 in |bracket notation| for which the
 efficiencies refers to as well as reference to the original data source and
 some additional information.
+As in the Upper Limit case, the simplified
+model is assumed to contain neutral BSM final states (MET signature).
+For non-MET final states the  finalState field must list
+the :ref:`final state signatures <final stateOdd>`.
 The second block of data contains the efficiencies as a function of the BSM masses:
 
 .. literalinclude:: /literals/T2.txt
@@ -153,6 +170,58 @@ The second block of data contains the efficiencies as a function of the BSM mass
 
 As we can see the efficiency map is given as a Python array with the structure: 
 :math:`[[\mbox{masses},\mbox{efficiency}], [\mbox{masses},\mbox{efficiency}],...]`.
+
+
+.. _inclusiveSMS:
+
+Inclusive Simplified Models
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+If the analysis signal efficiencies are insensitive to
+some of the simplified model final states, it might be convenient to define
+*inclusive* simplified models. A typical case are some of the heavy stable charged
+particle searches, which only rely on the presence of a non-relativistic charged
+particle, which leads to  an anomalous charged track signature.
+In this case the signal efficiencies are highly insensitive to the remaining event
+activity and the corresponding simplified models can be very inclusive.
+In order to handle this inclusive cases in the database we allow for wildcards
+when specifying the constraints.
+For instance, the constraint for the CMS-EXO-13-006 eff/c000/THSCPM3.txt
+reads:
+
+.. literalinclude:: /literals/THSCPM3.txt
+   :lines: 1-2
+   
+and represents the (inclusive) simplified model:
+
+.. image:: images/elementInclusive.png
+   :width: 35%
+
+Note that although the final state represented by "\*" is any Z\ :sub:`2`-even :ref:`final states <final statesEven>`,
+it must still correspond to a single particle, since the topology specifies a 2-body 
+decay for the initially produced BSM particle.
+Finally, it might be useful to define even more inclusive simplified models, such
+as the one in  CMS-EXO-13-006 eff/c000/THSCPM4.txt:
+
+.. literalinclude:: /literals/THSCPM4.txt
+   :lines: 1-2,11
+
+In the above case the simplified model corresponds to an HSCP being initially produced
+in association with any BSM particle which leads to a MET signature.
+Notice that the notation "[\*]" corresponds to *any `branch*, while ["\*"] means *any particle*:
+
+
+.. image:: images/elementInclusive2.png
+   :width: 35%
+
+In such cases the mass array for the arbitrary branch must also be specified as
+using wildcards:
+
+.. literalinclude:: /literals/THSCPM4.txt
+   :lines: 12-14
+
+
 
 .. _objStruct:
 
@@ -172,12 +241,12 @@ The type of Python object (Python class, Python list,...) is shown in brackets.
 For convenience, below we explicitly list the main database folders/files and
 the Python objects they are mapped to:
 
-* |Database| folder :math:`\rightarrow` `Database Class <../../../documentation/build/html/experiment.html#experiment.databaseObj.Database>`_
-* |ExpRes| folder :math:`\rightarrow` `ExpResult Class <../../../documentation/build/html/experiment.html#experiment.databaseObj.ExpResult>`_
-* |Dataset| folder :math:`\rightarrow` `DataSet Class <../../../documentation/build/html/experiment.html#experiment.datasetObj.DataSet>`_
-* ``globalInfo.txt`` file  :math:`\rightarrow` `Info Class <../../../documentation/build/html/experiment.html#experiment.infoObj.Info>`_
-* ``dataInfo.txt`` file  :math:`\rightarrow` `Info Class <../../../documentation/build/html/experiment.html#experiment.infoObj.Info>`_
-* ``Txname.txt`` file  :math:`\rightarrow` `TxName Class <../../../documentation/build/html/experiment.html#experiment.txnameObj.TxName>`_
+* |Database| folder :math:`\rightarrow` `Database Class <experiment.html#experiment.databaseObj.Database>`_
+* |ExpRes| folder :math:`\rightarrow` `ExpResult Class <experiment.html#experiment.databaseObj.ExpResult>`_
+* |Dataset| folder :math:`\rightarrow` `DataSet Class <experiment.html#experiment.datasetObj.DataSet>`_
+* ``globalInfo.txt`` file  :math:`\rightarrow` `Info Class <experiment.html#experiment.infoObj.Info>`_
+* ``dataInfo.txt`` file  :math:`\rightarrow` `Info Class <experiment.html#experiment.infoObj.Info>`_
+* ``Txname.txt`` file  :math:`\rightarrow` `TxName Class <experiment.html#experiment.txnameObj.TxName>`_
 
 
 .. _databasePickle:
@@ -186,7 +255,7 @@ Database: Binary (Pickle) Format
 --------------------------------
 
 At the first time of instantiating the 
-`Database <../../../documentation/build/html/experiment.html#experiment.databaseObj.Database>`_
+`Database <experiment.html#experiment.databaseObj.Database>`_
 class, the text files in *<database-path>*.
 are loaded and parsed, and the corresponding                                                    
 data objects are built. The efficiency and upper limit maps themselves are                                                                    
@@ -212,7 +281,7 @@ version has changed, SModelS will automatically re-build the pickle file. This
 action may take a few minutes, but it is again performed only once.                                                                           
 If desired, the pickling process can be skipped using the option *force_load = `txt'*
 in the constructor of
-`Database <../../../documentation/build/html/experiment.html#experiment.databaseObj.Database>`_ .  
+`Database <experiment.html#experiment.databaseObj.Database>`_ .  
 
 
 ..
@@ -223,7 +292,7 @@ in the constructor of
  testing a single input file.  Furthermore this procedure does not have to be
  repeated every time SModelS is run.
  In order to avoid these issues, SModelS serializes the 
- `database object <../../../documentation/build/html/experiment.html#experiment.databaseObj.Database>`_
+ `database object <experiment.html#experiment.databaseObj.Database>`_
  into a pickle file (*<database-path>/database.pcl*), which can then be read
  directly when loading the database.
  Since reading the pickle file is much faster than parsing the :ref:`database folders <folderStruct>`,
@@ -233,9 +302,9 @@ in the constructor of
  SModelS will automatically re-build the pickle file.
  This action may take a few minutes, but it is only performed once.
  SModelS automatically builds (if necessary) and loads the binary database when a 
- `Database object <../../../documentation/build/html/experiment.html#experiment.databaseObj.Database>`_
+ `Database object <experiment.html#experiment.databaseObj.Database>`_
  is created. Nonetheless, the user can enforce loading (parsing) the *text
  database* using the option *force_load = 'txt'* in the constructor of
- `Database <../../../documentation/build/html/experiment.html#experiment.databaseObj.Database>`_ .  
+ `Database <experiment.html#experiment.databaseObj.Database>`_ .  
 
-* The pickle file is created by the `createBinaryFile method <../../../documentation/build/html/experiment.html#experiment.databaseObj.Database.createBinaryFile>`_ 
+* The pickle file is created by the `createBinaryFile method <experiment.html#experiment.databaseObj.Database.createBinaryFile>`_ 

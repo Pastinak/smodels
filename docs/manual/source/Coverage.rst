@@ -10,7 +10,7 @@
 .. |constraint| replace:: :ref:`constraint <ULconstraint>`
 .. |constraints| replace:: :ref:`constraints <ULconstraint>`
 .. |intermediate states| replace:: :ref:`intermediate states <odd states>`
-.. |final states| replace:: :ref:`final states <final states>`
+.. |final states| replace:: :ref:`final states <final statesEven>`
 .. |database| replace:: :ref:`database <Database>`
 .. |bracket notation| replace:: :ref:`bracket notation <bracketNotation>`
 .. |ExpRes| replace:: :ref:`Experimental Result<ExpResult>`
@@ -80,7 +80,7 @@ in the :ref:`parameters file <parameterFile>`.
 In the output, contributions in each category are ordered by cross section. 
 By default only the ones with the ten largest cross sections are shown.
 
-* **The topology coverage tool is implemented by the** `Uncovered class <../../../documentation/build/html/tools.html#tools.coverage.Uncovered>`_ 
+* **The topology coverage tool is implemented by the** `Uncovered class <tools.html#tools.coverage.Uncovered>`_ 
 
 
 .. [*] If :ref:`mass <massComp>` or :ref:`invisible compression <invComp>` are turned on, elements which can be :ref:`compressed <elementComp>` are not considered, to avoid double counting.
