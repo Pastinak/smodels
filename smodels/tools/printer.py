@@ -16,14 +16,14 @@ from smodels.theory.topology import TopologyList
 from smodels.experiment.databaseObj import ExpResultList
 from smodels.tools.ioObjects import OutputStatus, ResultList
 from smodels.tools.coverage import Uncovered
-from smodels.tools.physicsUnits import GeV, fb, TeV
+from smodels.tools.physicsUnits import GeV, fb, TeV, pb
 from smodels.tools.smodelsLogging import logger
 from collections import OrderedDict
 from xml.dom import minidom
 from xml.etree import ElementTree
 import unum
 #for missing:
-import missingSimplifiedModels as misSMS
+import smodels.tools.missingSimplifiedModels as misSMS
 
 class MPrinter(object):
     """
@@ -847,7 +847,7 @@ class PyPrinter(BasicPrinter):
 
         :param obj: A Uncovered object to be printed.
         """
-        
+#        print("Entered xml _formatUncovered")
         missing_topos_list = []
         missing_constraints = OrderedDict()
         missing_constraints['Outside_Grid'] = OrderedDict()
@@ -865,8 +865,6 @@ class PyPrinter(BasicPrinter):
             topovallist = []
 
             for topoix,topology in enumerate(sorted_missing_topos_list):
-#                topolist.append(topology.topo)
-#                topovallist.append(topology.value)
                 infodict = OrderedDict()
                 infodict['FinalState'] = str(topology.topo)
                 infodict['Weight_pb'] = str(topology.value)
@@ -874,18 +872,26 @@ class PyPrinter(BasicPrinter):
                     missing_constraints['Outside_Grid']['Constraint'].append(infodict)
                 else:
                     missing_constraints['Missing']['Constraint'].append(infodict)
-            
+#        print("missing constraints: ", missing_constraints)
+    
             #Get all Elements of the uncovered object
         ElementList = misSMS.getElementList(obj.missingTopos.topos)
         outside_grid_elements = misSMS.getElementList(obj.outsideGrid.topos)
         outside_grid_ids = []
-
         for outside_grid_elem in outside_grid_elements:
             outside_grid_ids.append(outside_grid_elem.elID)
+            if outside_grid_elem in ElementList:
+                print("OS Grid element already in elementlist, not adding so as to not produce duplicates")
+                continue
             ElementList.append(outside_grid_elem)
 
         #Get all txNames of the Uncovered object
-        TxNames = misSMS.getTxNames(ElementList,obj.sqrts) #format is [txWeights,txSorted,txElements,TxBracket]; TxBracket is a dictionary mapping the txname to the finalstate in bracket notation
+#        print("Getting TxNames from misSMS")
+        try:
+            TxNames = misSMS.getTxNames(ElementList,obj.sqrts) #format is [txWeights,txSorted,txElements,TxBracket]; TxBracket is a dictionary mapping the txname to the finalstate in bracket notation
+        except:
+            print("error in TxNames")
+#        print(TxNames)
         missing_topos = OrderedDict()
         longcascadeIDlist = []
         asym_branchesIDlist = []
@@ -935,7 +941,7 @@ class PyPrinter(BasicPrinter):
                 branches['Branch1'] = {'Branchlength': element.branches[0].getLength(), 'BranchPIDs': element.branches[0].PIDs[0], 'Branchmasses_GeV': b1masses}
                 branches['Branch2'] = {'Branchlength': element.branches[1].getLength(), 'BranchPIDs': element.branches[1].PIDs[0], 'Branchmasses_GeV': b2masses}
                 Elementinfo['ElementID'] = element.elID
-                Elementinfo['Finalstate'] = str(element.getParticles())
+                Elementinfo['Finalstate'] = str(element.getParticles()).replace("+","").replace("-","")
                 Elementinfo['Weight_pb'] = element.weight.getXsecsFor(obj.sqrts)[0].value.asNumber(pb)#element.missingX
                 Elementinfo['iscompressed'] = hasmom
                 Elementinfo['asym_branches'] = asym_branch

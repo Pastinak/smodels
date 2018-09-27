@@ -12,19 +12,20 @@
 """
 #from smodels.tools import tdict
 import os
-from physicsUnits import GeV, pb
+from smodels.tools.physicsUnits import GeV, pb
 from math import floor, log10
 from smodels.tools import txDecays
 from smodels.theory import element
-from smodels import particles
+from smodels.theory import particleNames
 from smodels.tools.smodelsLogging import logger
-#print os.getcwd()
+from smodels.particlesLoader import rEven, rOdd, qNumbers
+#print(os.getcwd())
 #CWD = os.getcwd()
 #os.chdir('..')#this is ugly.
-#print os.getcwd()
+#print(os.getcwd())
 #from .. import tdict
 #os.chdir(CWD)
-#print tdict
+#print(tdict)
 prefixdict = {('N','N'): 'ChiChi',
          ('C','C'): 'ChipChim',
          ('C','N'): 'ChiChipm',
@@ -99,16 +100,16 @@ def MkTdictEntry(bracket,inv_bracket): #no longer write to external dictionarz
             TxName += vtx.replace('(','').replace('[','').replace(']','').replace(',','')
         TxName+='_'
     
-#    print bracket, prefixkey, TxName
+#    print(bracket, prefixkey, TxName)
 #    tmpdict = open('../tdict.py','a')
     if not bracket in tdict and not inv_bracket in tdict:
         tdict[str(bracket)] = str(TxName)
 #        tmpdict.write('\n')
 #        tmpdict.write("txnames['"+bracket+"'] = " + "'"+TxName+"'")
-#    print tdict.txnames
+#    print(tdict.txnames)
 #    tmpdict.close()
 #    reload(tdict)
-#    print tdict.txnames
+#    print(tdict.txnames)
 
     return TxName
 
@@ -139,34 +140,40 @@ def findTxName(elem):
 #        prod_pid_b2 = elem.motherElements[0][1].branches[1].PIDs[0]
     #use particles.py to convert pids to strings, as squark pids are not unique
     for pid in prod_pid_b1:
-        pid = particles.rOdd[abs(int(pid))].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')
-        sptcs_b1.append(pid)
+        sparticlename = rOdd[abs(int(pid))].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')
+        sptcs_b1.append(sparticlename)
 #        pid = pid.replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')
         # change neutralino/chargino designation to not distinguish between the different charginos/neutralinos, e.g. C1 to C
     for pid in prod_pid_b2:
-        pid = particles.rOdd[abs(int(pid))].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')
-        sptcs_b2.append(pid) 
+        sparticlename = rOdd[abs(int(pid))].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')
+        sptcs_b2.append(sparticlename) 
         # change neutralino/chargino designation to not distinguish between the different charginos/neutralinos, e.g. C1 to C
     intermediates = [sptcs_b1,sptcs_b2]
-    
     branch1 = str(elem.branches[0].particles).replace(' ', '').replace('+','').replace('-','').replace('jet','q')
     branch2 = str(elem.branches[1].particles).replace(' ', '').replace('+','').replace('-','').replace('jet','q')
 #    if elem.motherElements:
 #        branch1 = str(elem.motherElements[0][1].branches[0].particles).replace(' ', '').replace('+','').replace('-','').replace('jet','q')
 #        branch2 = str(elem.motherElements[0][1].branches[1].particles).replace(' ', '').replace('+','').replace('-','').replace('jet','q')
 #        finalstate = str(elem.motherElements[0][1].getParticles()).replace(' ', '').replace('+','').replace('-','').replace('jet','q')#.replace("'mu','nu'","'L','nu'").replace("'e','nu'","'L','nu'").replace("'ta','nu'","'L','nu'")
-#    print branch1, branch2
+#    print(branch1, branch2)
     contains_offshell = True
     while contains_offshell: #while iteration to get rid of all off shell decays, not just the first one that is found
         contains_offshell = False
         if False:#elem.motherElements:
-            os_decayinfo = find_offshell_decay(branch1,branch2,elem.motherElements[0][1])#need uncompressed element to determine offshell decays
+            try:
+                os_decayinfo = find_offshell_decay(branch1,branch2,elem.motherElements[0][1])#need uncompressed element to determine offshell decays
+            except:
+                print("Some error in find_offshell_decay with elem.mother input")
         else:
-            os_decayinfo = find_offshell_decay(branch1,branch2,elem)
-#        if elem.elID == 24:
-#            print os_decayinfo[0]
+            try:
+                os_decayinfo = find_offshell_decay(branch1,branch2,elem)
+            except:
+                print("Some error in find_offshell_decay with elem input")
         if os_decayinfo[0]:#check whether the mass difference of possible off decays allow for off-shell decay
-            finalstate = fs_offdecay(finalstate,os_decayinfo[1],os_decayinfo[2],os_decayinfo[3],os_decayinfo[4]) #change off-shell decay products to off-shell particle. this only checks for one type of off-shell processes.
+            try:
+                finalstate = fs_offdecay(finalstate,os_decayinfo[1],os_decayinfo[2],os_decayinfo[3],os_decayinfo[4]) #change off-shell decay products to off-shell particle. this only checks for one type of off-shell processes.
+            except:
+                print("Some error in fs_offdecay")
             branch1 = finalstate[0] #change to off-shell version of branch in order to feed into check_offshell_decay again (to find possible occurence of different offshell decay than the one found already)
             branch2 = finalstate[1]
             contains_offshell = True
@@ -243,10 +250,10 @@ def find_offshell_decay(branch1,branch2,elem):
                     vertexnr +=1
             sptc1_pid = int(elem.branches[0].PIDs[0][vertexnr-1])#sparticles pid
             sptc2_pid = int(elem.branches[0].PIDs[0][vertexnr])
-            sptc1_name = particles.rOdd[sptc1_pid].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')#sparticle name, e.g. gluino
-            sptc2_name = particles.rOdd[sptc2_pid].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')
+            sptc1_name = rOdd[abs(sptc1_pid)].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')#sparticle name, e.g. gluino
+            sptc2_name = rOdd[abs(sptc2_pid)].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')
             if vertexnr >= 1 and abs(masses[0][vertexnr-1] - masses[0][vertexnr]).asNumber(GeV) < 80.4:#check if mass difference allows W. FIXME: does not yet include the other sm particles in vertex!
-                if abs(particles.qNumbers[abs(sptc1_pid)][1] - particles.qNumbers[abs(sptc2_pid)][1]) == 3:#Check whether the sparticle charges are correct for W decay
+                if abs(qNumbers[abs(sptc1_pid)][1] - qNumbers[abs(sptc2_pid)][1]) == 3:#Check whether the sparticle charges are correct for W decay
                     if [sptc1_name,sptc2_name] in decayswithW:#check if W is allowed at the vertex
                         return [True,'Woff',1,vertexnr,decaymode]
         if decaymode in ptcsb2:
@@ -257,12 +264,13 @@ def find_offshell_decay(branch1,branch2,elem):
                     vertexnr +=1
             sptc1_pid = int(elem.branches[1].PIDs[0][vertexnr-1])
             sptc2_pid = int(elem.branches[1].PIDs[0][vertexnr])
-            sptc1_name = particles.rOdd[sptc1_pid].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')#sparticle name, e.g. gluino
-            sptc2_name = particles.rOdd[sptc2_pid].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')
+            sptc1_name = rOdd[sptc1_pid].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')#sparticle name, e.g. gluino
+            sptc2_name = rOdd[sptc2_pid].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')            
             if vertexnr >= 1 and abs(masses[1][vertexnr-1] - masses[1][vertexnr]).asNumber(GeV) < 80.4:#check if mass difference allows W. FIXME: does not yet include the other sm particles in vertex!
-                if abs(particles.qNumbers[abs(sptc1_pid)][1] - particles.qNumbers[abs(sptc2_pid)][1]) == 3:
+                if abs(qNumbers[abs(sptc1_pid)][1] - qNumbers[abs(sptc2_pid)][1]) == 3:
                     if [sptc1_name,sptc2_name] in decayswithW:#check if W is allowed at the vertex
                         return [True,'Woff',2,vertexnr,decaymode]
+    
     for decaymode in Zoff:
         if decaymode in ptcsb1:
             vertexnr = -1#branches always open 2 brackets before first particle, if decaymode is in 1st vertex, vertexnr will be 1
@@ -272,10 +280,10 @@ def find_offshell_decay(branch1,branch2,elem):
                     vertexnr +=1
             sptc1_pid = int(elem.branches[0].PIDs[0][vertexnr-1])
             sptc2_pid = int(elem.branches[0].PIDs[0][vertexnr])
-            sptc1_name = particles.rOdd[sptc1_pid].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')#sparticle name, e.g. gluino
-            sptc2_name = particles.rOdd[sptc2_pid].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')
+            sptc1_name = rOdd[sptc1_pid].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')#sparticle name, e.g. gluino
+            sptc2_name = rOdd[sptc2_pid].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')            
             if vertexnr >= 1 and abs(masses[0][vertexnr-1] - masses[0][vertexnr]).asNumber(GeV) < 91.1:#check if mass difference allows Z. FIXME: does not yet include the other sm particles in vertex!
-                if particles.qNumbers[abs(sptc1_pid)][1] == particles.qNumbers[abs(sptc2_pid)][1]:
+                if qNumbers[abs(sptc1_pid)][1] == qNumbers[abs(sptc2_pid)][1]:
                     if [sptc1_name,sptc2_name] in decayswithZ:#check if Z is allowed at the vertex
                         return [True,'Zoff',1,vertexnr,decaymode]
         if decaymode in ptcsb2:
@@ -286,10 +294,12 @@ def find_offshell_decay(branch1,branch2,elem):
                     vertexnr +=1
             sptc1_pid = int(elem.branches[1].PIDs[0][vertexnr-1])
             sptc2_pid = int(elem.branches[1].PIDs[0][vertexnr])
-            sptc1_name = particles.rOdd[sptc1_pid].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')#sparticle name, e.g. gluino
-            sptc2_name = particles.rOdd[sptc2_pid].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')
+#            sptc1_name = particles.rOdd[sptc1_pid].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')#sparticle name, e.g. gluino
+#            sptc2_name = particles.rOdd[sptc2_pid].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')
+            sptc1_name = rOdd[sptc1_pid].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')#sparticle name, e.g. gluino
+            sptc2_name = rOdd[sptc2_pid].replace('C1', 'C').replace('C2', 'C').replace('N1', 'N').replace('N2', 'N').replace('N3', 'N').replace('N4', 'N')  
             if vertexnr >= 1 and abs(masses[1][vertexnr-1] - masses[1][vertexnr]).asNumber(GeV) < 81.1:#check if mass difference allows Z. FIXME: does not yet include the other sm particles in vertex!
-                if particles.qNumbers[abs(sptc1_pid)][1] == particles.qNumbers[abs(sptc2_pid)][1]:
+                if qNumbers[abs(sptc1_pid)][1] == qNumbers[abs(sptc2_pid)][1]:
                     if [sptc1_name,sptc2_name] in decayswithZ:#check if Z is allowed at the vertex
                         return [True,'Zoff',2,vertexnr,decaymode]
     for decaymode in toff:
@@ -302,7 +312,7 @@ def find_offshell_decay(branch1,branch2,elem):
             sptc1_pid = int(elem.branches[0].PIDs[0][vertexnr-1])
             sptc2_pid = int(elem.branches[0].PIDs[0][vertexnr])
             if vertexnr >= 1 and abs(masses[0][vertexnr-1] - masses[0][vertexnr]).asNumber(GeV) < 173.:#check if mass difference allows t. FIXME: does not yet include the other sm particles in vertex!
-                if abs(particles.qNumbers[abs(sptc1_pid)][1] - particles.qNumbers[abs(sptc2_pid)][1]) == 2: #FIXME: this will not recognize decays where another sm particle with charge !=0 is in the vertex!
+                if abs(qNumbers[abs(sptc1_pid)][1] - qNumbers[abs(sptc2_pid)][1]) == 2: #FIXME: this will not recognize decays where another sm particle with charge !=0 is in the vertex!
                     return [True,'toff',1,vertexnr,decaymode]
         if decaymode in ptcsb2:
             vertexnr = -1#branches always open 2 brackets before first particle, if decaymode is in 1st vertex, vertexnr will be 1
@@ -313,7 +323,7 @@ def find_offshell_decay(branch1,branch2,elem):
             sptc1_pid = int(elem.branches[1].PIDs[0][vertexnr-1])
             sptc2_pid = int(elem.branches[1].PIDs[0][vertexnr])
             if vertexnr >= 1 and abs(masses[1][vertexnr-1] - masses[1][vertexnr]).asNumber(GeV) < 173.:#check if mass difference allows t. FIXME: does not yet include the other sm particles in vertex!
-                if abs(particles.qNumbers[abs(sptc1_pid)][1] - particles.qNumbers[abs(sptc2_pid)][1]) == 2: #FIXME: this will not recognize decays where another sm particle with charge !=0 is in the vertex!
+                if abs(qNumbers[abs(sptc1_pid)][1] - qNumbers[abs(sptc2_pid)][1]) == 2: #FIXME: this will not recognize decays where another sm particle with charge !=0 is in the vertex!
                     return [True,'toff',2,vertexnr,decaymode]
     return [False,'None',-1,-1,'None']
 def fs_offdecay(finalstate,os_ptc,branchnr,vertexnr,decaymode):
@@ -334,7 +344,7 @@ def fs_offdecay(finalstate,os_ptc,branchnr,vertexnr,decaymode):
         branch1 = fs[1:3]
         branch2 = fs[4:-1]
     else:
-        #print fs
+        #print(fs)
         for char in fs[2:]:#this idenfies the branches
             index+=1
             if char == '[':
@@ -383,7 +393,10 @@ def getTxNames(el_list,mistop_sqrts):
     txElements = {}#dictionary containing all contributing elements to a txname {'txname': [contributing elements]}
     txFinalstate = {}#dictionary mapping the txname to a finalstate
     for el in el_list:
-        txName = findTxName(el)
+        try:
+            txName = findTxName(el)
+        except:
+            print("some error in findTxName")
         #if txname already in txList, add element weight to its corresponding topology weight
         if txName[0] in txWeights:
             txWeights[txName[0]] += el.weight.getXsecsFor(mistop_sqrts)[0].value.asNumber(pb)
@@ -394,12 +407,12 @@ def getTxNames(el_list,mistop_sqrts):
             txElements[txName[0]] = [el]
             txFinalstate[txName[0]] = txName[1]
             #convert weights to pb
-#    print txWeights
+#    print(txWeights)
     """for weight in txWeights.values():
         if type(weight)
-        print weight
+        print(weight)
         weight = weight.asNumber(pb)
-        print weight"""
+        print(weight)"""
     #sort txWeights
     txSorted = sorted(txWeights, key=txWeights.__getitem__, reverse=True)
     return txWeights, txSorted, txElements, txFinalstate
@@ -520,33 +533,33 @@ def sms_name(elem):#Currently not used
     txprefix = "NoneFound"
     # format of prod_pids should be: key: [branch 1 progenitor, branch 2 progenitor]
     # prod pids only contains prefix, e.g. T1 ,T2 etc. Need to only consider prefix in txname
-#    print txname
+#    print(txname
     if txname.find("TChi") != -1: #this means it found 'TChi'
         if txname.find("TChiChipm") == -1 and txname.find("TChipChim") == -1: #TChiChipm and TChipChim dont occur
             txprefix = "TChi" #assigns the value 
-            #print txprefix
+            #print(txprefix
         elif txname.find("TChiChipm") != -1:
             txprefix = "TChiChipm"
         elif txname.find("TChipChim") != -1:
             txprefix = "TChipChim"
     elif txname.find("T1") != -1:
         txprefix = "T1"
-        #print txprefix
+        #print(txprefix
     elif txname.find("T2") != -1:
         txprefix = "T2"
-        #print txprefix
+        #print(txprefix
     elif txname.find("T3") != -1:
         txprefix = "T3"
-        #print txprefix
+        #print(txprefix
     elif txname.find("T4") != -1:
         txprefix = "T4"
-        #print txprefix
+        #print(txprefix
     elif txname.find("T5") != -1:
         txprefix = "T5"
-        #print txprefix
+        #print(txprefix
     elif txname.find("T6") != -1:
         txprefix = "T6"
-        #print txprefix
+        #print(txprefix
     if txprefix in tdict.prod_pids:
         if [prod_pid_b1,prod_pid_b2] == tdict.prod_pids[txprefix] or [prod_pid_b2,prod_pid_b1] == tdict.prod_pids[txprefix]: #Compares both orders the branch progenitors of the element against the ones required by the txname
             return True
@@ -583,7 +596,7 @@ def sms_name(elem):#Currently not used
         brlen = {'Branch 1': elem.branches[0].getLength(), 'Branch 2': elem.branches[1].getLength() }
         # Check whether the element was compressed
         hasmom = False
-      #  print elem.motherElements
+      #  print(elem.motherElements
         if elem.motherElements:
             hasmom = True
 
