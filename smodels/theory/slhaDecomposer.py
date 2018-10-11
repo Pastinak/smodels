@@ -20,7 +20,7 @@ from smodels.theory.exceptions import SModelSTheoryError as SModelSError
 from smodels.tools.smodelsLogging import logger
 
 def decompose(slhafile, sigcut=.1 * fb, doCompress=False, doInvisible=False,
-              minmassgap=-1.*GeV, useXSecs=None):
+              minmassgap=-1.*GeV, useXSecs=None, trackDisp=False, dispPid=None):
     """
     Perform SLHA-based decomposition.
     
@@ -32,6 +32,8 @@ def decompose(slhafile, sigcut=.1 * fb, doCompress=False, doInvisible=False,
     :param useXSecs: optionally a dictionary with cross sections for pair
                  production, by default reading the cross sections
                  from the SLHA file.
+    :param trackDisp: turn tracking of displaced cross section on/off
+    :param dispPid: PDG id to use for displaced vertex proxy particle
     :returns: list of topologies (TopologyList object)
 
     """
@@ -54,12 +56,16 @@ def decompose(slhafile, sigcut=.1 * fb, doCompress=False, doInvisible=False,
     xSectionList = crossSection.getXsecFromSLHAFile(slhafile, useXSecs)
     # Get BRs and masses from file
     brDic, massDic = _getDictionariesFromSLHA(slhafile)
+    if trackDisp:
+        massDic[dispPid] = 0. * GeV
+        dispDec = pyslha.Decay(br=1., ids=[], nda=0)
+        brDic[dispPid] = [dispDec]
     # Only use the highest order cross sections for each process
     xSectionList.removeLowerOrder()
     # Order xsections by PDGs to improve performance
     xSectionList.order()
     #Reweight decays by fraction of prompt decays and add fraction of long-lived
-    brDic = _getPromptDecays(slhafile,brDic)
+    brDic = _getPromptDecays(slhafile,brDic,trackDisp=trackDisp,dispPid=dispPid)
 
     # Get maximum cross sections (weights) for single particles (irrespective
     # of sqrtS)
@@ -200,7 +206,7 @@ def _getDictionariesFromSLHA(slhafile):
 
 
 
-def _getPromptDecays(slhafile,brDic,l_inner=1.*mm,gb_inner=1.3,l_outer=10.*m,gb_outer=1.43):
+def _getPromptDecays(slhafile,brDic,l_inner=1.*mm,gb_inner=1.3,l_outer=10.*m,gb_outer=1.43,trackDisp=False,dispPid=None):
     """
     Using the widths in the slhafile, reweights the BR dictionary with the fraction
     of prompt decays and add the fraction of "long-lived decays".
@@ -223,9 +229,10 @@ def _getPromptDecays(slhafile,brDic,l_inner=1.*mm,gb_inner=1.3,l_outer=10.*m,gb_
         
     #Get the widths:
     res = pyslha.readSLHAFile(slhafile)
-    decays = res.decays    
+    decays = res.decays
         
     for pid in brDic:
+        if pid == dispPid: continue
         width = abs(decays[abs(pid)].totalwidth)*GeV
         Fprompt = 1. - math.exp(-width*l_inner/(gb_inner*hc))
         Flong = math.exp(-width*l_outer/(gb_outer*hc))
@@ -239,6 +246,10 @@ def _getPromptDecays(slhafile,brDic,l_inner=1.*mm,gb_inner=1.3,l_outer=10.*m,gb_
         if (Flong+Fprompt) > 1.:
             logger.error("Sum of decay fractions > 1 for "+str(pid))
             return False
+        Fdisp = 1 - Flong - Fprompt
+        if Fdisp > 0.001 and trackDisp:
+            displacedFraction = pyslha.Decay(br=Fdisp, ids = [dispPid], nda=1)
+            brDic[pid].append(displacedFraction)
         if (Flong+Fprompt) < 0.8:
             logger.info("Particle with PDG %i has a considerable fraction of displaced decays, which will be ignored." %pid)
         

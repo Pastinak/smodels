@@ -37,7 +37,8 @@ finalStates = {
 "HSCP" : [[1,3,1],[1,-3,1],[0,3,1],[0,-3,1],[2,3,1],[2,-3,1]],
 "MET" : [[1,0,1],[0,0,1],[2,0,1]],
 "RHadronG" : [[1,0,8]],  #Gluino-like RHadron
-"RHadronQ" : [[0,2,3],[0,-1,3],[0,-2,3],[0,1,3]]  #Squark-like RHadron
+"RHadronQ" : [[0,2,3],[0,-1,3],[0,-2,3],[0,1,3]],  #Squark-like RHadron
+"Displaced" : None
 }
 
 
@@ -288,8 +289,11 @@ def getFinalStateLabel(pid):
     :return: Final state string (e.g. MET, HSCP,...)
     """
 
-    from smodels.particlesLoader import qNumbers
+    from smodels.particlesLoader import qNumbers, rOdd, rEven
 
+    if not abs(pid) in list(rOdd.keys())+list(rEven.keys()):
+        # not defined in particle definitions means this is the proxy pid we added by hand
+        return "Displaced"
     if not abs(pid) in qNumbers:
         logger.error("qNumbers are not defined for %i. Please, add it to particles.py." %pid)
         raise SModelSError

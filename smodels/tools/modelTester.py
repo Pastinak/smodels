@@ -76,10 +76,14 @@ def testPoint(inputFile, outputDir, parser, databaseVersion, listOfExpRes):
     try:
         """ Decompose input SLHA file, store the output elements in smstoplist """
         if inputType == 'slha':
+            if parser.getboolean("options", "trackDisplaced"):
+                dispPid = parser.getint("options", "proxyPid")
+            else: dispPid = None
             smstoplist = slhaDecomposer.decompose(inputFile, sigmacut,
                     doCompress=parser.getboolean("options", "doCompress"),
                     doInvisible=parser.getboolean("options", "doInvisible"),
-                    minmassgap=minmassgap)
+                    minmassgap=minmassgap, trackDisp=parser.getboolean("options", "trackDisplaced"),
+                    dispPid=dispPid)
         else:
             smstoplist = lheDecomposer.decompose(inputFile,
                     doCompress=parser.getboolean("options", "doCompress"),
