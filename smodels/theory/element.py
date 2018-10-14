@@ -41,7 +41,7 @@ class Element(object):
         self.weight = crossSection.XSectionList() # gives the weight for all decays promptly
         self.decayLabels = []
         self.motherElements = [("original", self)]
-        self.elID = 0
+        self.elID = []
         self.covered = False
         self.tested = False
                 
@@ -208,7 +208,7 @@ class Element(object):
             newel.branches.append(branch.copy())
         newel.weight = self.weight.copy()
         newel.motherElements = self.motherElements[:]
-        newel.elID = self.elID
+        newel.elID = self.elID[:]
         return newel
 
 
@@ -317,39 +317,6 @@ class Element(object):
         for branch in self.branches:
             momPIDs.append(branch.oddParticles[0].pdg)        
         return momPIDs    
-        
-    def getMotherPIDs(self):
-        """
-        Get PIDs of all mothers.
-        
-        :returns: list of mother PDG ids
-        """
-        
-        # get a list of all original mothers, i.e. that only consists of first generation elements
-        allmothers = self.motherElements
-        while not all(mother[0] == 'original' for mother in allmothers):                        
-            for im, mother in enumerate(allmothers):
-                if mother[0] != 'original':
-                    allmothers.extend( mother[1].motherElements )
-                    allmothers.pop(im)                                    
-
-        # get the PIDs of all mothers      
-        motherPids = []
-        for mother in allmothers:  
-            motherPids.append( mother[1].getPIDs() ) 
-
-        branch1 = []
-        branch2 = []
-        for motherPid in motherPids:
-            branch1.append(motherPid[0])
-            branch2.append(motherPid[1])
-        for pid1 in branch1:
-            for pid2 in branch2:
-                pids = [pid1,pid2]
-                if not pids in motherPids: motherPids.append(pids)  
-   
-        return motherPids     
-        
 
 
     def getEinfo(self):
@@ -565,6 +532,8 @@ class Element(object):
             raise SModelSError("Asked to combine distinct elements")
 
         self.motherElements += other.motherElements[:]
+        self.elID += other.elID
+        self.elID = list(set(self.elID))
         self.weight.combineWith(other.weight)
         for ibr,branch in enumerate(self.branches):
             branch.combineWith(other.branches[ibr])

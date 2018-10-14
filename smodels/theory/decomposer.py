@@ -120,9 +120,10 @@ def decompose(model, sigcut= 0*fb, doCompress=True, doInvisible=True,
                 newElement.weight = weightList*finalBR
                 newElement.sortBranches()  #Make sure elements are sorted BEFORE adding them              
                 smsTopList.addElement(newElement)                                                 
-                                                    
+    
+    smsTopList._setElementIds()                                                
     smsTopList.compressElements(doCompress, doInvisible, minmassgap)
-    smsTopList._setElementIds()       
+        
             
     logger.debug("decomposer done in %.2f s." % (time.time() -t1 ) )
   

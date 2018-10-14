@@ -160,16 +160,51 @@ class DecomposerTest(unittest.TestCase):
                         
         tested = False                 
         topos = decomposer.decompose(model, sigcut=0.1*fb, doCompress=True, doInvisible=True, minmassgap=5.*GeV )
-        elIDs = {26 : Element("[[[b]],[[b]]]",finalState=['MET','MET']),
-                 27 : Element("[[[b]],[[t+]]]",finalState=['MET','MET']),
-                 28 : Element("[[[b]],[[t+]]]",finalState=['MET','MET']),
-                 29 : Element("[[[b]],[[t-]]]",finalState=['MET','MET']),
-                 30 : Element("[[[b]],[[t-]]]",finalState=['MET','MET']),
-                 31 : Element("[[[t+]],[[t-]]]",finalState=['MET','MET']),
-                 32 : Element("[[[t+]],[[t-]]]",finalState=['MET','MET']),
-                 33 : Element("[[[t+]],[[t-]]]",finalState=['MET','MET']),
-                 34 : Element("[[[t+]],[[t-]]]",finalState=['MET','MET'])}
-        
+        el1 = Element("[[[b]],[[b]]]",finalState=['MET','MET'])
+        el1.elID = [541, 542, 543, 544, 545, 546, 547, 548, 561, 562, 563, 
+                  564, 571, 572, 573, 580, 581, 582, 589, 590, 597, 598, 605, 612] 
+        el2 = Element("[[[b]],[[t+]]]",finalState=['MET','MET'])
+        el2.elID = [160, 161, 162, 163, 164, 755, 756, 757, 758, 759, 760, 761, 
+                  762, 763, 764, 765, 766, 767, 768, 769, 770, 771, 772, 773, 
+                  774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785, 
+                  786, 839, 840, 841, 842, 843, 844, 845, 846, 847, 848, 849, 
+                  850, 851, 852, 853, 854, 855, 856, 857, 858, 879, 880, 881, 
+                  882, 883, 884, 885, 886, 887, 888, 889, 890, 891, 892, 893, 
+                  894, 895, 896, 897, 898, 903, 904, 905, 906, 907, 908, 909, 
+                  910, 911, 912, 913, 914, 915, 916, 917, 918, 919, 920, 921, 
+                  922, 923, 924, 925, 926, 927, 928, 929, 930, 931, 932, 933, 
+                  934, 935, 936, 937, 938]
+
+        el3 = Element("[[[b]],[[t+]]]",finalState=['MET','MET'])
+        el3.elID = [577, 609, 552, 616, 594]
+        el4 = Element("[[[b]],[[t-]]]",finalState=['MET','MET'])
+        el4.elID = [171, 172, 173, 174, 175, 787, 788, 789, 790, 791, 792, 793, 
+                  794, 795, 796, 797, 798, 799, 800, 801, 802, 803, 804, 805, 
+                  806, 807, 808, 809, 810, 811, 812, 813, 814, 815, 816, 817, 
+                  818, 819, 820, 821, 822, 823, 824, 825, 826, 827, 828, 829, 
+                  830, 831, 832, 833, 834, 835, 836, 837, 838, 859, 860, 861, 
+                  862, 863, 864, 865, 866, 867, 868, 869, 870, 871, 872, 873, 
+                  874, 875, 876, 877, 878, 899, 900, 901, 902, 939, 940, 941, 
+                  942, 943, 944, 945, 946, 947, 948, 949, 950, 951, 952, 953, 
+                  954, 955, 956, 957, 958, 959, 960, 961, 962, 963, 964, 965, 
+                  966, 967, 968, 969, 970]
+        el5 = Element("[[[b]],[[t-]]]",finalState=['MET','MET'])
+        el5.elID = [586, 622, 558, 568, 602]
+        el6 = Element("[[[t+]],[[t-]]]",finalState=['MET','MET'])
+        el6.elID = [16, 663, 664, 665, 666, 667, 668, 669, 670, 671, 672, 673, 
+                  674, 675, 676, 677, 678, 679, 680, 681, 682, 683, 684, 685, 
+                  686, 687, 688, 689, 690, 691, 692, 693, 694, 695, 696, 697, 
+                  698, 699, 700, 701, 702, 703, 704, 705, 706, 707, 708, 709, 
+                  710, 711, 712, 713, 714, 715, 716, 717, 718, 719, 720, 721, 
+                  722, 723, 724, 725, 726]
+        el7 = Element("[[[t+]],[[t-]]]",finalState=['MET','MET'])
+        el7.elID = [168, 987, 988, 989, 990]
+        el8 = Element("[[[t+]],[[t-]]]",finalState=['MET','MET'])
+        el8.elID = [975, 976, 977, 978, 179]
+        el9 = Element("[[[t+]],[[t-]]]",finalState=['MET','MET'])
+        el9.elID = [646]
+        elementsExpected = [el1,el2,el3,el4,el5,el6,el7,el8,el9]
+        elIDs = [el.elID for el in elementsExpected]
         toposExpected = {"[][]" : 2,"[][1]" : 9,"[][2]" : 14,"[1][1]" : 9,"[1][2]" : 29,
                          "[2][2]" : 72,"[][1,2]" : 2,"[][2,2]" : 44,"[1][1,1]" : 6,"[1][1,2]" : 44,
                          "[2][1,2]" : 48,"[2][2,2]" : 284,"[1,1][1,1]" : 17,"[1,1][1,2]" : 22,
@@ -181,10 +216,10 @@ class DecomposerTest(unittest.TestCase):
             self.assertEqual(len(topo.elementList),toposExpected[str(topo)])
             if str(topo)!="[1][1]":
                 continue            
-            for element in topo.elementList:             
-                if element.elID in elIDs:
-                    tested = True
-                    self.assertEqual(element,elIDs[element.elID])
+            for element in topo.elementList:
+                tested = True
+                iel = elIDs.index(element.elID)
+                self.assertEqual(element,elementsExpected[iel])
         self.assertTrue(tested) #Make sure the test was performed
         
 if __name__ == "__main__":

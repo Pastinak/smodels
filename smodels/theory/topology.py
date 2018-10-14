@@ -394,5 +394,5 @@ class TopologyList(object):
         """
         elID = 1
         for element in self.getElements():
-            element.elID = elID
+            element.elID = [elID]
             elID += 1

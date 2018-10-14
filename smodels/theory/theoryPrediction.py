@@ -533,18 +533,21 @@ def _getElementsFrom(smsTopList, dataset):
                 newEl.txname = txname
                 elements.append(newEl) #Save element with correct branch ordering
 
-
+    #Sort elements by weight
+    elements = sorted(elements, key = lambda el: el.weight.getMaxXsec())
+        
     #Remove duplicated elements:
-    allmothers = []
-    #First collect the list of all mothers:
+    allIDs = []
+    #First collect the list of elements IDs:
     for el in elements:
-        allmothers += [elMom[1] for elMom in el.motherElements if not elMom[0]=='original']
+        allIDs += el.elID
     elementsClean = []
     for el in elements:
-        #Skip the element if it is a mother of another element in the list
-        if any((elMom is el) for elMom in allmothers):
-            continue
-        elementsClean.append(el)
+        #Only add the element if all of its IDs do not appear repeated:
+        if all(allIDs.count(elID) < 2 for elID in el.elID):
+            elementsClean.append(el)
+        for elID in el.elID:
+            allIDs.remove(elID)
         
     return elementsClean
 

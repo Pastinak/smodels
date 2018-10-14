@@ -504,8 +504,8 @@ class TxTPrinter(BasicPrinter):
                     if hasattr(self, "addcoverageid") and self.addcoverageid:
                         contributing = []
                         for el in genEl._contributingElements:
-                            contributing.append(el.elID)
-                        output += "Contributing elements %s\n" % str(contributing)            
+                            contributing += el.elID
+                        output += "Contributing elements %s\n" % str(list(set(contributing)))            
             output += "================================================================================\n"      
         return output
                       
@@ -837,8 +837,8 @@ class PyPrinter(BasicPrinter):
             if hasattr(self,"addelementlist") and self.addelementlist:
                 contributing = []
                 for el in genEl._contributingElements:
-                    contributing.append(el.elID)
-                missed["element IDs"] = contributing
+                    contributing += el.elID
+                missed["element IDs"] = list(set(contributing))
             missedTopos.append(missed)
             
         outsideGrid = []

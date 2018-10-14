@@ -5,7 +5,7 @@
 .. moduleauthor:: Alicia Wongel <alicia.wongel@gmail.com>
 """
 
-import pyslha,copy
+import pyslha,copy,os
 from smodels.tools.smodelsLogging import logger
 from smodels.tools.physicsUnits import GeV
 from smodels.theory import lheReader, crossSection
@@ -92,6 +92,9 @@ class Model(object):
         #Trick to suppress pyslha error messages:
         import sys
         storeErr = sys.stderr
+        if not os.path.isfile(self.inputFile):
+            logger.error("Input file %s not found" %self.inputFile)
+            raise SModelSError()
         try:
             sys.stderr = None
             res = pyslha.readSLHAFile(self.inputFile)

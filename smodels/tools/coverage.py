@@ -39,21 +39,7 @@ class Uncovered(object):
         self.motherIDs = []
         self.prevMothers = []
         self.outsideGridMothers = []
-        self.getAllMothers(topoList)
         self.fill(topoList, sigmacut)
-
-    def getAllMothers(self, topoList):
-        """
-        Find all IDs of mother elements, only most compressed element can be missing topology
-        :ivar topoList: sms topology list
-        """
-        
-        for el in topoList.getElements():
-            for mEl in el.motherElements:
-                motherID = mEl[-1].elID
-                if not el.elID == motherID and not motherID in self.motherIDs:                     
-                    self.motherIDs.append(motherID)
-                
 
     def fill(self, topoList, sigmacut):
         """
@@ -113,22 +99,17 @@ class Uncovered(object):
                     self.MET.addToGeneralElements(el)
 
     def inPrevMothers(self, el): #check if smaller element with same mother has already been checked
-        for mEl in el.motherElements:
-            if mEl[0] != 'original' and mEl[-1].elID in self.prevMothers:
-                return True
+        if any(elID in self.prevMothers for elID in el.elID):
+            return True
         return False
 
     def inOutsideGridMothers(self, el): #check if this element or smaller element with same mother has already been checked
-        if el.elID in self.outsideGridMothers:
+        if any(elID in self.outsideGridMothers for elID in el.elID):
             return True
-        for mEl in el.motherElements:
-            if mEl[0] != 'original' and mEl[-1].elID in self.outsideGridMothers:
-                return True
         return False
 
     def addPrevMothers(self, el): #add mother elements of currently tested element to previous mothers
-        for mEl in el.motherElements:
-            self.prevMothers.append(mEl[-1].elID)
+        self.prevMothers += el.elID
         
     def hasDisplaced(self, el):
         """
