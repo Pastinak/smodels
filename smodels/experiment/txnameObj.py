@@ -21,6 +21,7 @@ from smodels.theory.topology import TopologyList
 from smodels.tools.smodelsLogging import logger
 from smodels.experiment.exceptions import SModelSExperimentError as SModelSError
 from smodels.tools.caching import _memoize
+from smodels.tools.physicsUnits import m, MeV,fm
 from scipy.linalg import svd
 import scipy.spatial.qhull as qhull
 import numpy as np
@@ -28,6 +29,7 @@ import unum
 import copy
 import math,itertools
 from math import floor, log10
+from time import sleep
 
 #Build a dictionary with defined units. It can be used to evaluate
 #expressions containing units.
@@ -47,6 +49,7 @@ class TxName(object):
         self._infoObj = infoObj
         self.txnameData = None
         self.txnameDataExp = None ## expected Data
+        self.gbData = None
         self._topologyList = TopologyList()
 
         logger.debug('Creating object based on txname file: %s' %self.path)
@@ -89,6 +92,17 @@ class TxName(object):
         self.txnameData = TxNameData(data, dataType, ident )
         if expectedData:
             self.txnameDataExp = TxNameData( expectedData, dataType, ident )
+
+        gbpath = path.replace('.txt', '_gb.txt')
+        if os.path.isfile(gbpath): 
+            print ("found gbpath")
+            print (gbpath)
+            gbtxtFile = open(gbpath,'r')
+            gbpath = gbtxtFile.read()
+            gbtxtFile.close()
+            gbID = self.globalInfo.id+":"+'gb'+":"+ str(self._infoObj.dataId)+ ":" + self.txName
+            self.gbData = TxNameData(gbpath, 'gb', gbID)
+            print (self.gbData)
 
         #Builds up a list of elements appearing in constraints:
         if hasattr(self,'finalState'):
@@ -228,6 +242,17 @@ class TxName(object):
         if self.txnameDataExp != None:
             return True
         return False
+    
+    def calculateF(self,gb,width):
+        """
+        Calculate the exponential reweighting factor F with gamma*beta according to the mass
+        
+        :returns: F
+        """
+        hc = 197.327*MeV*fm #hbar * c
+        F = math.exp(-width*10*m/(gb*hc))
+        return F        
+        
 
     def getEfficiencyFor(self,element):
         """
@@ -241,18 +266,23 @@ class TxName(object):
         :return: efficiency (float)
         """
 
-        #Check if the element appears in Txname:        
+        #Check if the element appears in Txname: 
+        print (self)       
         if isinstance(element,Element):
             mass = element.getMasses()
         elif isinstance(element,list):
             mass = element
         val = self.txnameData.getValueFor(mass)
+        if hasattr(self, 'gbData') and self.gbData:
+            gb = self.gbData.getValueFor(mass)
+            F = self.calculateF(gb,element.branches[0].oddParticles[0].totalwidth)
+        else: F = 1.          
         if isinstance(val,unum.Unum):
-            return 1.  #The element has an UL, return 1
+            return F  #The element has an UL, return 1
         elif val is None or math.isnan(val):
             return 0.  #The element mass is outside the data grid
         elif isinstance(val,float):
-            return val  #The element has an eff
+            return val*F  #The element has an eff
         else:
             logger.error("Unknown txnameData value: %s" % (str(type(val))))
             raise SModelSError()
