@@ -95,14 +95,30 @@ class TxName(object):
 
         gbpath = path.replace('.txt', '_gb.txt')
         if os.path.isfile(gbpath): 
-            print ("found gbpath")
-            print (gbpath)
             gbtxtFile = open(gbpath,'r')
-            gbpath = gbtxtFile.read()
+            gbtxtdata = gbtxtFile.read()
             gbtxtFile.close()
+            
+            gbcontent = concatenateLines(gbtxtdata.split("\n"))
+
+            #Get tags in gamma beta info file:
+            gbtags = [gbline.split(':', 1)[0].strip() for gbline in gbcontent]
+            gbdata = None
+            length = None
+            for i,gbtag in enumerate(gbtags):
+                if not tag: continue
+                gbline = gbcontent[i]
+                gbvalue = gbline.split(':',1)[1].strip()
+                if gbtags.count(gbtag) != 1:
+                    logger.info("Duplicated field %s found in file %s" \
+                                 % (gbtag, gbpath))
+                if gbtag == 'gammaBeta map':
+                    gbdata = gbvalue
+                else:
+                    self.addInfo(gbtag,gbvalue)            
+            
             gbID = self.globalInfo.id+":"+'gb'+":"+ str(self._infoObj.dataId)+ ":" + self.txName
-            self.gbData = TxNameData(gbpath, 'gb', gbID)
-            print (self.gbData)
+            self.gbData = TxNameData(gbdata, 'gb', gbID)
 
         #Builds up a list of elements appearing in constraints:
         if hasattr(self,'finalState'):
@@ -243,15 +259,29 @@ class TxName(object):
             return True
         return False
     
-    def calculateF(self,gb,width):
+    def calculateF(self,gb,element):
         """
         Calculate the exponential reweighting factor F with gamma*beta according to the mass
         
         :returns: F
         """
-        hc = 197.327*MeV*fm #hbar * c
-        F = math.exp(-width*10*m/(gb*hc))
-        return F        
+        
+        for branch in element.branches:
+            for particle in branch.oddParticles[:-1]:
+                if particle.totalwidth:
+                    return 0.
+        
+        else:
+            hc = 197.327*MeV*fm #hbar * c
+            l = self.length
+            
+            width1 = element.branches[0].oddParticles[-1].totalwidth
+            F1 = math.exp(-width1*l/(gb*hc))
+            width2 = element.branches[1].oddParticles[-1].totalwidth
+            F2 = math.exp(-width2*l/(gb*hc))        
+            
+            F = F1*F2
+            return F        
         
 
     def getEfficiencyFor(self,element):
@@ -267,7 +297,6 @@ class TxName(object):
         """
 
         #Check if the element appears in Txname: 
-        print (self)       
         if isinstance(element,Element):
             mass = element.getMasses()
         elif isinstance(element,list):
@@ -275,7 +304,7 @@ class TxName(object):
         val = self.txnameData.getValueFor(mass)
         if hasattr(self, 'gbData') and self.gbData:
             gb = self.gbData.getValueFor(mass)
-            F = self.calculateF(gb,element.branches[0].oddParticles[0].totalwidth)
+            F = self.calculateF(gb,element)
         else: F = 1.          
         if isinstance(val,unum.Unum):
             return F  #The element has an UL, return 1
