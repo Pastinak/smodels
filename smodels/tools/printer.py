@@ -58,6 +58,8 @@ class MPrinter(object):
                 newPrinter = SLHAPrinter(output = 'file')
                 if parser.getboolean("options", "doCompress") or parser.getboolean("options", "doInvisible"):
                     newPrinter.docompress = 1
+                if parser.getboolean("options", "combineSRs"):
+                    newPrinter.combinesr = 1
             else:
                 logger.warning("Unknown printer format: %s" %str(prt))
                 continue
@@ -1004,6 +1006,7 @@ class SLHAPrinter(TxTPrinter):
         TxTPrinter.__init__(self, output, filename)
         self.name = "slha"
         self.docompress = 0
+        self.combinesr = 0
         self.printingOrder = [OutputStatus,ResultList, Uncovered]
         self.toPrint = [None]*len(self.printingOrder)
 
@@ -1033,18 +1036,22 @@ class SLHAPrinter(TxTPrinter):
         output += " 2 %-25s #maximum condition violation\n" % (obj.parameters['maxcond'])
         output += " 3 %-25s #compression (0 off, 1 on)\n" % (self.docompress)
         output += " 4 %-25s #minimum mass gap for mass compression [GeV]\n" % (obj.parameters['minmassgap'])
-        output += " 5 %-25s #sigmacut [fb]\n\n" % (obj.parameters['sigmacut'])
+        output += " 5 %-25s #sigmacut [fb]\n" % (obj.parameters['sigmacut'])
+        output += " 6 %-25s #signal region combination (0 off, 1 on)\n\n" %(self.combinesr)
+
+        #for SLHA output we always want to have SModelS_Exclusion block, if no results we write it here
+        if obj.status <=0:
+            output += "BLOCK SModelS_Exclusion\n"
+            output += " 0 0 %-30s #output status (-1 not tested, 0 not excluded, 1 excluded)\n\n" % (-1)
+
         return output
 
     def _formatResultList(self, obj):
         output = "BLOCK SModelS_Exclusion\n"
-        if obj.isEmpty():
-            excluded = -1
-        else:
-            firstResult = obj.theoryPredictions[0]
-            r = obj.getR(firstResult)
-            if r > 1: excluded = 1
-            else: excluded = 0
+        firstResult = obj.theoryPredictions[0]
+        r = obj.getR(firstResult)
+        if r > 1: excluded = 1
+        else: excluded = 0
         output += " 0 0 %-30s #output status (-1 not tested, 0 not excluded, 1 excluded)\n" % (excluded)
         if excluded == 0: rList = [firstResult]
         elif excluded == 1: rList = obj.theoryPredictions
