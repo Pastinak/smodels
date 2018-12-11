@@ -1,3 +1,7 @@
+Release v1.2.3, xxx
+=======================================================
+  * downloaded database files now stored in $HOME/.cache/smodels
+
 Release v1.2.2, Tue 28 Nov 2018
 =======================================================
 
