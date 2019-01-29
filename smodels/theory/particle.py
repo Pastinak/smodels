@@ -72,6 +72,8 @@ class Particle(object):
         
         if not isinstance(other,(MultiParticle,Particle)):
             return +1
+        if self.id == other.id and not self.id is None:
+            return 0
 
         #Check if particles ID have been defined
         try:
@@ -90,8 +92,9 @@ class Particle(object):
                     other.cmpMatrix[other.id][self.id] = -comp
                 return comp
             except (AttributeError,TypeError):
-                #If everything fails, compare particle properties
-                return self.cmpProperties(other)
+                pass
+        #If everything fails, compare particle properties
+        return self.cmpProperties(other)
 
     def __lt__( self, p2 ):
         return self.__cmp__(p2) == -1

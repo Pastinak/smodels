@@ -63,7 +63,7 @@ def main():
         el = top.elementList[n]
 #        print( "\t\t %i-th element from %i-th topology  = " %(n,m),el, end="" )
 #        print( "\n\t\t\twith final states =",el.getFinalStates(),"\n\t\t\twith cross section =",el.weight,"\n\t\t\tand masses = ",el.mass )
-
+    print('Decomposition done in %1.3fs' %(time.time()-t0))
     database = Database("./smodels-database")
 
     # Load the experimental results to be used.
@@ -79,17 +79,18 @@ def main():
             nUL += 1
         elif  expType == 'efficiencyMap':
             nEM += 1
-#    print("\n Loaded Database with %i UL results and %i EM results " %(nUL,nEM) )
+#     print("\n Loaded Database with %i UL results and %i EM results " %(nUL,nEM) )
 
 
     # Compute the theory predictions for each experimental result and print them:
 #    print("\n Theory Predictions and Constraints:")
+    t0B = time.time()
     rmax = 0.
     bestResult = None
     for expResult in listOfExpRes:
         predictions = theoryPredictionsFor(expResult, toplist, combinedResults=False, marginalize=False)
         if not predictions: continue # Skip if there are no constraints from this result
-#        print('\n %s ' %expResult.globalInfo.id)
+#         print('\n %s ' %expResult.globalInfo.id)
         for theoryPrediction in predictions:
             dataset = theoryPrediction.dataset
             datasetID = theoryPrediction.dataId()
@@ -120,6 +121,8 @@ def main():
             
     # Print the most constraining experimental result
     print("\nThe largest r-value (theory/upper limit ratio) is ",rmax )
+    print("Theory predictions done in %1.3fs" %(time.time()-t0B))
+    t0C = time.time()
 #    if rmax > 1.:
 #        print("(The input model is likely excluded by %s)" %bestResult )
 #    else:
@@ -152,7 +155,7 @@ def main():
 #            print('\tcross-section (fb):', genEl.missingX)
 #    else:
 #        print("\nNo displaced decays")
-
+    print('Coverage done in %1.3fs' %(time.time()-t0C))
     return time.time()-t0
       
         
