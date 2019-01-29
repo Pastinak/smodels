@@ -11,6 +11,7 @@ from smodels.tools.physicsUnits import GeV
 from smodels.theory import lheReader, crossSection
 from smodels.theory.particle import MultiParticle
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
+import numpy as np
 
 class Model(object):
     """
@@ -293,10 +294,11 @@ class Model(object):
                 allIDs.append(pA.id)
         #Compute comparison matrix:
         nptc = max(allIDs)+1
-        cmpMatrix = [[None for i in range(nptc+1)] for j in range(nptc+1)]
+        cmpMatrix = np.full((nptc,nptc),None)
         for pA in allParticles:
             for pB in allParticles:
-                cmpMatrix[pA.id][pB.id] = pA.cmpProperties(pB)
+                cmpMatrix[pA.id,pB.id] = pA.cmpProperties(pB)
         #Finally store the cmpMatrix in all model particles:
-        for pA in self.SMparticles+self.BSMparticles:
+        for pA in allParticles:
+#         for pA in self.SMparticles+self.BSMparticles:
             pA.cmpMatrix = cmpMatrix

@@ -11,6 +11,7 @@ from smodels.theory.particle import Particle,MultiParticle
 from smodels.theory.model import Model
 from smodels.tools.physicsUnits import MeV , GeV
 from smodels.theory.exceptions import SModelSTheoryError as SModelSError
+import numpy as np
 
 ###Below we define all particles that are relevant for the database constraints.
 ###One must avoid defining non-unique labels, so there is a one-to-one correspondence
@@ -136,7 +137,16 @@ for i,ptc in enumerate(allFinalStates):
 #Set unique particle ids and protect particle properties:
 for i,ptc in enumerate(allFinalStates):
     ptc.id = i
-    ptc._static = True
+#Compute comparison matrix:
+nptc = len(allFinalStates)
+cmpMatrix = np.full((nptc,nptc),None)
+for pA in allFinalStates:
+    for pB in allFinalStates:
+        cmpMatrix[pA.id,pB.id] = pA.cmpProperties(pB)
+#Finally store the cmpMatrix in all model particles:
+for pA in allFinalStates:
+    pA.cmpMatrix = cmpMatrix
+    pA._static = True
 
 #Define a dummy model just to use the facilities for filtering particles
 finalStates = Model(SMparticles = allFinalStates,

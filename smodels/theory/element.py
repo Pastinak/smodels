@@ -91,8 +91,7 @@ class Element(object):
     def __cmp__(self,other):
         """
         Compares the element with other for any branch ordering.  
-        The comparison is made based on branches.
-        OBS: The elements and the branches must be sorted! 
+        The comparison is made based on branches. 
         :param other:  element to be compared (Element object)
         :return: -1 if self < other, 0 if self == other, +1, if self > other.
         """
@@ -530,7 +529,7 @@ class Element(object):
                 effectiveDaughter = Particle(label='inv', mass = bsmMom.mass,
                                              eCharge = 0, colordim = 1,
                                              totalwidth = branch.oddParticles[-1].totalwidth,
-                                             Z2parity = bsmMom.Z2parity, cmpMatrix=bsmMom.cmpMatrix)
+                                             Z2parity = bsmMom.Z2parity)
                 branch.removeVertex(len(branch.oddParticles)-2)
                 #For invisible compression, keep an effective mother which corresponds to the invisible
                 #daughter, but with the mass of the parent.

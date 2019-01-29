@@ -478,13 +478,13 @@ class InclusiveBranch(Branch):
         self.evenParticles =  InclusiveList()
         if finalState:
             bsmParticle = finalStates.getParticlesWith(label=finalState)
-            if not bsmParticle:
-                raise SModelSError("Final state %s has not been defined in finalStateParticles.py" %finalState)
-            if len(bsmParticle) != 1:
-                raise SModelSError("Ambiguos defintion of label %s in finalStates" %bsmParticle[0].label)          
-            self.oddParticles = [bsmParticle[0]]
         else:
-            self.oddParticles = [Particle(Z2parity=-1)]
+            bsmParticle = finalStates.getParticlesWith(label='anyOdd')
+        if not bsmParticle:
+            raise SModelSError("Final state %s has not been defined in finalStateParticles.py" %finalState)
+        if len(bsmParticle) != 1:
+            raise SModelSError("Ambiguos defintion of label %s in finalStates" %bsmParticle[0].label)          
+        self.oddParticles = [bsmParticle[0]]
         self.vertnumb = InclusiveValue()
         self.vertparts = InclusiveList()
         
