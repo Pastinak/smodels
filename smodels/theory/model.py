@@ -282,10 +282,21 @@ class Model(object):
                     newDecay.daughters.append(daughter)
                 particle.decays.append(newDecay)
                 
-        #Reset particle equality tracking:
-        for p in self.SMparticles+self.BSMparticles:
-            equals = [id(p)]
-            if isinstance(p,MultiParticle):
-                equals += [id(ptc) for ptc in p.particles]            
-            p._equals = set(equals)
-            p._differs = set([])
+        #Set unique particle IDs:
+        from smodels.experiment.databaseParticles import finalStates
+        allParticles = finalStates.SMparticles+finalStates.BSMparticles
+        allParticles += self.SMparticles+self.BSMparticles
+        allIDs = sorted([ptc.id for ptc in allParticles if not ptc.id is None])
+        for pA in allParticles:
+            if pA.id is None:
+                pA.id = max(allIDs)+1
+                allIDs.append(pA.id)
+        #Compute comparison matrix:
+        nptc = max(allIDs)+1
+        cmpMatrix = [[None for i in range(nptc+1)] for j in range(nptc+1)]
+        for pA in allParticles:
+            for pB in allParticles:
+                cmpMatrix[pA.id][pB.id] = pA.cmpProperties(pB)
+        #Finally store the cmpMatrix in all model particles:
+        for pA in self.SMparticles+self.BSMparticles:
+            pA.cmpMatrix = cmpMatrix

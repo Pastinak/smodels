@@ -133,12 +133,10 @@ for i,ptc in enumerate(allFinalStates):
     if any((ptc is p and i != j) for j,p in enumerate(allFinalStates)):
         allFinalStates.remove(ptc)
 
-#Erase particle equality tracking and protect particle properties
-#(since after pickling/unpickling the database particles change id, they should never store id-dependent attributes)
-for ptc in allFinalStates:
-        ptc._equals = set([])
-        ptc._differs = set([])
-        ptc._static = True
+#Set unique particle ids and protect particle properties:
+for i,ptc in enumerate(allFinalStates):
+    ptc.id = i
+    ptc._static = True
 
 #Define a dummy model just to use the facilities for filtering particles
 finalStates = Model(SMparticles = allFinalStates,

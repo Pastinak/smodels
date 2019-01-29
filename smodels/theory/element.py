@@ -530,7 +530,7 @@ class Element(object):
                 effectiveDaughter = Particle(label='inv', mass = bsmMom.mass,
                                              eCharge = 0, colordim = 1,
                                              totalwidth = branch.oddParticles[-1].totalwidth,
-                                             Z2parity = bsmMom.Z2parity)
+                                             Z2parity = bsmMom.Z2parity, cmpMatrix=bsmMom.cmpMatrix)
                 branch.removeVertex(len(branch.oddParticles)-2)
                 #For invisible compression, keep an effective mother which corresponds to the invisible
                 #daughter, but with the mass of the parent.

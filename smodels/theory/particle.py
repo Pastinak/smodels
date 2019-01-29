@@ -32,15 +32,30 @@ class Particle(object):
         """  
 
         self._static = False
-        self._equals = set([id(self)])
-        self._differs = set([])
         for attr,value in kwargs.items():
             if not attr == '_static':
                 setattr(self,attr,value)
-                
+
+        self.id = None
+        self.setID()
         #Leave the static attribute for last:
         if '_static' in kwargs:
             self._static = kwargs['_static']
+
+    def setID(self):
+        """
+        Defines the particle ID. If the particle has a comparison matrix,
+        the ID will be defined as its dimension and the matrix will be extended.
+        Otherwise the ID will be set to None.
+        """
+        #If a comparison matrix has been defined, use it
+        #to set the element id:
+        if hasattr(self, 'cmpMatrix'):
+            self.id = len(self.cmpMatrix[0]) #Set ID as the next entry in cmpMatrix
+            #Add a column and a line to cmpMatrix with None
+            for iline,line in enumerate(self.cmpMatrix):
+                self.cmpMatrix[iline] = line + [None]
+            self.cmpMatrix.append([None for i in range(len(self.cmpMatrix[0])+1)])
 
     def __cmp__(self,other):
         """
@@ -58,29 +73,25 @@ class Particle(object):
         if not isinstance(other,(MultiParticle,Particle)):
             return +1
 
-        #First check if we have already compared to this object
-        idOther = id(other)
-        idSelf = id(self)
-        if idOther in self._equals or idSelf in other._equals:  #Objects were already compared and are equal
-            return 0
-        elif idOther in self._differs or -idSelf in other._differs: #Objects were already compared and differ.
-            return 1
-        elif -idOther in self._differs or idSelf in other._differs:
-            return -1
-        else:
-            cmpProp = self.cmpProperties(other) #Objects have not been compared yet.
-            if cmpProp == 0:
-                if not self._static:
-                    self._equals.add(idOther)
-                if not other._static:
-                    other._equals.add(idSelf)
-                return 0
-            else:
-                if not self._static:
-                    self._differs.add(idOther*cmpProp)
-                if not other._static:
-                    other._differs.add(-idSelf*cmpProp)
-                return cmpProp
+        #Check if particles ID have been defined
+        try:
+            comp = self.cmpMatrix[self.id][other.id]
+            if comp is None:
+                comp = self.cmpProperties(other)
+                self.cmpMatrix[self.id][other.id] = comp
+                self.cmpMatrix[other.id][self.id] = -comp
+            return comp
+        except (AttributeError,TypeError):
+            try:
+                comp = other.cmpMatrix[self.id][other.id]
+                if comp is None:
+                    comp = self.cmpProperties(other)
+                    other.cmpMatrix[self.id][other.id] = comp
+                    other.cmpMatrix[other.id][self.id] = -comp
+                return comp
+            except (AttributeError,TypeError):
+                #If everything fails, compare particle properties
+                return self.cmpProperties(other)
 
     def __lt__( self, p2 ):
         return self.__cmp__(p2) == -1
@@ -208,7 +219,12 @@ class Particle(object):
         :return: A Particle object identical to self
         """
 
-        return copy.deepcopy(self)
+        newPtc = copy.deepcopy(self)
+        #Make sure all particles share the same comparison matrix
+        if hasattr(self, 'cmpMatrix'):
+            newPtc.cmpMatrix = self.cmpMatrix
+
+        return newPtc
 
     def chargeConjugate(self,label=None):
         """
@@ -224,8 +240,14 @@ class Particle(object):
         
         pConjugate = self.copy()
         pConjugate._static = False #Temporarily set it to False to change attributes
-        pConjugate._equals = set([id(pConjugate)])
-        pConjugate._differs = set([])
+        pConjugate.id = None
+
+        if hasattr(self, 'cmpMatrix'):
+            pConjugate.id = len(self.cmpMatrix[0]) #Set ID as the next entry in cmpMatrix
+            #Add a column and a line to cmpMatrix with None
+            for iline,line in enumerate(self.cmpMatrix):
+                self.cmpMatrix[iline] = line + [None]
+            self.cmpMatrix.append([None for i in range(len(self.cmpMatrix[0])+1)])
                     
         if hasattr(pConjugate, 'pdg') and pConjugate.pdg:
             pConjugate.pdg *= -1       
@@ -326,9 +348,9 @@ class MultiParticle(Particle):
         self._static = False
         self.label = label
         self.particles = particles
+        self.id = None
         Particle.__init__(self,**kwargs)
-        self._equals = set([id(self)] + [id(ptc) for ptc in particles])
-        self._differs = set([])
+        self.setID()
 
     def __getattribute__(self,attr):
         """
@@ -361,6 +383,37 @@ class MultiParticle(Particle):
             return values
         except:
             raise AttributeError
+
+    def setID(self):
+        """
+        Defines the particle ID. If any of its particles has a comparison matrix,
+        the ID will be defined as its dimension and the matrix will be extended.
+        Otherwise the ID will be set to None.
+        """
+
+        cmpMatrix = None
+        #Check if the comparison matrix has already been defined:
+        try:
+            cmpMatrix = self.cmpMatrix
+        except AttributeError:
+            pass
+
+        #If not, try to see if any of the particles has the matrix:
+        if cmpMatrix is None:
+            for ptc in self.particles:
+                if hasattr(ptc,'cmpMatrix'):
+                    cmpMatrix = ptc.cmpMatrix
+                    break
+
+        if cmpMatrix is None:
+            self.id = None
+        else:
+            self.id = len(self.cmpMatrix[0]) #Set ID as the next entry in cmpMatrix
+            self.cmpMatrix = cmpMatrix
+            #Add a column and a line to cmpMatrix with None
+            for iline,line in enumerate(self.cmpMatrix):
+                self.cmpMatrix[iline] = line + [None]
+            self.cmpMatrix.append([None for i in range(len(self.cmpMatrix[0])+1)])
             
     def cmpProperties(self,other, 
                       properties = ['Z2parity','spin','colordim','eCharge','mass','totalwidth']):
@@ -443,10 +496,15 @@ class MultiParticle(Particle):
         elif isinstance(other,Particle):
             if not self.contains(other):
                 self.particles.append(other)
-                if id(other) in self._differs:
-                    self._differs.remove(id(other))
-                if not id(other) in self._equals:
-                    self._equals.add(id(other))
+                #Reset ID, since the Multiparticle changed
+                if hasattr(self, 'cmpMatrix'):
+                    self.id = len(self.cmpMatrix[0]) #Set ID as the next entry in cmpMatrix
+                    #Add a column and a line to cmpMatrix with None
+                    for iline,line in enumerate(self.cmpMatrix):
+                        self.cmpMatrix[iline] = line + [None]
+                    self.cmpMatrix.append([None for i in range(len(self.cmpMatrix[0])+1)])
+                else:
+                    self.id = None
 
         return self
 

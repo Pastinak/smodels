@@ -14,7 +14,6 @@ from smodels.tools.reweighting import addPromptAndDisplaced
 from smodels.theory.element import Element
 from smodels.theory.particle import MultiParticle
 from smodels.share.models.SMparticles import e,mu,ta,taC,eC,muC,W,WC,t,tC,q,c,g,pion,nu
-from smodels.theory import particle
 
 
 class Uncovered(object):
