@@ -367,8 +367,8 @@ class MultiParticle(Particle):
                 if all(x == values[0] for x in values):
                     return values[0]
             return values
-        except:
-            raise AttributeError
+        except Exception as e:
+            raise AttributeError(e)
 
 #     def setID(self):
 #         """
