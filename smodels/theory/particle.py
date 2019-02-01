@@ -8,6 +8,14 @@
 
 import itertools,weakref
 
+class Cache:
+    def __init__ ( self, Id ):
+        self.comp = { Id: 0 }
+
+    def pop ( self, Id ):
+        self.comp.pop ( Id, None )
+
+
 class Particle(object):
     """
     An instance of this class represents a single particle. 
@@ -38,13 +46,15 @@ class Particle(object):
             raise ValueError("Particle object can not be created with empty attributes")
 
         kwargs.pop('id',None)
-        kwargs.pop('_comp',None)
+        # kwargs.pop('_comp',None)
+        kwargs.pop('cache',None)
         for obj in Particle.getinstances():
             if not isinstance(obj,Particle):
                 continue
             objAttr = dict(obj.__dict__.items())
             objAttr.pop('id',None)
-            objAttr.pop('_comp',None)
+            # objAttr.pop('_comp',None)
+            objAttr.pop('cache',None)
             if objAttr != kwargs:
                 continue
             return obj
@@ -53,7 +63,8 @@ class Particle(object):
         for attr,value in kwargs.items():
             setattr(newParticle,attr,value)
         newParticle.id = Particle.getID()
-        newParticle._comp = {newParticle.id : 0}
+        # newParticle._comp = {newParticle.id : 0}
+        newParticle.cache = Cache ( newParticle.id )
         Particle._instances.add(weakref.ref(newParticle))        
         return newParticle
 
@@ -79,7 +90,8 @@ class Particle(object):
         """
         
         for obj in Particle.getinstances():
-            obj._comp.pop(self.id,None)
+            # obj._comp.pop(self.id,None)
+            obj.cache.pop ( self.id )
         del self
         
     @classmethod
@@ -115,14 +127,20 @@ class Particle(object):
             raise ValueError
 
         #First check if we have already compared to this object        
-        if other.id in self._comp:
-            return self._comp[other.id]
-        elif self.id in other._comp:
-            return -other._comp[self.id]
+        #if other.id in self._comp:
+        #    return self._comp[other.id]
+        if other.id in self.cache.comp:
+            return self.cache.comp[other.id]
+        elif self.id in other.cache.comp:
+            return -other.cache.comp[self.id]
+        #elif self.id in other._comp:
+        #    return -other._comp[self.id]
 
         cmpProp = self.cmpProperties(other) #Objects have not been compared yet.
-        self._comp[other.id] = cmpProp
-        other._comp[self.id] = -cmpProp
+        #self._comp[other.id] = cmpProp
+        self.cache.comp[other.id] = cmpProp
+        #other._comp[self.id] = -cmpProp
+        other.cache.comp[self.id] = -cmpProp
         return cmpProp
 
     def __lt__( self, p2 ):
@@ -235,7 +253,8 @@ class Particle(object):
         for attr,value in self.__dict__.items():
             setattr(newParticle,attr,value)
         newParticle.id = Particle.getID()
-        newParticle._comp = {newParticle.id : 0}
+        # newParticle._comp = {newParticle.id : 0}
+        newParticle.cache = Cache ( newParticle.id )
         Particle._instances.add(weakref.ref(newParticle))
 
         return newParticle
@@ -352,14 +371,16 @@ class MultiParticle(Particle):
         particles = sorted(particles)
         label = label
         kwargs.pop('id',None)
-        kwargs.pop('_comp',None)
+        kwargs.pop('cache',None)
+        # kwargs.pop('_comp',None)
         for obj in Particle.getinstances()[:]:
             if not isinstance(obj,MultiParticle):
                 continue
             #Directly compare attributes, except for particles,label,id and _comp
             objAttr = dict(obj.__dict__.items())            
             objAttr.pop('id',None)
-            objAttr.pop('_comp',None)
+            # objAttr.pop('_comp',None)
+            objAttr.pop('cache',None)
             objAttr.pop('label',None)
             objAttr.pop('particles',None)
             if objAttr != kwargs:
@@ -377,8 +398,10 @@ class MultiParticle(Particle):
         newMultiParticle.particles = particles[:]
         newMultiParticle.label = label
         newMultiParticle.id = Particle.getID()
-        newMultiParticle._comp = {newMultiParticle.id : 0}
-        newMultiParticle._comp.update(dict([[ptc.id,0] for ptc in particles]))
+        # newMultiParticle._comp = {newMultiParticle.id : 0}
+        newMultiParticle.cache = Cache ( newMultiParticle.id )
+        # newMultiParticle._comp.update(dict([[ptc.id,0] for ptc in particles]))
+        newMultiParticle.cache.comp.update( dict([[ptc.id,0] for ptc in particles]))
         Particle._instances.add(weakref.ref(newMultiParticle))
         return newMultiParticle
 
@@ -400,7 +423,8 @@ class MultiParticle(Particle):
         it from the comparison dictionary of other Particle or MultiParticle instances.
         """
         for obj in Particle.getinstances():
-            obj._comp.pop(self.id,None)
+            #obj._comp.pop(self.id,None)
+            obj.cache.pop(self.id)
         del self
 
     def __getattribute__(self,attr):
@@ -502,9 +526,11 @@ class MultiParticle(Particle):
             self.particles += addParticles[:]
             self.particles = sorted(self.particles)
             #Since the multiparticle changed, reset comparison tracking:
-            self._comp = {self.id : 0}
+            # self._comp = {self.id : 0}
+            self.cache = Cache ( self.id )
             for ptc in self.particles:
-                self._comp[ptc.id] = 0
+                self.cache.comp[ptc.id] = 0
+                #self._comp[ptc.id] = 0
 
         return self
 
@@ -602,7 +628,8 @@ class ParticleList(object):
         newList = super(ParticleList, cls).__new__(cls)
         newList.particles = pList[:]
         newList.id = ParticleList.getID()
-        newList._comp = {newList.id : 0}
+        newList.cache = Cache ( newList.id )
+        #newList._comp = {newList.id : 0}
         ParticleList._instances.add(weakref.ref(newList))
         return newList
 
@@ -619,7 +646,8 @@ class ParticleList(object):
     
     def __del__(self):
         for obj in ParticleList.getinstances():            
-            obj._comp.pop(self.id,None)
+            obj.cache.pop(self.id)
+            #obj._comp.pop(self.id,None)
         del self
     
     @classmethod
@@ -652,8 +680,10 @@ class ParticleList(object):
             raise ValueError
 
         #First check if we have already compared to this object
-        if other.id in self._comp:
-            return self._comp[other.id]
+        if other.id in self.cache.comp:
+            return self.cache.comp[other.id]
+        #if other.id in self._comp:
+        #    return self._comp[other.id]
         
         if len(self) != len(other):
             comp = len(self) > len(other)
@@ -661,16 +691,20 @@ class ParticleList(object):
                 comp = 1
             else:
                 comp = -1
-            self._comp[other.id] = comp
-            other._comp[self.id] = comp
+            # self._comp[other.id] = comp
+            self.cache.comp[other.id] = comp
+            # other._comp[self.id] = comp
+            other.cache.comp[self.id] = comp
             return comp
         
         #Compare even final states irrespective of ordering:
         for particles in itertools.permutations(self.particles):
             particles = list(particles)
             if particles == other.particles:
-                self._comp[other.id] = 0
-                other._comp[self.id] = 0
+                #self._comp[other.id] = 0
+                #other._comp[self.id] = 0
+                self.cache.comp[other.id] = 0
+                other.cache.comp[self.id] = 0
                 return 0
         
         comp = self.particles > other.particles
@@ -678,8 +712,10 @@ class ParticleList(object):
             comp = 1
         else:
             comp = -1
-        self._comp[other.id] = comp
-        other._comp[self.id] = -comp
+        #self._comp[other.id] = comp
+        #other._comp[self.id] = -comp
+        self.cache.comp[other.id] = comp
+        other.cache.comp[self.id] = -comp
             
         return comp
 

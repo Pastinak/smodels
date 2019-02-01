@@ -1,0 +1,110 @@
+Input status: 1
+Time spent: 25.92s
+Decomposition output status: 1 #decomposition was successful
+# Input File: 3585154.slha
+# maxcond = 0.2
+# minmassgap = 5.
+# ncpus = 1
+# sigmacut = 0.01
+# Database version: 1.2.2
+================================================================================
+#Analysis  Sqrts  Cond_Violation  Theory_Value(fb)  Exp_limit(fb)  r  r_expected
+
+     CMS-SUS-16-033  1.30E+01    0.0  1.034E+02  3.276E+01  3.158E+00  N/A
+ Signal Region:  (UL)
+ Txnames:  T2
+--------------------------------------------------------------------------------
+     CMS-SUS-16-036  1.30E+01    0.0  1.034E+02  4.303E+01  2.404E+00  N/A
+ Signal Region:  (UL)
+ Txnames:  T2
+--------------------------------------------------------------------------------
+     CMS-SUS-13-019  8.00E+00    0.0  1.686E+01  2.728E+01  6.180E-01  N/A
+ Signal Region:  (UL)
+ Txnames:  T2
+--------------------------------------------------------------------------------
+ ATLAS-SUSY-2013-02  8.00E+00    0.0  1.686E+01  3.948E+01  4.271E-01  N/A
+ Signal Region:  (UL)
+ Txnames:  T2
+--------------------------------------------------------------------------------
+     CMS-SUS-12-028  8.00E+00    0.0  1.686E+01  5.594E+01  3.014E-01  3.071E-01
+ Signal Region:  (UL)
+ Txnames:  T2
+--------------------------------------------------------------------------------
+     CMS-SUS-13-012  8.00E+00    0.0  1.686E+01  7.280E+01  2.316E-01  3.420E-01
+ Signal Region:  (UL)
+ Txnames:  T2
+--------------------------------------------------------------------------------
+     CMS-SUS-16-032  1.30E+01    0.0  3.440E-02  2.295E+00  1.499E-02  N/A
+ Signal Region:  (UL)
+ Txnames:  T2bb
+--------------------------------------------------------------------------------
+     CMS-SUS-16-036  1.30E+01    0.0  3.440E-02  3.213E+00  1.071E-02  N/A
+ Signal Region:  (UL)
+ Txnames:  T2bb
+--------------------------------------------------------------------------------
+     CMS-SUS-16-033  1.30E+01    0.0  3.440E-02  6.473E+00  5.315E-03  N/A
+ Signal Region:  (UL)
+ Txnames:  T2bb
+--------------------------------------------------------------------------------
+     CMS-SUS-12-028  8.00E+00    0.0  2.578E-03  3.302E+00  7.808E-04  7.548E-04
+ Signal Region:  (UL)
+ Txnames:  T2bb
+
+ 
+================================================================================
+The highest r value is = 3.1576179522895376
+
+Total missing topology cross section (fb):  9.392E+03
+Total cross section where we are outside the mass grid (fb):  9.685E+01
+Total cross section with longlived decays (fb):  9.537E+02
+Total cross section with displaced decays (fb):  0.000E+00
+Total cross section with MET decays (fb):  8.438E+03
+
+Full information on unconstrained cross sections
+================================================================================
+Missing topologies with the highest cross sections (up to 10):
+Sqrts (TeV)   Weight (fb)                  Element description
+ 13.0          1.310E+03    # [[[jet],[jet]],[[jet],[jet],[jet,jet]]]  (prompt,prompt)
+ 13.0          1.287E+03    #        [[[jet],[jet]],[[jet],[jet]]]  (prompt,prompt)
+ 13.0          8.222E+02    #              [[[jet]],[[jet],[jet]]]  (prompt,prompt)
+ 13.0          5.998E+02    # [[[jet],[jet]],[[jet],[jet],[photon]]]  (prompt,prompt)
+ 13.0          4.185E+02    #    [[[jet],[jet]],[[jet],[jet,jet]]]  (prompt,prompt)
+ 13.0          4.185E+02    #    [[[jet]],[[jet],[jet],[jet,jet]]]  (prompt,prompt)
+ 13.0          3.335E+02    # [[[jet],[jet],[jet,jet]],[[jet],[jet],[jet,jet]]]  (prompt,prompt)
+ 13.0          3.247E+02    #                    [[],[[jet,jet]]]  (METonly,prompt)
+ 13.0          3.053E+02    # [[[jet],[jet],[photon]],[[jet],[jet],[jet,jet]]]  (prompt,prompt)
+ 13.0          3.039E+02    #                          [[],[]]  (METonly,longlived)
+================================================================================
+Contributions outside the mass grid (up to 10):
+Sqrts (TeV)   Weight (fb)                  Element description
+ 13.0          9.681E+01    #            [[[jet,jet]],[[jet,jet]]]  (prompt,prompt)
+ 13.0          3.938E-02    #                        [[[l]],[[l]]]  (prompt,prompt)
+================================================================================
+Missing topos: long-lived decays (up to 10 entries), sqrts = 13 TeV:
+Sqrts (TeV)   Weight (fb)                  Element description
+ 13.0          3.039E+02    #                          [[],[]]  (METonly,longlived)
+ 13.0          2.292E+02    #                  [[],[[jet,jet]]]  (longlived,prompt)
+ 13.0          1.550E+02    #                          [[],[]]  (longlived,METonly)
+ 13.0          1.130E+02    #                        [[],[]]  (longlived,longlived)
+ 13.0          9.043E+01    #                     [[],[[l,nu]]]  (longlived,prompt)
+ 13.0          4.282E+01    #                   [[],[[photon]]]  (longlived,prompt)
+ 13.0          1.551E+01    #                      [[],[[l,l]]]  (longlived,prompt)
+ 13.0          1.403E+00    #        [[],[[jet,jet],[jet,jet]]]  (longlived,prompt)
+ 13.0          9.352E-01    #           [[],[[jet,jet],[l,nu]]]  (longlived,prompt)
+ 13.0          9.352E-01    #           [[],[[l,nu],[jet,jet]]]  (longlived,prompt)
+================================================================================
+No displaced decays
+================================================================================
+Missing topos: MET decays (up to 10 entries), sqrts = 13 TeV:
+Sqrts (TeV)   Weight (fb)                  Element description
+ 13.0          1.310E+03    # [[[jet],[jet]],[[jet],[jet],[jet,jet]]]  (prompt,prompt)
+ 13.0          1.287E+03    #        [[[jet],[jet]],[[jet],[jet]]]  (prompt,prompt)
+ 13.0          8.222E+02    #              [[[jet]],[[jet],[jet]]]  (prompt,prompt)
+ 13.0          5.998E+02    # [[[jet],[jet]],[[jet],[jet],[photon]]]  (prompt,prompt)
+ 13.0          4.185E+02    #    [[[jet],[jet]],[[jet],[jet,jet]]]  (prompt,prompt)
+ 13.0          4.185E+02    #    [[[jet]],[[jet],[jet],[jet,jet]]]  (prompt,prompt)
+ 13.0          3.335E+02    # [[[jet],[jet],[jet,jet]],[[jet],[jet],[jet,jet]]]  (prompt,prompt)
+ 13.0          3.247E+02    #                    [[],[[jet,jet]]]  (METonly,prompt)
+ 13.0          3.053E+02    # [[[jet],[jet],[photon]],[[jet],[jet],[jet,jet]]]  (prompt,prompt)
+ 13.0          2.172E+02    #  [[[jet],[jet]],[[jet],[jet],[l,l]]]  (prompt,prompt)
+================================================================================
