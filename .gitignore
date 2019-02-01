@@ -91,3 +91,7 @@ docs/manual/source/images/parameters.ini
 docs/manual/source/images/parameters_default.ini
 docs/manual/source/recipes/.ipynb_checkpoints/
 docs/manual/source/recipes/iplots/
+smodels/theory/particle.c
+smodels/theory/particle.cpython-36m-x86_64-linux-gnu.so
+smodels/theory/particle.html
+

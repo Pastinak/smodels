@@ -8,25 +8,41 @@
 
 import itertools,weakref
 
-class Cache:
+cdef class Cache:
+    cdef readonly int Id
+    cdef readonly dict comp
+
     def __init__ ( self, Id ):
         """ initialise cache with your own id """
-        self.id = Id
+        self.Id = Id
         self.comp = { Id: 0 }
 
-    def pop ( self, Id ):
+    cpdef set ( self, int otherId, int c ):
+        self.comp[otherId]=c
+
+    cpdef pop ( self, int Id ):
         self.comp.pop ( Id, None )
 
-    def setToEqual ( self, ptcids ):
+    cpdef setToEqual ( self, list ptcids ):
         """ set all these particle ids to equality """
         self.comp.update( dict([[x,0] for x in ptcids]) )
 
-    def compareWithOtherCache ( self, otherCache ):
-        if otherCache.id in self.comp:
-            return self.comp[otherCache.id]
-        if self.id in otherCache.comp:
-            return -otherCache.comp[self.id]
+    cpdef isIn ( self, int otherId ):
+        if otherId in self.comp:
+            return self.comp[otherId]
         return None
+
+    cpdef int compareWithOtherCache ( self, Cache otherCache ) except *:
+        #if otherCache.Id in self.comp:
+        try:
+            return self.comp[otherCache.Id]
+        except:
+            pass
+        #if self.Id in otherCache.comp:
+        return -otherCache.comp[self.Id]
+        #except:
+        #    pass
+        #return 999999
 
 class Particle(object):
     """
@@ -135,17 +151,19 @@ class Particle(object):
         #    raise ValueError
 
         #First check if we have already compared to this object        
-        a = self.cache.compareWithOtherCache ( other.cache )
-        if a != None:
-            return a
+        try:
+            return self.cache.compareWithOtherCache ( other.cache )
+        except Exception as e:
+            pass
         #if other.id in self.cache.comp:
         #    return self.cache.comp[other.id]
         #elif self.id in other.cache.comp:
         #    return -other.cache.comp[self.id]
 
         cmpProp = self.cmpProperties(other) #Objects have not been compared yet.
-        self.cache.comp[other.id] = cmpProp
-        other.cache.comp[self.id] = -cmpProp
+        self.cache.set ( other.id, cmpProp )
+        other.cache.set ( self.id, -cmpProp )
+        # other.cache.comp[self.id] = -cmpProp
         return cmpProp
 
     def __lt__( self, p2 ):
@@ -682,9 +700,12 @@ class ParticleList(object):
         if not isinstance(other,ParticleList):
             raise ValueError
 
+        a = self.cache.isIn ( other.id )
+        if a != None:
+            return a
         #First check if we have already compared to this object
-        if other.id in self.cache.comp:
-            return self.cache.comp[other.id]
+        #if other.id in self.cache.comp:
+        #    return self.cache.comp[other.id]
         
         if len(self) != len(other):
             comp = len(self) > len(other)
