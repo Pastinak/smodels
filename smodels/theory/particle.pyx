@@ -9,8 +9,8 @@
 import itertools,weakref
 
 cdef class Cache:
-    cdef readonly int Id
-    cdef readonly dict comp
+    cdef int Id
+    cdef dict comp
 
     def __init__ ( self, Id ):
         """ initialise cache with your own id """
@@ -27,17 +27,17 @@ cdef class Cache:
         """ set all these particle ids to equality """
         self.comp.update( dict([[x,0] for x in ptcids]) )
 
-    cpdef isIn ( self, int otherId ):
-        if otherId in self.comp:
-            return self.comp[otherId]
-        return None
+    cpdef int isIn ( self, int otherId ) except *:
+        #if otherId in self.comp:
+        return self.comp[otherId]
+        #return None
 
     cpdef int compareWithOtherCache ( self, Cache otherCache ) except *:
-        #if otherCache.Id in self.comp:
-        try:
+        if otherCache.Id in self.comp:
+        #try:
             return self.comp[otherCache.Id]
-        except:
-            pass
+        #except:
+        #    pass
         #if self.Id in otherCache.comp:
         return -otherCache.comp[self.Id]
         #except:
@@ -155,10 +155,6 @@ class Particle(object):
             return self.cache.compareWithOtherCache ( other.cache )
         except Exception as e:
             pass
-        #if other.id in self.cache.comp:
-        #    return self.cache.comp[other.id]
-        #elif self.id in other.cache.comp:
-        #    return -other.cache.comp[self.id]
 
         cmpProp = self.cmpProperties(other) #Objects have not been compared yet.
         self.cache.set ( other.id, cmpProp )
@@ -700,9 +696,12 @@ class ParticleList(object):
         if not isinstance(other,ParticleList):
             raise ValueError
 
-        a = self.cache.isIn ( other.id )
-        if a != None:
-            return a
+        try:
+            return self.cache.isIn ( other.id )
+        except:
+            pass
+        #if a != None:
+        #    return a
         #First check if we have already compared to this object
         #if other.id in self.cache.comp:
         #    return self.cache.comp[other.id]
@@ -713,16 +712,20 @@ class ParticleList(object):
                 comp = 1
             else:
                 comp = -1
-            self.cache.comp[other.id] = comp
-            other.cache.comp[self.id] = comp
+            self.cache.set ( other.id, comp )
+            other.cache.set ( self.id,  comp )
+            #self.cache.comp[other.id] = comp
+            #other.cache.comp[self.id] = comp
             return comp
         
         #Compare even final states irrespective of ordering:
         for particles in itertools.permutations(self.particles):
             particles = list(particles)
             if particles == other.particles:
-                self.cache.comp[other.id] = 0
-                other.cache.comp[self.id] = 0
+                #self.cache.comp[other.id] = 0
+                #other.cache.comp[self.id] = 0
+                self.cache.set ( other.id, 0 )
+                other.cache.set ( self.id, 0 )
                 return 0
         
         comp = self.particles > other.particles
@@ -730,10 +733,10 @@ class ParticleList(object):
             comp = 1
         else:
             comp = -1
-        #self._comp[other.id] = comp
-        #other._comp[self.id] = -comp
-        self.cache.comp[other.id] = comp
-        other.cache.comp[self.id] = -comp
+        self.cache.set ( other.id, comp )
+        other.cache.set ( self.id, -comp )
+        #self.cache.comp[other.id] = comp
+        #other.cache.comp[self.id] = -comp
             
         return comp
 
