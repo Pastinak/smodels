@@ -10,6 +10,7 @@ import itertools,weakref
 
 cdef class Cache:
     cdef int Id
+    cdef readonly int last
     cdef dict comp
 
     def __init__ ( self, Id ):
@@ -32,17 +33,14 @@ cdef class Cache:
         return self.comp[otherId]
         #return None
 
-    cpdef int compareWithOtherCache ( self, Cache otherCache ) except *:
+    cpdef int compareWithOtherCache ( self, Cache otherCache ):
         if otherCache.Id in self.comp:
-        #try:
-            return self.comp[otherCache.Id]
-        #except:
-        #    pass
-        #if self.Id in otherCache.comp:
-        return -otherCache.comp[self.Id]
-        #except:
-        #    pass
-        #return 999999
+            self.last = self.comp[otherCache.Id]
+            return 1
+        if self.Id in otherCache.comp:
+            self.last = -otherCache.comp[self.Id]
+            return 1
+        return 0
 
 class Particle(object):
     """
@@ -151,11 +149,8 @@ class Particle(object):
         #    raise ValueError
 
         #First check if we have already compared to this object        
-        try:
-            return self.cache.compareWithOtherCache ( other.cache )
-        except Exception as e:
-            pass
-
+        if self.cache.compareWithOtherCache ( other.cache ):
+            return self.cache.last
         cmpProp = self.cmpProperties(other) #Objects have not been compared yet.
         self.cache.set ( other.id, cmpProp )
         other.cache.set ( self.id, -cmpProp )
