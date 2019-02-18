@@ -194,7 +194,9 @@ class TxName(object):
     def hasElementAs(self,element):
         """
         Verify if the conditions or constraint in Txname contains the element.
-        Check both branch orderings.
+        Check both branch orderings. If both orderings match, returns the one
+        with the highest mass array.
+        
         
         :param element: Element object
         :return: A copy of the element on the correct branch ordering appearing
@@ -206,14 +208,15 @@ class TxName(object):
         for el in self._topologyList.getElements():
             if element.particlesMatch(el,branchOrder=True):
                 matches.append(element.copy())
-            else:
-                elementB = element.switchBranches()
-                if elementB.particlesMatch(el,branchOrder=True):
-                    matches.append(elementB.copy())
-        
+            elementB = element.switchBranches()
+            if elementB.particlesMatch(el,branchOrder=True):
+                matches.append(elementB.copy())
+
         #No elements matched:
         if not matches:
             return False
+        elif len(matches) == 1:
+            return matches[0]
         else: #If more than one element ordering matches, return the one with largest mass (relevant for clustering)
             matches = sorted(matches, key = lambda el: el.getMasses(),reverse=True)
             return matches[0]
