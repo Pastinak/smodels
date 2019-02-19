@@ -300,8 +300,8 @@ class Element(object):
         """
         
         pids = []
-        for ipid,PIDlist in enumerate(self.branches[0].PIDs):            
-            for ipid2,PIDlist2 in enumerate(self.branches[1].PIDs):
+        for ipid,_ in enumerate(self.branches[0].PIDs):
+            for ipid2,_ in enumerate(self.branches[1].PIDs):
                 pids.append([self.branches[0].PIDs[ipid],self.branches[1].PIDs[ipid2]])
         
         return pids
@@ -369,22 +369,19 @@ class Element(object):
 
     def checkConsistency(self):
         """
-        Check if the particles defined in the element exist and are consistent
+        Check if the particles defined in the element are consistent
         with the element info.
         
         :returns: True if the element is consistent. Print error message
                   and exits otherwise.
         """
+
         info = self.getEinfo()
         for ib, branch in enumerate(self.branches):
             for iv, vertex in enumerate(branch.particles):
                 if len(vertex) != info['vertparts'][ib][iv]:
                     logger.error("Wrong syntax")
                     raise SModelSError()
-                for ptc in vertex:
-                    if not ptc in rEven.values() and not ptc in ptcDic:
-                        logger.error("Unknown particle. Add " + ptc + " to smodels/particle.py")
-                        raise SModelSError()
         return True
 
     
@@ -508,6 +505,8 @@ class Element(object):
             particles = branch.particles
             if not branch.particles:
                 continue # Nothing to be compressed
+            if branch.finalState != 'MET':
+                continue #Do not compress if the final state is not MET
             #Go over the branch starting at the end and remove invisible vertices: 
             for ivertex in reversed(range(len(particles))):
                 if particles[ivertex].count('nu') == len(particles[ivertex]):
