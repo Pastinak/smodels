@@ -302,7 +302,8 @@ class Element(object):
         pids = []
         for ipid,_ in enumerate(self.branches[0].PIDs):
             for ipid2,_ in enumerate(self.branches[1].PIDs):
-                pids.append([self.branches[0].PIDs[ipid],self.branches[1].PIDs[ipid2]])
+                if not [self.branches[0].PIDs[ipid],self.branches[1].PIDs[ipid2]] in pids:
+                    pids.append([self.branches[0].PIDs[ipid][:],self.branches[1].PIDs[ipid2][:]])
         
         return pids
 
