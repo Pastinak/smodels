@@ -5,12 +5,16 @@
    :synopsis: Code that delegates the computation of limits and likelihoods to
               pyhf.
 
-.. moduleauthor:: Gael Algueor <gaelalguero@gmail.com>
+.. moduleauthor:: Gael Alguero <gaelalguero@gmail.com>
 .. moduleauthor:: Wolfgang Waltenberger <wolfgang.waltenberger@gmail.com>
 
 """
 
 from __future__ import print_function
+import json
+import jsonpatch
+import pyhf
+from scipy import optimize
 
 def getLogger():
     """
@@ -31,10 +35,75 @@ def getLogger():
 logger=getLogger()
 
 class PyhfUpperLimitComputer:
-    def __init__ ( self, cl ):
+    def __init__ ( self, data, cl):
+        self.data = data
         self.cls = cl
+        self.regions = readRegions(self.data)
+        self.patches = patchMaker(self.data)
+        self.jsonInput = jsonMaker()
+        
+    def patchMaker(data):
+        nsignals = self.data.nignals
+        patches = []
+        for reg in self.regions:
+            nSR = len(regFile)
+            patch_dic = {}
+            patch_dic["op"]    = "replace"
+            patch_dic["path"]  = "/channels/0/samples/0/data"
+            patch_dic["value"] = nsignals[:nSR-1]
+            nsignals = nsignals[nSR:]
+            patches.append([patch_dic])
+        return patches
+    
+    def readRegions(self):
+            
+    
+    def jsonMaker(self):
+        jsonInputs = []
+        for reg, patch in zip(self.regions,self.patches):
+            # Open BckOnly.json
+            jsonInputs.append(jsonpatch.apply_patch(BckOnly, patch))
+        # Concatenate (jsonInputs) -> jsonInput
+        jsonInput = {}
+        jsonInput["channels"] = []
+        for json in jsonInputs:
+            dumpJson = json.dump(json)
+                for channel in dumpJson["channels"]:
+            jsonInput["channels"].append(channel)
+        jsonInput["observations"] = []
+        for json in jsonInputs:
+            dumpJson = json.dump(json)
+            for observation in dumpJson["observations"]:
+                jsonInput["observations"].append(observation)
+        jsonInput["measurements"] = jsonInputs[0]["measurements"]
+        jsonInput["version"] = jsonInputs[0]["version"]
+        # These two last are the same
+        return json.load(jsonInput)
 
-    def ulSigma ( self ):
+    def ulSigma (self, expected=False):
+        jsonInput = ...
+        def root_func(mu):
+            # Opening main workspace file of region A
+            wspec = self.jsonInput
+            w = pyhf.Workspace(wspec)
+            # Same modifiers_settings as those use when running the 'pyhf cls' command line
+            msettings = {'normsys': {'interpcode': 'code4'}, 'histosys': {'interpcode': 'code4p'}}
+            p = w.model(measurement_name=None, patches=[], modifiers_settings=msettings)
+            test_poi = mu
+            result = pyhf.utils.hypotest(test_poi, w.data(p), p, qtilde=True, return_expected_set = True)
+            if expected:
+                CLs = result[1].tolist()[2][0]
+            else:
+                CLs = result[0].tolist()[0]
+            return 1.0 - cl - CLs
+        # Finding the root (Brent bracketing part)
+        lo_mu = 1.0
+        hi_mu = 1.0
+        while root_func(hi_mu) < 0.0:
+            hi_mu *= 10
+        while root_func(lo_mu) > 0.0:
+            lo_mu /=10
+        ul = optimize.brentq(root_func, lo_mu, hi_mu, rtol=1e-3, xtol=1e-3)
         return None
 
 if __name__ == "__main__":
