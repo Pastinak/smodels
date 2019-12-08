@@ -61,13 +61,19 @@ class PyhfUpperLimitComputer:
             # Need to read the number of SR/bins of each regions
             # in order to identify the corresponding ones in self.nisgnals
             nSR = len(ws["channels"][0]["samples"][0]["data"])
-            patch_dic = {}
-            patch_dic["op"]    = "replace"
-            patch_dic["path"]  = "/channels/0/samples/0/data"
-            patch_dic["value"] = nsignals[:nSR]
+            patch = []
+            operator = {}
+            operator["op"]    = "add"
+            operator["path"]  = "/channels/0/samples/0"
+            value = {}
+            value["data"] = nsignals[:nSR]
             nsignals = nsignals[nSR:]
-            patches.append([patch_dic])
-        # Replacing by our test point patch in order to test our upper limit calculator
+            value["modifiers"] = [{"data": None, "type": "normfactor", "name": "mu_SIG"}]
+            value["name"] = "bsm"
+            operator["value"] = value
+            patch.append(operator)
+            patch.append({"op": "remove", "path": "/channels/1"})
+            patches.append(patch)
         return patches
     
     def jsonMaker(self):
@@ -80,7 +86,6 @@ class PyhfUpperLimitComputer:
         else:
             jsonInputs = []
             for ws, patch in zip(self.inputJsons, self.patches):
-                # Open BkgOnly.json -> BkgOnly json oject
                 jsonInputs.append(jsonpatch.apply_patch(ws, patch))
             # Merging (jsonInputs) -> jsonInput
             result = {}
@@ -95,7 +100,6 @@ class PyhfUpperLimitComputer:
             result["measurements"] = jsonInputs[0]["measurements"]
             result["version"] = jsonInputs[0]["version"]
             # These two last are the same for all three regions
-            #strresult = json.dumps(result)
             return result
 
     def ulSigma (self, expected=False):
