@@ -9,12 +9,14 @@
 .. moduleauthor:: Wolfgang Waltenberger <wolfgang.waltenberger@gmail.com>
 
 """
-
+# [[SRA_L, SRA_M, SRA_H], [SRB], [SRC_22, SRC_24, SRC_26, SRC_28]]
 from __future__ import print_function
 import json
 import jsonpatch
 import pyhf
+pyhf.set_backend(b"pytorch")
 from scipy import optimize
+import numpy as np
 
 def getLogger():
     """
@@ -24,110 +26,242 @@ def getLogger():
     
     import logging
     
-    logger = logging.getLogger("SL")
-    formatter = logging.Formatter('%(module)s - %(levelname)s: %(message)s')
-    ch = logging.StreamHandler()
-    ch.setFormatter(formatter)
-    ch.setLevel(logging.DEBUG)
-    logger.addHandler(ch)
+    logger = logging.getLogger("pyhfInterface")
+    # formatter = logging.Formatter('%(module)s - %(levelname)s: %(message)s')
+    # ch = logging.StreamHandler()
+    # ch.setFormatter(formatter)
+    # ch.setLevel(logging.DEBUG)
+    # logger.addHandler(ch)
+    # logger.setLevel(logging.DEBUG)
     return logger
 
 logger=getLogger()
 
 class PyhfData:
-    def __init__ (self, efficiencies, xsection, lumi, inputJsons):
+    def __init__ (self, efficiencies, lumi, inputJsons):
         self.efficiencies = efficiencies
-        self.xsection = xsection
-        self.lumi = lumi
+        logger.debug("Efficiencies : {}".format(efficiencies))
+        self.lumi = lumi # fb
         self.inputJsons = inputJsons
 
 class PyhfUpperLimitComputer:
-    def __init__ ( self, data, cl):
+    def __init__ ( self, data, cl=0.95):
         self.data = data
-        self.nsignals = [self.data.xsection*self.data.lumi/1000.0*eff for eff in self.data.efficiencies]
-        self.cl = cl
+        self.nsignals = [self.data.lumi*1E3*eff for eff in self.data.efficiencies] # 1E3 rescaling so that mu matches a cross-section upper limit in pb
+        logger.debug("Signals : {}".format(self.nsignals))
         self.inputJsons = self.data.inputJsons
         self.patches = self.patchMaker()
-        self.jsonInput = self.jsonMaker()
+        self.workspaces = self.wsMaker()
+        self.cl = cl
+        self.scale = 1.
+        
+    def rescale(self, scale):
+        """
+        Rescales the signal predictions (self.signals) and processes again the patches and workspaces
+        No return
+        Result:
+            updated list of patches and workspaces (self.patches and self.workspaces)
+        """
+        self.nsignals = [sig*scale for sig in self.nsignals]
+        self.scale *= scale 
+        logger.debug("Signals : {}".format(self.nsignals))
+        self.patches = self.patchMaker()
+        self.workspaces = self.wsMaker()
         
     def patchMaker(self):
         """
-        Method to create the patches to apply to the BkgOnly.json workspaces, one for each region
+        Method that creates the patches to be applied to the BkgOnly.json workspaces, one for each region
         It seems we need to include the change of the "modifiers" in the patches as well
+        Returns:
+            the list of patches, one for each workspace
         """
         nsignals = self.nsignals
-        patches = []
+        # Identifying the path of the SR and VR channels in the main workspace files
+        ChannelsInfo = [] # workspace specifications
+        self.zeroSignalsFlag = [] # One flag for each workspace
         for ws in self.inputJsons:
+            self.zeroSignalsFlag.append(False)
+            wsChannelsInfo = {}
+            wsChannelsInfo["SR"] = []
+            wsChannelsInfo["CRVR"] = []
+            for i_ch, ch in enumerate(ws['channels']):
+                if 'SR' in ch['name']:
+                    logger.debug("SR channel name : %s" % ch['name'])
+                    wsChannelsInfo['SR'].append({'path':'/channels/'+str(i_ch)+'/samples/0', # Path of the new sample to add (signal prediction)
+                                                                         'size':len(ch['samples'][0]['data'])}) # Number of bins
+                if 'VR' in ch['name'] or 'CR' in ch['name']:
+                    wsChannelsInfo['CRVR'].append('/channels/'+str(i_ch))
+            wsChannelsInfo["CRVR"].sort(key=lambda path: path.split('/')[-1], reverse=True) # Need to sort correctly the paths to the channels to be removed
+            ChannelsInfo.append(wsChannelsInfo)
+        # Constructing the patches to be applied on the main workspace files
+        i_ws = 0
+        patches = []
+        for ws, info in zip(self.inputJsons, ChannelsInfo):
             # Need to read the number of SR/bins of each regions
-            # in order to identify the corresponding ones in self.nisgnals
-            nSR = len(ws["channels"][0]["samples"][0]["data"])
+            # in order to identify the corresponding ones in self.nsignals
             patch = []
-            operator = {}
-            operator["op"]    = "add"
-            operator["path"]  = "/channels/0/samples/0"
-            value = {}
-            value["data"] = nsignals[:nSR]
-            nsignals = nsignals[nSR:]
-            value["modifiers"] = [{"data": None, "type": "normfactor", "name": "mu_SIG"}]
-            value["name"] = "bsm"
-            operator["value"] = value
-            patch.append(operator)
-            patch.append({"op": "remove", "path": "/channels/1"})
+            for sr in info['SR']:
+                nSR = sr['size']
+                operator = {}
+                operator["op"] = "add"
+                operator["path"] = sr['path']
+                value = {}
+                value["data"] = nsignals[:nSR]
+                if value["data"] == [0 for x in range(nSR)]:
+                    self.zeroSignalsFlag[i_ws] = True
+                nsignals = nsignals[nSR:]
+                value["modifiers"] = []
+                value["modifiers"] .append({"data": None, "type": "normfactor", "name": "mu_SIG"})
+                value["modifiers"] .append({"data": None, "type": "lumi", "name": "lumi"})
+                value["name"] = "bsm"
+                operator["value"] = value
+                patch.append(operator)
+            for path in info['CRVR']:
+                patch.append({'op':'remove', 'path':path})
             patches.append(patch)
+            i_ws += 1
         return patches
     
-    def jsonMaker(self):
+    def wsMaker(self):
         """
-        Apply each region patch to his associated worspace (RegionN/BkgOnly.json)
-        and merge resulting jsons into a single one containing the informations for the full combined likelihood
+        Apply each region patch to his associated json (RegionN/BkgOnly.json) to obtain the complete workspaces
+        Returns:
+            the list of patched workspaces
         """
         if len(self.inputJsons) == 1:
-            return jsonpatch.apply_patch(self.inputJsons[0], self.patches[0])
+            return [pyhf.Workspace(jsonpatch.apply_patch(self.inputJsons[0], self.patches[0]))]
         else:
-            jsonInputs = []
-            for ws, patch in zip(self.inputJsons, self.patches):
-                jsonInputs.append(jsonpatch.apply_patch(ws, patch))
-            # Merging (jsonInputs) -> jsonInput
-            result = {}
-            result["channels"] = []
-            for inpt in jsonInputs:
-                for channel in inpt["channels"]:
-                    result["channels"].append(channel)
-            result["observations"] = []
-            for inpt in jsonInputs:
-                for observation in inpt["observations"]:
-                    result["observations"].append(observation)
-            result["measurements"] = jsonInputs[0]["measurements"]
-            result["version"] = jsonInputs[0]["version"]
-            # These two last are the same for all three regions
-            return result
-
-    def ulSigma (self, expected=False):
+            workspaces = []
+            for json, patch in zip(self.inputJsons, self.patches):
+                wsDict = jsonpatch.apply_patch(json, patch)
+                ws = pyhf.Workspace(wsDict)
+                workspaces.append(ws)
+            return workspaces
+    
+    # New method for upper limit computation : 
+    # re-scaling the signal predictions so that mu falls in [0, 10] instead of looking for mu bounds
+    # Usage of the index allows for rescaling
+    def ulSigma (self, expected=False, workspace_index=None):
+        """
+        Compute the upper limit on the signal strength modifier with:
+            - by default, the combination of the workspaces contained into self.workspaces
+            - if workspace_index is specified, self.workspace[workspace_index] (useful for computation of the best upper limit)
+        Returns:
+            the upper limit at `self.cl` level (0.95 by default)
+        """
+        if workspace_index != None and self.zeroSignalsFlag[workspace_index] == True:
+            logger.warning("Workspace number %d has zero signals" % workspace_index)
+            return -1
+        def updateWorkspace():
+            if workspace_index != None:
+                return self.workspaces[workspace_index]
+            else:
+                return self.cbWorkspace()
+        workspace = updateWorkspace()
+        scale = 1.
         def root_func(mu):
-            print("New call of root_func() with mu = ", mu)
-            # Opening main workspace file of region A
-            wspec = self.jsonInput
-            w = pyhf.Workspace(wspec)
             # Same modifiers_settings as those use when running the 'pyhf cls' command line
             msettings = {'normsys': {'interpcode': 'code4'}, 'histosys': {'interpcode': 'code4p'}}
-            p = w.model(measurement_name=None, patches=[], modifier_settings=msettings)
+            model = workspace.model(modifier_settings=msettings)
             test_poi = mu
-            result = pyhf.utils.hypotest(test_poi, w.data(p), p, qtilde=True, return_expected_set = True)
+            result = pyhf.infer.hypotest(test_poi, workspace.data(model), model, qtilde=True, return_expected = expected)
             if expected:
-                CLs = result[1].tolist()[2][0]
+                CLs = result[1].tolist()[0]
             else:
-                CLs = result[0].tolist()[0]
-            print("1 - CLs : ", 1.0 - CLs)
+                CLs = result[0]
+            logger.info("Call of root_func(%f) -> %f" % (mu, 1.0 - CLs))
             return 1.0 - self.cl - CLs
+        # New method for rescaling
+        factor = 10.
+        wereBothLarge = False
+        wereBothTiny = False
+        while "mu is not in [0,10]":
+            # Computing CL(1) - 0.95 and CL(10) - 0.95 once and for all
+            rt1 = root_func(1.)
+            rt10 = root_func(10.)
+            if rt1 < 0. and 0. < rt10: # Here's the real while condition    
+                break
+            if np.isnan(rt1):
+                self.rescale(factor)
+                workspace = updateWorkspace()
+                continue
+            if np.isnan(rt10):
+                self.rescale(1/factor)
+                workspace = updateWorkspace()
+                continue
+            # Analyzing previous values of wereBoth***
+            if rt10 < 0 and rt1 < 0 and wereBothLarge:
+                factor = factor/2
+                logger.info("Diminishing rescaling factor")
+            if rt10 > 0 and rt1 > 0 and wereBothTiny:
+                factor = factor/2
+                logger.info("Diminishing rescaling factor")
+            # Preparing next values of wereBoth***
+            wereBothTiny = rt10 < 0 and rt1 < 0
+            wereBothLarge = rt10 > 0 and rt1 > 0
+            if rt10 < 0.:
+                self.rescale(factor)
+                workspace = updateWorkspace()
+                continue
+            if rt1 > 0.:
+                self.rescale(1/factor)
+                workspace = updateWorkspace()
+                continue
         # Finding the root (Brent bracketing part)
-        lo_mu = 1.0
-        hi_mu = 1.0
-        while root_func(hi_mu) < 0.0:
-            hi_mu += 10
-        while root_func(lo_mu) > 0.0:
-            lo_mu /=10
+        logger.info("Final scale : %f" % self.scale)
+        hi_mu = 10.
+        lo_mu = 1.
+        logger.info("Starting brent bracketing")
         ul = optimize.brentq(root_func, lo_mu, hi_mu, rtol=1e-3, xtol=1e-3)
-        return ul
+        return ul*self.scale # self.scale has been updated whithin self.rescale() method
+
+    def bestUL(self):
+        """
+        Computing the upper limit on the signal strength modifier in the expected hypothesis for each workspace
+        Picking the most sensitive, i.e., the one having the biggest r-value in the expected case (r-value = 1/mu)
+        """
+        if len(self.workspaces) == 1:
+            return self.ulSigma(workspace_index=0)
+        rMax = 0.0
+        for i_ws in range(len(self.workspaces)):
+            logger.info("Looking for best expected combination")
+            r = 1/self.ulSigma(expected=True, workspace_index=i_ws)
+            if r > rMax:
+                rMax = r
+                i_best = i_ws
+        logger.info('Best combination : %d' % i_best)
+        return self.ulSigma(workspace_index=i_best)
+        
+    def cbWorkspace(self):
+        """
+        Method that combines the workspaces contained in the workspaces list into a single workspace
+        """
+        # Performing combination using pyhf.workspace.combine method, a bit modified to solve the multiple parameter configuration problem
+        workspaces = self.workspaces
+        if len(workspaces) == 1:
+            cbWS = workspaces[0]
+        for i_ws in range(len(workspaces)):
+            if self.zeroSignalsFlag[i_ws] == False:
+                cbWS = workspaces[i_ws]
+                break
+        for i_ws in range(1, len(workspaces)):
+            if self.zeroSignalsFlag[i_ws] == True: # Ignore workspaces having zero signals
+                continue
+            cbWS = pyhf.Workspace.combine(cbWS, workspaces[i_ws])
+        # Home made method, should do the same but no sanity checks and the first measurement is taken:
+        # cbWS = {}
+        # cbWS["channels"] = []
+        # for inpt in workspaces:
+            # for channel in inpt["channels"]:
+                # cbWS["channels"].append(channel)
+        # cbWS["observations"] = []
+        # for inpt in workspaces:
+            # for observation in inpt["observations"]:
+                # cbWS["observations"].append(observation)
+        # cbWS["measurements"] = workspaces[0]["measurements"]
+        # cbWS["version"] = workspaces[0]["version"]
+        # These two last are assumed to be the same for all three regions
+        return cbWS
 
 if __name__ == "__main__":
     C = [ 18774.2, -2866.97, -5807.3, -4460.52, -2777.25, -1572.97, -846.653, -442.531,
