@@ -9,7 +9,6 @@
 .. moduleauthor:: Wolfgang Waltenberger <wolfgang.waltenberger@gmail.com>
 
 """
-# [[SRA_L, SRA_M, SRA_H], [SRB], [SRC_22, SRC_24, SRC_26, SRC_28]]
 from __future__ import print_function
 import json
 import jsonpatch
@@ -44,10 +43,8 @@ class PyhfData:
     :ivar lumi: luminosity of the given signals
     :ivar inputJsons: list of json instances
     """
-    def __init__ (self, efficiencies, lumi, inputJsons):
-        self.efficiencies = efficiencies
-        logger.debug("Efficiencies : {}".format(efficiencies))
-        self.lumi = lumi # fb
+    def __init__ (self, nsignals, inputJsons):
+        self.nsignals = nsignals # fb
         self.inputJsons = inputJsons
 
 class PyhfUpperLimitComputer:
@@ -69,7 +66,7 @@ class PyhfUpperLimitComputer:
         :ivar alreadyBeenThere: boolean flag that identifies when the :ivar nsignals: accidentally passes twice at two identical values
         """
         self.data = data
-        self.nsignals = [self.data.lumi*1E3*eff for eff in self.data.efficiencies]
+        self.nsignals = self.data.nsignals
         logger.debug("Signals : {}".format(self.nsignals))
         self.inputJsons = self.data.inputJsons
         self.patches = self.patchMaker()
