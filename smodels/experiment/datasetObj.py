@@ -444,14 +444,28 @@ class CombinedDataSet(object):
 
             return ret
         elif hasattr(self.globalInfo, "jsonFiles" ):
-            jsonFiles = [os.path.join(self.path, js) for js in self.globalInfo.jsonFiles.keys()]
-            # Loading the json jsonFiles
+            # Getting the path to the json files
+            jsonFiles = [os.path.join(self.path, js) for js in self.globalInfo.jsonFiles]
+            # Constructing the list of signals with subsignals matching each json
+            datasets = self.globalInfo.datasetOrder
+            nsignals = list()
+            for jsName in self.globalInfo.jsonFiles:
+                subSig = list()
+                for srName in self.globalInfo.jsonFiles[jsName]:
+                    try:
+                        index = datasets.index(srName)
+                    except ValueError:
+                        logger.error("% signal region provided in jsonFiles is not in datasetOrder" % srName)
+                    sig = nsig[index]
+                    subSig.append(sig)
+                nsignals.append(subSig)
+            # Loading the jsonFiles
             inputJsons = list()
             for js in jsonFiles:
                 with open(js, "r") as fi:
                     inputJsons.append(json.load(fi))
 
-            data = PyhfData(nsig, inputJsons)
+            data = PyhfData(nsignals, inputJsons)
             ulcomputer = PyhfUpperLimitComputer(data)
             ret = ulcomputer.ulSigma(expected=expected)
             ret = ret/self.globalInfo.lumi
