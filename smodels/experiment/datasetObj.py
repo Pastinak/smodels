@@ -467,9 +467,21 @@ class CombinedDataSet(object):
 
             data = PyhfData(nsignals, inputJsons)
             ulcomputer = PyhfUpperLimitComputer(data)
-            ret = ulcomputer.ulSigma(expected=expected)
-            ret = ret/self.globalInfo.lumi
-            return ret
+            if ulcomputer.nWS > 1:
+                ret = ulcomputer.ulSigma(expected=expected)
+                ret = ret/self.globalInfo.lumi
+                return ret
+            else:
+                rMax = 0.0
+                for i_ws in range(ulcomputer.nWS):
+                    logger.info("Looking for best expected combination")
+                    r = 1/self.ulSigma(expected=True, workspace_index=i_ws)
+                    if r > rMax:
+                        rMax = r
+                        i_best = i_ws
+                logger.info('Best combination : %d' % i_best)
+                self.i_best = i_best
+                return self.ulSigma(workspace_index=i_best)
         else:
             logger.error ( "no covariance matrix or json file given in globalInfo.txt for %s" % self.globalInfo.id )
             raise SModelSError( "no covariance matrix or json file given in globalInfo.txt for %s" % self.globalInfo.id )
