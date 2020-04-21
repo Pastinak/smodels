@@ -17,6 +17,7 @@ from smodels.theory.auxiliaryFunctions import getAttributesFrom,getValuesForObj
 from smodels.tools.smodelsLogging import logger
 from smodels.theory.auxiliaryFunctions import elementsInStr
 from smodels.theory.element import Element
+from smodels.tools.pyhfInterface import PyhfData, PyhfUpperLimitComputer
 
 import itertools
 
@@ -422,6 +423,7 @@ class CombinedDataSet(object):
 
 
         if hasattr(self.globalInfo, "covariance" ):
+            logger.debug("Using simplified lkelihood")
             cov = self.globalInfo.covariance
             if type(cov) != list:
                 raise SModelSError( "covariance field has wrong type: %s" % type(cov))
@@ -441,9 +443,10 @@ class CombinedDataSet(object):
 
             #Convert limit on total number of signal events to a limit on sigma*eff
             ret = ret/self.globalInfo.lumi
-
+            logger.debug("SL upper limit : {}".format(ret))
             return ret
         elif hasattr(self.globalInfo, "jsonFiles" ):
+            logger.debug("Using pyhf")
             # Getting the path to the json files
             jsonFiles = [os.path.join(self.path, js) for js in self.globalInfo.jsonFiles]
             # Constructing the list of signals with subsignals matching each json
@@ -455,7 +458,7 @@ class CombinedDataSet(object):
                     try:
                         index = datasets.index(srName)
                     except ValueError:
-                        logger.error("% signal region provided in jsonFiles is not in datasetOrder" % srName)
+                        logger.error("% signal region provided in globalInfo is not in the list of datasets" % srName)
                     sig = nsig[index]
                     subSig.append(sig)
                 nsignals.append(subSig)
@@ -470,6 +473,7 @@ class CombinedDataSet(object):
             if ulcomputer.nWS == 1:
                 ret = ulcomputer.ulSigma(expected=expected)
                 ret = ret/self.globalInfo.lumi
+                logger.debug("pyhf upper limit : {}".format(ret))
                 return ret
             else:
                 rMax = 0.0
@@ -482,7 +486,9 @@ class CombinedDataSet(object):
                 logger.info('Best combination : %d' % i_best)
                 self.bestSR = datasets.index(i_best)
                 ret = self.ulSigma(expected=expected, workspace_index=i_best)
-                return ret/self.globalInfo.lumi
+                ret = ret/self.globalInfo.lumi
+                logger.debug("pyhf upper limit : {}".format(ret))
+                return ret
         else:
             logger.error ( "no covariance matrix or json file given in globalInfo.txt for %s" % self.globalInfo.id )
             raise SModelSError( "no covariance matrix or json file given in globalInfo.txt for %s" % self.globalInfo.id )

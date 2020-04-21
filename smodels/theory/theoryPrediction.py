@@ -62,7 +62,7 @@ class TheoryPrediction(object):
         """
         if short:
             t = self.dataset.getType()
-            D = { "upperLimit": "ul", "efficiencyMap": "em", 
+            D = { "upperLimit": "ul", "efficiencyMap": "em",
                   "combined": "comb" }
             if t in D.keys():
                 return D[t]
@@ -90,9 +90,12 @@ class TheoryPrediction(object):
         if not hasattr(self, 'expectedUL') or not hasattr(self, 'upperLimit'):
 
             if self.dataType() == 'efficiencyMap':
+                logger.debug("efficiencyMap type")
                 self.expectedUL = self.dataset.getSRUpperLimit(expected=True,deltas_rel=deltas_rel)
                 self.upperLimit = self.dataset.getSRUpperLimit(expected=False,deltas_rel=deltas_rel)
             if self.dataType() == 'upperLimit':
+                logger.debug("upperLimit type")
+
                 self.expectedUL = self.dataset.getUpperLimitFor(element=self.avgElement,
                                                                 txnames=self.txnames,
                                                                 expected=True)
@@ -100,9 +103,11 @@ class TheoryPrediction(object):
                                                                 txnames=self.txnames,
                                                                 expected=False)
             if self.dataType() == 'combined':
+                logger.debug("combined type")
                 lumi = self.expResult.globalInfo.lumi
                 #Create a list of signal events in each dataset/SR sorted according to datasetOrder
                 srNsigDict = dict([[pred.dataset.getID(),(pred.xsection.value*lumi).asNumber()] for pred in self.datasetPredictions])
+                logger.debug("xsections : {}".format([pred.xsection.value for pred in self.datasetPredictions]))
                 srNsigs = [srNsigDict[dataID] if dataID in srNsigDict else 0. for dataID in self.dataset.globalInfo.datasetOrder]
                 self.expectedUL = self.dataset.getCombinedUpperLimitFor(srNsigs,expected=True,deltas_rel=deltas_rel)
                 self.upperLimit = self.dataset.getCombinedUpperLimitFor(srNsigs,expected=False,deltas_rel=deltas_rel)
@@ -188,11 +193,13 @@ class TheoryPrediction(object):
         """
 
         if self.dataType()  == 'upperLimit':
+            logger.debug("upperLimit type")
             llhd, chi2 = self.likelihoodFromLimits ( 1., marginalize, deltas_rel, chi2also=True )
             self.likelihood = llhd
             self.chi2 = chi2
 
         elif self.dataType() == 'efficiencyMap':
+            logger.debug("efficiencyMap type")
             lumi = self.dataset.globalInfo.lumi
             nsig = (self.xsection.value*lumi).asNumber()
             llhd = self.dataset.likelihood(nsig,marginalize=marginalize,deltas_rel=deltas_rel)
@@ -201,6 +208,7 @@ class TheoryPrediction(object):
             self.chi2 =  chi2
 
         elif self.dataType() == 'combined':
+            logger.debug("combined type")
             lumi = self.expResult.globalInfo.lumi
             #Create a list of signal events in each dataset/SR sorted according to datasetOrder
             srNsigDict = dict([[pred.dataset.getID(),(pred.xsection.value*lumi).asNumber()] for pred in self.datasetPredictions])
@@ -416,7 +424,7 @@ def _getCombinedResultFor(dataSetResults,expResult,marginalize=False):
 
     if len(dataSetResults) == 1:
         return dataSetResults[0]
-    elif not expResult.hasCovarianceMatrix():
+    elif not expResult.hasCovarianceMatrix() and not expResult.hasJsonFile() :
         return None
 
     txnameList = []
@@ -442,7 +450,7 @@ def _getCombinedResultFor(dataSetResults,expResult,marginalize=False):
         widthList.append(pred.totalwidth)
         weights.append(pred.xsection.value.asNumber(fb))
         PIDList += pred.PIDs
-        
+
     txnameList = list(set(txnameList))
     if None in massList:
         mass = None
@@ -466,7 +474,7 @@ def _getCombinedResultFor(dataSetResults,expResult,marginalize=False):
     theoryPrediction.mass = mass
     theoryPrediction.totalwidth = totalwidth
     theoryPrediction.PIDs = [pdg for pdg,_ in itertools.groupby(PIDList)] #Remove duplicates
-    
+
     return theoryPrediction
 
 def _getBestResult(dataSetResults):

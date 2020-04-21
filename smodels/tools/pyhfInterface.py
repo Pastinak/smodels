@@ -16,6 +16,7 @@ import pyhf
 pyhf.set_backend(b"pytorch")
 from scipy import optimize
 import numpy as np
+from smodels.tools.smodelsLogging import logger
 
 def getLogger():
     """
@@ -34,7 +35,7 @@ def getLogger():
     logger.setLevel(logging.DEBUG)
     return logger
 
-logger=getLogger()
+#logger=getLogger()
 
 class PyhfData:
     """
