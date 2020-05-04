@@ -451,6 +451,8 @@ class CombinedDataSet(object):
             jsonFiles = [os.path.join(self.path, js) for js in self.globalInfo.jsonFiles]
             # Constructing the list of signals with subsignals matching each json
             datasets = [ds.getID() for ds in self._datasets]
+            total = sum(nsig)
+            nsig = [s/total for s in nsig]
             nsignals = list()
             for jsName in self.globalInfo.jsonFiles:
                 subSig = list()
