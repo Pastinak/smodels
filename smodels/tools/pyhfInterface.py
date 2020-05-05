@@ -215,7 +215,7 @@ class PyhfUpperLimitComputer:
         elif workspace_index != None:
             if self.zeroSignalsFlag[workspace_index] == True:
                 logger.warning("Workspace number %d has zero signals" % workspace_index)
-                return -1
+                return None
             else:
                 workspace = self.workspaces[workspace_index]
         else:
@@ -231,7 +231,7 @@ class PyhfUpperLimitComputer:
         """
         Returns the chi square
         """
-        return -1
+        return None
 
     # Trying a new method for upper limit computation :
     # re-scaling the signal predictions so that mu falls in [0, 10] instead of looking for mu bounds
@@ -250,7 +250,7 @@ class PyhfUpperLimitComputer:
         """
         if workspace_index != None and self.zeroSignalsFlag[workspace_index] == True:
             logger.warning("Workspace number %d has zero signals" % workspace_index)
-            return -1
+            return float('+inf')
         def updateWorkspace():
             if self.nWS == 1:
                 return self.workspaces[0]

@@ -349,6 +349,7 @@ class CombinedDataSet(object):
         self._datasets = expResult.datasets[:]
         self._marginalize = False
         self.sortDataSets()
+        self.bestCB = None# To store the index of the best combination
 
     def __str__(self):
         ret = "Combined Dataset (%i datasets)" %len(self._datasets)
@@ -437,9 +438,9 @@ class CombinedDataSet(object):
             no = nobs
 
             ret = computer.ulSigma(Data(observed=no, backgrounds=bg, covariance=cov,
-                                         third_moment=None, nsignal=nsig, deltas_rel=deltas_rel),
-                                   marginalize=self._marginalize,
-                                   expected=expected)
+                                        third_moment=None, nsignal=nsig, deltas_rel=deltas_rel),
+                                        marginalize=self._marginalize,
+                                        expected=expected)
 
             #Convert limit on total number of signal events to a limit on sigma*eff
             ret = ret/self.globalInfo.lumi
@@ -452,7 +453,7 @@ class CombinedDataSet(object):
             # Constructing the list of signals with subsignals matching each json
             datasets = [ds.getID() for ds in self._datasets]
             total = sum(nsig)
-            nsig = [s/total for s in nsig]
+            nsig = [s/total for s in nsig] # Normalising signals to get an upper limit on the events count
             nsignals = list()
             for jsName in self.globalInfo.jsonFiles:
                 subSig = list()
@@ -478,17 +479,23 @@ class CombinedDataSet(object):
                 logger.debug("pyhf upper limit : {}".format(ret))
                 return ret
             else:
-                rMax = 0.0
-                for i_ws in range(ulcomputer.nWS):
+                # Looking for the best combination
+                if not self.bestCB:
                     logger.info("Performing best expected combination")
-                    r = 1/self.ulSigma(expected=True, workspace_index=i_ws)
-                    if r > rMax:
-                        rMax = r
-                        i_best = i_ws
-                logger.info('Best combination : %d' % i_best)
-                self.bestSR = datasets.index(i_best)
-                ret = self.ulSigma(expected=expected, workspace_index=i_best)
-                ret = ret/self.globalInfo.lumi
+                    ulMin = float('+inf')
+                    for i_ws in range(ulcomputer.nWS):
+                        ul = ulcomputer.ulSigma(expected=True, workspace_index=i_ws)
+                        if  ul < ulMin:
+                            ulMin = ul
+                            i_best = i_ws
+                    self.bestCB = i_best # Keeping the index of the best combination for later
+                    logger.info('Best combination : %d' % self.bestCB)
+                # Computing upper limit using best combination
+                if expected:
+                    ret = ulMin/self.globalInfo.lumi
+                else:
+                    ret = ulcomputer.ulSigma(expected=False, workspace_index=self.bestCB)
+                    ret = ret/self.globalInfo.lumi
                 logger.debug("pyhf upper limit : {}".format(ret))
                 return ret
         else:
@@ -546,18 +553,23 @@ class CombinedDataSet(object):
             data = PyhfData(nsignals, inputJsons)
             ulcomputer = PyhfUpperLimitComputer(data)
             if ulcomputer.nWS == 1:
+                ret = ulcomputer.ulSigma(expected=expected)
+                ret = ret/self.globalInfo.lumi
+                logger.debug("pyhf upper limit : {}".format(ret))
                 return ulcomputer.likelihood()
             else:
-                rMax = 0.0
-                for i_ws in range(ulcomputer.nWS):
-                    logger.info("Performing best expected combination")
-                    r = 1/self.ulSigma(expected=True, workspace_index=i_ws)
-                    if r > rMax:
-                        rMax = r
-                        i_best = i_ws
-                logger.info('Best combination : %d' % i_best)
-                self.bestSR = datasets.index(i_best)
-                return ulcomputer.likelihood(workspace_index=i_best)
+                # Looking for the best combination
+                if not self.bestCB:
+                    ulMin = float('+inf')
+                    for i_ws in range(ulcomputer.nWS):
+                        logger.info("Performing best expected combination")
+                        ul = ulcomputer.ulSigma(expected=True, workspace_index=i_ws)
+                        if  ul < ulMin:
+                            ulMin = ul
+                            i_best = i_ws
+                    self.bestCB = i_best # Keeping the index of the best combination for later
+                    logger.info('Best combination : %d' % self.bestCB)
+                return ulcomputer.likelihood(workspace_index=self.bestCB)
         else:
             logger.error("Asked for combined likelihood, but no covariance or json file given." )
             return None
@@ -616,18 +628,23 @@ class CombinedDataSet(object):
             data = PyhfData(nsignals, inputJsons)
             ulcomputer = PyhfUpperLimitComputer(data)
             if ulcomputer.nWS == 1:
+                ret = ulcomputer.ulSigma(expected=expected)
+                ret = ret/self.globalInfo.lumi
+                logger.debug("pyhf upper limit : {}".format(ret))
                 return ulcomputer.chi2()
             else:
-                rMax = 0.0
-                for i_ws in range(ulcomputer.nWS):
-                    logger.info("Performing best expected combination")
-                    r = 1/self.ulSigma(expected=True, workspace_index=i_ws)
-                    if r > rMax:
-                        rMax = r
-                        i_best = i_ws
-                logger.info('Best combination : %d' % i_best)
-                self.bestSR = datasets.index(i_best)
-                return ulcomputer.chi2(workspace_index=i_best)
+                # Looking for the best combination
+                if not self.bestCB:
+                    ulMin = float('+inf')
+                    for i_ws in range(ulcomputer.nWS):
+                        logger.info("Performing best expected combination")
+                        ul = ulcomputer.ulSigma(expected=True, workspace_index=i_ws)
+                        if  ul < ulMin:
+                            ulMin = ul
+                            i_best = i_ws
+                    self.bestCB = i_best # Keeping the index of the best combination for later
+                    logger.info('Best combination : %d' % self.bestCB)
+                return ulcomputer.chi2(workspace_index=self.bestCB)
         else:
             logger.error("Asked for combined likelihood, but no covariance error given." )
             return None

@@ -107,8 +107,6 @@ class TheoryPrediction(object):
                 lumi = self.expResult.globalInfo.lumi
                 #Create a list of signal events in each dataset/SR sorted according to datasetOrder
                 srNsigDict = dict([[pred.dataset.getID(),(pred.xsection.value*lumi).asNumber()] for pred in self.datasetPredictions])
-                logger.debug("xsections : {}".format([pred.xsection.value for pred in self.datasetPredictions]))
-                logger.debug('elements : {}'.format([pred.elements for pred in self.datasetPredictions]))
                 srNsigs = [srNsigDict[dataID] if dataID in srNsigDict else 0. for dataID in self.dataset.globalInfo.datasetOrder]
                 self.expectedUL = self.dataset.getCombinedUpperLimitFor(srNsigs,expected=True,deltas_rel=deltas_rel)
                 self.upperLimit = self.dataset.getCombinedUpperLimitFor(srNsigs,expected=False,deltas_rel=deltas_rel)
