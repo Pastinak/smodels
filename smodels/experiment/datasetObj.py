@@ -424,7 +424,6 @@ class CombinedDataSet(object):
 
 
         if hasattr(self.globalInfo, "covariance" ):
-            logger.debug("Using simplified lkelihood")
             cov = self.globalInfo.covariance
             if type(cov) != list:
                 raise SModelSError( "covariance field has wrong type: %s" % type(cov))
@@ -480,8 +479,9 @@ class CombinedDataSet(object):
                 return ret
             else:
                 # Looking for the best combination
-                if not self.bestCB:
-                    logger.info("Performing best expected combination")
+                logger.debug('self.bestCB : {}'.format(self.bestCB))
+                if self.bestCB == None:
+                    logger.debug("Performing best expected combination")
                     ulMin = float('+inf')
                     for i_ws in range(ulcomputer.nWS):
                         ul = ulcomputer.ulSigma(expected=True, workspace_index=i_ws)
@@ -492,7 +492,11 @@ class CombinedDataSet(object):
                     logger.info('Best combination : %d' % self.bestCB)
                 # Computing upper limit using best combination
                 if expected:
-                    ret = ulMin/self.globalInfo.lumi
+                    try:
+                        ret = ulMin/self.globalInfo.lumi
+                    except NameError:
+                        ret = ulcomputer.ulSigma(expected=True, workspace_index=self.bestCB)
+                        ret = ret/self.globalInfo.lumi
                 else:
                     ret = ulcomputer.ulSigma(expected=False, workspace_index=self.bestCB)
                     ret = ret/self.globalInfo.lumi
@@ -553,13 +557,10 @@ class CombinedDataSet(object):
             data = PyhfData(nsignals, inputJsons)
             ulcomputer = PyhfUpperLimitComputer(data)
             if ulcomputer.nWS == 1:
-                ret = ulcomputer.ulSigma(expected=expected)
-                ret = ret/self.globalInfo.lumi
-                logger.debug("pyhf upper limit : {}".format(ret))
                 return ulcomputer.likelihood()
             else:
                 # Looking for the best combination
-                if not self.bestCB:
+                if self.bestCB == None:
                     ulMin = float('+inf')
                     for i_ws in range(ulcomputer.nWS):
                         logger.info("Performing best expected combination")
@@ -628,13 +629,10 @@ class CombinedDataSet(object):
             data = PyhfData(nsignals, inputJsons)
             ulcomputer = PyhfUpperLimitComputer(data)
             if ulcomputer.nWS == 1:
-                ret = ulcomputer.ulSigma(expected=expected)
-                ret = ret/self.globalInfo.lumi
-                logger.debug("pyhf upper limit : {}".format(ret))
                 return ulcomputer.chi2()
             else:
                 # Looking for the best combination
-                if not self.bestCB:
+                if self.bestCB == None:
                     ulMin = float('+inf')
                     for i_ws in range(ulcomputer.nWS):
                         logger.info("Performing best expected combination")

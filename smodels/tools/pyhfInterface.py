@@ -17,6 +17,7 @@ pyhf.set_backend(b"pytorch")
 from scipy import optimize
 import numpy as np
 from smodels.tools.smodelsLogging import logger
+import time
 
 def getLogger():
     """
@@ -67,14 +68,12 @@ class PyhfData:
             wsChannelsInfo['otherRegions'] = []
             for i_ch, ch in enumerate(ws['channels']):
                 if 'SR' in ch['name']:
-                    logger.debug("SR channel name : %s" % ch['name'])
                     wsChannelsInfo['signalRegions'].append({'path':'/channels/'+str(i_ch)+'/samples/0', # Path of the new sample to add (signal prediction)
                                                             'size':len(ch['samples'][0]['data'])}) # Number of bins
                 if 'VR' in ch['name'] or 'CR' in ch['name']:
                     wsChannelsInfo['otherRegions'].append('/channels/'+str(i_ch))
             wsChannelsInfo['otherRegions'].sort(key=lambda path: path.split('/')[-1], reverse=True) # Need to sort correctly the paths to the channels to be removed
             self.channelsInfo.append(wsChannelsInfo)
-        logger.debug("WSInfo: self.channelsInfo: {}".format(self.channelsInfo))
 
     def checkConsistency(self):
         """
@@ -92,7 +91,6 @@ class PyhfData:
                 nBinsJson += sr['size']
             if nBinsJson != len(subSig):
                 logger.error('The number of signals provided is different from the number of bins for json number {} and channel number {}'.format(self.channelsInfo.index(wsInfo), self.nsignals.index(subSig)))
-            logger.debug("Consistency check: subSig: {}".format(subSig))
             allZero = all([s == 0 for s in subSig])
             # Checking if all signals matching this json are zero
             self.zeroSignalsFlag.append(allZero)
@@ -144,7 +142,6 @@ class PyhfUpperLimitComputer:
         except AttributeError:
             pass
         self.scale *= factor
-        logger.debug("Signals : {}".format(self.nsignals))
         self.patches = self.patchMaker()
         self.workspaces = self.wsMaker()
         try:
@@ -175,7 +172,6 @@ class PyhfUpperLimitComputer:
                 operator["path"] = srInfo['path']
                 value = {}
                 value["data"] = subSig[:nBins]
-                logger.debug("patcheMake:value['data'] : {}".format(value['data']))
                 subSig = subSig[nBins:]
                 value["modifiers"] = []
                 value["modifiers"].append({"data": None, "type": "normfactor", "name": "mu_SIG"})
@@ -210,6 +206,8 @@ class PyhfUpperLimitComputer:
         Returns the value of the likelihood.
         Inspired by the `pyhf.infer.mle` module but for non-log likelihood
         """
+        logger.debug("Calling likelihood")
+        self.scale = 1.
         if self.nWS == 1:
             workspace = self.workspaces[0]
         elif workspace_index != None:
@@ -231,6 +229,8 @@ class PyhfUpperLimitComputer:
         """
         Returns the chi square
         """
+        self.scale = 1.
+        logger.debug("Calling chi2")
         return None
 
     # Trying a new method for upper limit computation :
@@ -248,6 +248,8 @@ class PyhfUpperLimitComputer:
                           - else: all workspaces are combined
         :return: the upper limit at `self.cl` level (0.95 by default)
         """
+        startUL = time.time()
+        logger.debug("Calling ulSigma")
         if workspace_index != None and self.zeroSignalsFlag[workspace_index] == True:
             logger.warning("Workspace number %d has zero signals" % workspace_index)
             return float('+inf')
@@ -264,12 +266,15 @@ class PyhfUpperLimitComputer:
             msettings = {'normsys': {'interpcode': 'code4'}, 'histosys': {'interpcode': 'code4p'}}
             model = workspace.model(modifier_settings=msettings)
             test_poi = mu
+            start = time.time()
             result = pyhf.infer.hypotest(test_poi, workspace.data(model), model, qtilde=True, return_expected = expected)
+            end = time.time()
+            logger.debug("Hypotest elapsed time : {} seconds".format(end - start))
             if expected:
                 CLs = result[1].tolist()[0]
             else:
                 CLs = result[0]
-            logger.info("Call of root_func(%f) -> %f" % (mu, 1.0 - CLs))
+            # logger.debug("Call of root_func(%f) -> %f" % (mu, 1.0 - CLs))
             return 1.0 - self.cl - CLs
         # Rescaling singals so that mu is in [0, 10]
         factor = 10.
@@ -312,11 +317,13 @@ class PyhfUpperLimitComputer:
                 workspace = updateWorkspace()
                 continue
         # Finding the root (Brent bracketing part)
-        logger.info("Final scale : %f" % self.scale)
+        logger.debug("Final scale : %f" % self.scale)
         hi_mu = 10.
         lo_mu = 1.
-        logger.info("Starting brent bracketing")
+        logger.debug("Starting brent bracketing")
         ul = optimize.brentq(root_func, lo_mu, hi_mu, rtol=1e-3, xtol=1e-3)
+        endUL = time.time()
+        logger.debug("ulSigma elpased time : {} secs".format(endUL - startUL))
         return ul*self.scale # self.scale has been updated whithin self.rescale() method
 
     def bestUL(self):
