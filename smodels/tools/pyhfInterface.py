@@ -269,7 +269,7 @@ class PyhfUpperLimitComputer:
             start = time.time()
             result = pyhf.infer.hypotest(test_poi, workspace.data(model), model, qtilde=True, return_expected = expected)
             end = time.time()
-            logger.debug("Hypotest elapsed time : {} seconds".format(end - start))
+            logger.debug("Hypotest elapsed time : %1.4f secs" % (end - start))
             if expected:
                 CLs = result[1].tolist()[0]
             else:
@@ -323,7 +323,7 @@ class PyhfUpperLimitComputer:
         logger.debug("Starting brent bracketing")
         ul = optimize.brentq(root_func, lo_mu, hi_mu, rtol=1e-3, xtol=1e-3)
         endUL = time.time()
-        logger.debug("ulSigma elpased time : {} secs".format(endUL - startUL))
+        logger.debug("ulSigma elpased time : %1.4f secs" % (endUL - startUL))
         return ul*self.scale # self.scale has been updated whithin self.rescale() method
 
     def bestUL(self):
