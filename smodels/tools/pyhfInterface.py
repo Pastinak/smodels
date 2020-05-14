@@ -251,15 +251,18 @@ class PyhfUpperLimitComputer:
         startUL = time.time()
         logger.debug("Calling ulSigma")
         if workspace_index != None and self.zeroSignalsFlag[workspace_index] == True:
-            logger.warning("Workspace number %d has zero signals" % workspace_index)
+            logger.debug("Workspace number %d has zero signals" % workspace_index)
             return float('+inf')
         def updateWorkspace():
             if self.nWS == 1:
+                if self.zeroSignalsFlag[0] == True:
+                    logger.warning("There is only one workspace but all signals are zeroes")
                 return self.workspaces[0]
-            elif workspace_index != None:
-                return self.workspaces[workspace_index]
             else:
-                return self.cbWorkspace()
+                if workspace_index == None:
+                    logger.error("There are several workspaces but no workspace index was provided")
+                    return None
+                return self.workspaces[workspace_index]
         workspace = updateWorkspace()
         def root_func(mu):
             # Same modifiers_settings as those use when running the 'pyhf cls' command line
@@ -288,7 +291,7 @@ class PyhfUpperLimitComputer:
                 break
             if self.alreadyBeenThere:
                 factor = 1 + (factor-1)/2
-                logger.info("Diminishing rescaling factor")
+                logger.debug("Diminishing rescaling factor")
             if np.isnan(rt1):
                 self.rescale(factor)
                 workspace = updateWorkspace()
@@ -300,10 +303,10 @@ class PyhfUpperLimitComputer:
             # Analyzing previous values of wereBoth***
             if rt10 < 0 and rt1 < 0 and wereBothLarge:
                 factor = 1 + (factor-1)/2
-                logger.info("Diminishing rescaling factor")
+                logger.debug("Diminishing rescaling factor")
             if rt10 > 0 and rt1 > 0 and wereBothTiny:
                 factor = 1 + (factor-1)/2
-                logger.info("Diminishing rescaling factor")
+                logger.debug("Diminishing rescaling factor")
             # Preparing next values of wereBoth***
             wereBothTiny = rt10 < 0 and rt1 < 0
             wereBothLarge = rt10 > 0 and rt1 > 0
@@ -325,45 +328,6 @@ class PyhfUpperLimitComputer:
         endUL = time.time()
         logger.debug("ulSigma elpased time : %1.4f secs" % (endUL - startUL))
         return ul*self.scale # self.scale has been updated whithin self.rescale() method
-
-    def bestUL(self):
-        """
-        Computes the upper limit on the signal strength using a poor person's combination
-        Picking the most sensitive, i.e., the one having the biggest r-value in the expected case (r-value = 1/mu)
-
-        :return: upper limit in `pb`
-        """
-        if len(self.workspaces) == 1:
-            return self.ulSigma(workspace_index=0)
-        rMax = 0.0
-        for i_ws in range(self.nWS):
-            logger.info("Looking for best expected combination")
-            r = 1/self.ulSigma(expected=True, workspace_index=i_ws)
-            if r > rMax:
-                rMax = r
-                i_best = i_ws
-        logger.info('Best combination : %d' % i_best)
-        self.i_best = i_best
-        return self.ulSigma(workspace_index=i_best)
-
-    def cbWorkspace(self):
-        """
-        Method that combines the workspaces contained into `self.workspaces` into a single workspace
-        This method is currently not functional, waiting for pyhf developers to finalize the `pyhf.workspace.combine` methods
-
-        :return: a json instance of the combined workspaces
-        """
-        # Performing combination using pyhf.workspace.combine method, a bit modified to solve the multiple parameter configuration problem
-        workspaces = self.workspaces
-        for i_ws in range(self.nWS):
-            if self.zeroSignalsFlag[i_ws] == False:
-                cbWS = workspaces[i_ws]
-                break
-        for i_ws in range(1, self.nWS):
-            if self.zeroSignalsFlag[i_ws] == True: # Ignore workspaces having zero signals
-                continue
-            cbWS = pyhf.Workspace.combine(cbWS, workspaces[i_ws])
-        return cbWS
 
 if __name__ == "__main__":
     C = [ 18774.2, -2866.97, -5807.3, -4460.52, -2777.25, -1572.97, -846.653, -442.531,

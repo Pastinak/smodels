@@ -409,7 +409,6 @@ class CombinedDataSet(object):
 
         return None
 
-
     def getCombinedUpperLimitFor(self, nsig, expected=False, deltas_rel=0.2):
         """
         Get combined upper limit.
@@ -460,7 +459,7 @@ class CombinedDataSet(object):
                     try:
                         index = datasets.index(srName)
                     except ValueError:
-                        logger.error("% signal region provided in globalInfo is not in the list of datasets" % srName)
+                        logger.error("%s signal region provided in globalInfo is not in the list of datasets" % srName)
                     sig = nsig[index]
                     subSig.append(sig)
                 nsignals.append(subSig)
@@ -489,7 +488,7 @@ class CombinedDataSet(object):
                             ulMin = ul
                             i_best = i_ws
                     self.bestCB = i_best # Keeping the index of the best combination for later
-                    logger.info('Best combination : %d' % self.bestCB)
+                    logger.debug('Best combination : %d' % self.bestCB)
                 # Computing upper limit using best combination
                 if expected:
                     try:
@@ -563,13 +562,13 @@ class CombinedDataSet(object):
                 if self.bestCB == None:
                     ulMin = float('+inf')
                     for i_ws in range(ulcomputer.nWS):
-                        logger.info("Performing best expected combination")
+                        logger.debug("Performing best expected combination")
                         ul = ulcomputer.ulSigma(expected=True, workspace_index=i_ws)
                         if  ul < ulMin:
                             ulMin = ul
                             i_best = i_ws
                     self.bestCB = i_best # Keeping the index of the best combination for later
-                    logger.info('Best combination : %d' % self.bestCB)
+                    logger.debug('Best combination : %d' % self.bestCB)
                 return ulcomputer.likelihood(workspace_index=self.bestCB)
         else:
             logger.error("Asked for combined likelihood, but no covariance or json file given." )
@@ -635,13 +634,13 @@ class CombinedDataSet(object):
                 if self.bestCB == None:
                     ulMin = float('+inf')
                     for i_ws in range(ulcomputer.nWS):
-                        logger.info("Performing best expected combination")
+                        logger.debug("Performing best expected combination")
                         ul = ulcomputer.ulSigma(expected=True, workspace_index=i_ws)
                         if  ul < ulMin:
                             ulMin = ul
                             i_best = i_ws
                     self.bestCB = i_best # Keeping the index of the best combination for later
-                    logger.info('Best combination : %d' % self.bestCB)
+                    logger.debug('Best combination : %d' % self.bestCB)
                 return ulcomputer.chi2(workspace_index=self.bestCB)
         else:
             logger.error("Asked for combined likelihood, but no covariance error given." )
