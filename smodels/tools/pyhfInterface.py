@@ -49,6 +49,7 @@ class PyhfData:
         self.nsignals = nsignals # fb
         self.inputJsons = inputJsons
         self.nWS = len(inputJsons)
+        self.errorFlag = False
         self.getWSInfo()
         self.checkConsistency()
 
@@ -62,10 +63,18 @@ class PyhfData:
         """
         # Identifying the path to the SR and VR channels in the main workspace files
         self.channelsInfo = [] # workspace specifications
+        if not isinstance(self.inputJsons, list):
+            logger.error("The `inputJsons` parameter must be of type list")
+            self.errorFlag = True
+            return
         for ws in self.inputJsons:
             wsChannelsInfo = {}
             wsChannelsInfo['signalRegions'] = []
             wsChannelsInfo['otherRegions'] = []
+            if not 'channels' in ws.keys():
+                logger.error("Json file number {} is corrupted (channels are missing)".format(self.inputJsons.index(ws)))
+                self.channelsInfo = None
+                return
             for i_ch, ch in enumerate(ws['channels']):
                 if 'SR' in ch['name']:
                     wsChannelsInfo['signalRegions'].append({'path':'/channels/'+str(i_ch)+'/samples/0', # Path of the new sample to add (signal prediction)
@@ -81,16 +90,25 @@ class PyhfData:
 
         :ivar zeroSignalsFlag: boolean identifying if all SRs of a single json are empty
         """
+        if not isinstance(self.nsignals, list):
+            logger.error("The `nsignals` parameter must be of type list")
+            self.errorFlag = True
         if self.nWS != len(self.nsignals):
-            logger.error('The number of signals provided is different than the number of json files')
-        nsignals = self.nsignals
+            logger.error('The number of subsignals provided is different from the number of json files')
+            self.errorFlag = True
         self.zeroSignalsFlag = list()
+        if self.channelsInfo == None:
+            return
         for wsInfo, subSig in zip(self.channelsInfo, self.nsignals):
+            if not isinstance(subSig, list):
+                logger.error("The `nsignals` parameter must be a two dimensional list")
+                self.errorFlag = True
             nBinsJson = 0
             for sr in wsInfo['signalRegions']:
                 nBinsJson += sr['size']
             if nBinsJson != len(subSig):
                 logger.error('The number of signals provided is different from the number of bins for json number {} and channel number {}'.format(self.channelsInfo.index(wsInfo), self.nsignals.index(subSig)))
+                self.errorFlag = True
             allZero = all([s == 0 for s in subSig])
             # Checking if all signals matching this json are zero
             self.zeroSignalsFlag.append(allZero)
@@ -157,6 +175,8 @@ class PyhfUpperLimitComputer:
 
         :return: the list of patches, one for each workspace
         """
+        if self.channelsInfo == None:
+            return None
         nsignals = self.nsignals
         # Constructing the patches to be applied on the main workspace files
         i_ws = 0
@@ -191,13 +211,23 @@ class PyhfUpperLimitComputer:
 
         :returns: the list of patched workspaces
         """
+        if self.patches == None:
+            return None
         if self.nWS == 1:
-            return [pyhf.Workspace(jsonpatch.apply_patch(self.inputJsons[0], self.patches[0]))]
+            try:
+                return [pyhf.Workspace(jsonpatch.apply_patch(self.inputJsons[0], self.patches[0]))]
+            except (pyhf.exceptions.InvalidSpecification, KeyError) as e:
+                logger.error("The json file is corrupted:\n{}".format(e))
+                return None
         else:
             workspaces = []
             for json, patch in zip(self.inputJsons, self.patches):
                 wsDict = jsonpatch.apply_patch(json, patch)
-                ws = pyhf.Workspace(wsDict)
+                try:
+                    ws = pyhf.Workspace(wsDict)
+                except (pyhf.exceptions.InvalidSpecification, KeyError) as e:
+                    logger.error("Json file number {} is corrupted:\n{}".format(self.inputJsons.index(json), e))
+                    return None
                 workspaces.append(ws)
             return workspaces
 
@@ -250,18 +280,23 @@ class PyhfUpperLimitComputer:
         """
         startUL = time.time()
         logger.debug("Calling ulSigma")
-        if workspace_index != None and self.zeroSignalsFlag[workspace_index] == True:
-            logger.debug("Workspace number %d has zero signals" % workspace_index)
-            return float('+inf')
+        if self.data.errorFlag or self.workspaces == None: # For now, this flag can only be turned on by PyhfData.checkConsistency
+            return None
+        if self.nWS == 1:
+            if self.zeroSignalsFlag[0] == True:
+                logger.warning("There is only one workspace but all signals are zeroes")
+                return None
+        else:
+            if workspace_index == None:
+                logger.error("There are several workspaces but no workspace index was provided")
+                return None
+            elif self.zeroSignalsFlag[workspace_index] == True:
+                logger.debug("Workspace number %d has zero signals" % workspace_index)
+                return None
         def updateWorkspace():
             if self.nWS == 1:
-                if self.zeroSignalsFlag[0] == True:
-                    logger.warning("There is only one workspace but all signals are zeroes")
                 return self.workspaces[0]
             else:
-                if workspace_index == None:
-                    logger.error("There are several workspaces but no workspace index was provided")
-                    return None
                 return self.workspaces[workspace_index]
         workspace = updateWorkspace()
         def root_func(mu):

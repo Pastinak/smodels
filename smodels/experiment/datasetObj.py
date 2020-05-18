@@ -446,6 +446,9 @@ class CombinedDataSet(object):
             return ret
         elif hasattr(self.globalInfo, "jsonFiles" ):
             logger.debug("Using pyhf")
+            if all([s == 0 for s in nsig]):
+                logger.warning("All signals are empty")
+                return None
             # Getting the path to the json files
             jsonFiles = [os.path.join(self.path, js) for js in self.globalInfo.jsonFiles]
             # Constructing the list of signals with subsignals matching each json
@@ -470,6 +473,7 @@ class CombinedDataSet(object):
                     inputJsons.append(json.load(fi))
 
             data = PyhfData(nsignals, inputJsons)
+            if data.errorFlag: return None
             ulcomputer = PyhfUpperLimitComputer(data)
             if ulcomputer.nWS == 1:
                 ret = ulcomputer.ulSigma(expected=expected)
@@ -484,7 +488,9 @@ class CombinedDataSet(object):
                     ulMin = float('+inf')
                     for i_ws in range(ulcomputer.nWS):
                         ul = ulcomputer.ulSigma(expected=True, workspace_index=i_ws)
-                        if  ul < ulMin:
+                        if ul == None:
+                            continue
+                        if ul < ulMin:
                             ulMin = ul
                             i_best = i_ws
                     self.bestCB = i_best # Keeping the index of the best combination for later
@@ -554,6 +560,7 @@ class CombinedDataSet(object):
                     inputJsons.append(json.load(fi))
 
             data = PyhfData(nsignals, inputJsons)
+            if data.errorFlag: return None
             ulcomputer = PyhfUpperLimitComputer(data)
             if ulcomputer.nWS == 1:
                 return ulcomputer.likelihood()
@@ -615,7 +622,7 @@ class CombinedDataSet(object):
                     try:
                         index = datasets.index(srName)
                     except ValueError:
-                        logger.error("% signal region provided in jsonFiles is not in datasetOrder" % srName)
+                        logger.error("% signal region provided in jsonFiles is not in the list of datasets" % srName)
                     sig = nsig[index]
                     subSig.append(sig)
                 nsignals.append(subSig)
@@ -626,6 +633,7 @@ class CombinedDataSet(object):
                     inputJsons.append(json.load(fi))
 
             data = PyhfData(nsignals, inputJsons)
+            if data.errorFlag: return None
             ulcomputer = PyhfUpperLimitComputer(data)
             if ulcomputer.nWS == 1:
                 return ulcomputer.chi2()
