@@ -149,8 +149,7 @@ class PyhfUpperLimitComputer:
 
     def rescale(self, factor):
         """
-        Rescales the signal predictions (self.signals) and processes again the patches and workspaces
-        No return
+        Rescales the signal predictions (self.nsignals) and processes again the patches and workspaces
 
         :return: updated list of patches and workspaces (self.patches and self.workspaces)
         """
@@ -179,11 +178,8 @@ class PyhfUpperLimitComputer:
             return None
         nsignals = self.nsignals
         # Constructing the patches to be applied on the main workspace files
-        i_ws = 0
         patches = []
         for ws, info, subSig in zip(self.inputJsons, self.channelsInfo, self.nsignals):
-            # Need to read the number of SR/bins of each regions
-            # in order to identify the corresponding ones in self.nsignals
             patch = []
             for srInfo in info['signalRegions']:
                 nBins = srInfo['size']
@@ -202,7 +198,6 @@ class PyhfUpperLimitComputer:
             for path in info['otherRegions']:
                 patch.append({'op':'remove', 'path':path})
             patches.append(patch)
-            i_ws += 1
         return patches
 
     def wsMaker(self):

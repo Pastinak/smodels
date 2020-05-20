@@ -175,6 +175,10 @@ class RunSModelSTest(unittest.TestCase):
             if os.path.exists( i ): os.remove( i )
         self.assertTrue(equals)
 
+    def testPyhfCombination(self):
+        filename = "./testFiles/slha/T6bbHH_pyhf.slha"
+        inifile = "./testParameters_pyhf.ini"
+        runMain(filename, inifile=inifile)
 
     def testBadFile(self):
         # since 112 we skip non-existing slha files!
