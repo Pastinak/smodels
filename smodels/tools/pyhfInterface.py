@@ -216,8 +216,8 @@ class PyhfUpperLimitComputer:
                 return None
         else:
             workspaces = []
-            for json, patch in zip(self.inputJsons, self.patches):
-                wsDict = jsonpatch.apply_patch(json, patch)
+            for js, patch in zip(self.inputJsons, self.patches):
+                wsDict = jsonpatch.apply_patch(js, patch)
                 try:
                     ws = pyhf.Workspace(wsDict)
                 except (pyhf.exceptions.InvalidSpecification, KeyError) as e:
@@ -304,9 +304,11 @@ class PyhfUpperLimitComputer:
             end = time.time()
             logger.debug("Hypotest elapsed time : %1.4f secs" % (end - start))
             if expected:
-                CLs = result[1].tolist()[0]
+                logger.debug("expected = {}, mu = {}, result = {}".format(expected, mu, result))
+                CLs = float(result[1].tolist()[0])
             else:
-                CLs = result[0]
+                logger.debug("expected = {}, mu = {}, result = {}".format(expected, mu, result))
+                CLs = float(result[0])
             # logger.debug("Call of root_func(%f) -> %f" % (mu, 1.0 - CLs))
             return 1.0 - self.cl - CLs
         # Rescaling singals so that mu is in [0, 10]

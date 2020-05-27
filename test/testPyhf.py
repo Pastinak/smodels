@@ -200,6 +200,9 @@ class PyhfTest(unittest.TestCase):
         self.assertIsNone(ul)
 
     def testNoSignal(self):
+        """
+        Tests the case where all SRs are empty
+        """
         ws = self.simpleJson([0.9], [10])
         data = PyhfData([[0]], [ws])
         ulcomputer = PyhfUpperLimitComputer(data)
@@ -207,6 +210,9 @@ class PyhfTest(unittest.TestCase):
         self.assertIsNone(ul)
 
     def testWrongNbOfSignals(self):
+        """
+        Tests the case where the number of SRs feeded to the module doesn't match the number of SRs in the json
+        """
         # One single json but too much signals
         ws = self.simpleJson([0.9], [10])
         data = PyhfData([[0.9, 0.5]], [ws])
@@ -221,15 +227,22 @@ class PyhfTest(unittest.TestCase):
         self.assertIsNone(ul2)
 
     def testWSindex(self):
+        """
+        Tests how the module reacts when giving several jsons but not specifying for which the UL should be computed
+        """
         ws = [self.simpleJson([0.9], [10]), self.simpleJson([0.8], [9])]
         data = PyhfData([[0.1], [0.2]], ws)
         ulcomputer = PyhfUpperLimitComputer(data)
         ul = ulcomputer.ulSigma()
         self.assertIsNone(ul)
 
-    def testFullPyhfInterface(self):
-        bkg = self.simpleJson([0.99], [10])
+    def testFullPyhfModule1(self):
+        """
+        Computes the UL using the pyhfInterface module and checks if, outside of the module, this UL still gives a 95% CLs
+        """
+        bkg = self.simpleJson([0.8], [10])
         signals = [0.4]
+        # Make the patch by hand
         patch = [dict(
             op='add',
             path='/channels/0/samples/0',
@@ -259,10 +272,54 @@ class PyhfTest(unittest.TestCase):
         msettings = {'normsys': {'interpcode': 'code4'}, 'histosys': {'interpcode': 'code4p'}}
         workspace = pyhf.Workspace(llhdSpec)
         model = workspace.model(modifier_settings=msettings)
-        result = pyhf.infer.hypotest(ul, workspace.data(model), model, qtilde=True, return_expected = False)
+        bounds = model.config.suggested_bounds()
+        bounds[model.config.poi_index] = [0,100]
+        result = pyhf.infer.hypotest(ul, workspace.data(model), model, par_bounds=bounds, qtilde=True, return_expected=False)
         CLs = float(result[0])
-        print("ul: {}\nCLs: {}".format(ul, CLs))
         self.assertAlmostEqual(CLs, 0.05, 2)
+
+    def testFullPyhfModule2(self):
+        """
+        Same as previous but with two SRs
+        """
+        bkg = self.simpleJson([0.8, 0.9], [10, 11])
+        signals = [0.4, 0.2]
+        # Make the patch by hand
+        patch = [dict(
+            op='add',
+            path='/channels/0/samples/0',
+            value=dict(
+                name='sig',
+                data=signals,
+                modifiers=[
+                    dict(
+                        name='lumi',
+                        type='lumi',
+                        data=None
+                    ),
+                    dict(
+                        name='mu_SIG',
+                        type='normfactor',
+                        data=None
+                    )
+                ]
+            )
+        )]
+        llhdSpec = jsonpatch.apply_patch(bkg, patch)
+        # Computing the upper limit with the SModelS/pyhf interface
+        data = PyhfData([signals], [bkg])
+        ulcomputer = PyhfUpperLimitComputer(data)
+        ul = ulcomputer.ulSigma()
+        # Computing the cls outside of SModelS with POI = ul, should give 0.95
+        msettings = {'normsys': {'interpcode': 'code4'}, 'histosys': {'interpcode': 'code4p'}}
+        workspace = pyhf.Workspace(llhdSpec)
+        model = workspace.model(modifier_settings=msettings)
+        bounds = model.config.suggested_bounds()
+        bounds[model.config.poi_index] = [0,100]
+        result = pyhf.infer.hypotest(ul, workspace.data(model), model, par_bounds=bounds, qtilde=True, return_expected=False)
+        CLs = float(result[0])
+        self.assertAlmostEqual(CLs, 0.05, 2)
+
 
 if __name__ == "__main__":
     unittest.main()
