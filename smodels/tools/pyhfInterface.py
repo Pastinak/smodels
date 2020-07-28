@@ -248,7 +248,20 @@ class PyhfUpperLimitComputer:
         model = workspace.model(modifier_settings=msettings)
         test_poi = 1.
         _, nllh = pyhf.infer.mle.fixed_poi_fit(test_poi, workspace.data(model), model, return_fitted_val=True)
-        return np.exp(-nllh.tolist()[0]/2)
+        nl =  self.tofloat ( nllh ) ## convert to float
+        return np.exp(-nl/2)
+
+    def tofloat ( self, tensor ):
+        """ retrieve a float out of a tensor with a single entry.
+            make sure it works with all backends and versions """
+        try:
+            nl = float(nl)
+            return nl
+        except:
+            pass
+        nl = nl[0]
+        return nl
+
 
     def chi2(self, workspace_index=None):
         """
