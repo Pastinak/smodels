@@ -532,7 +532,7 @@ class LikelihoodComputer:
                 raise Exception("cov-1=%s" % (self.model.covariance+self.model.var_s(nsig))**(-1))
             return ini,-1
 
-    def marginalizedLLHD1D(self, nsig, nll):
+    def marginalizedLLHD1D(self, nsig, nll, bg_error="normal"):
             """
             Return the likelihood (of 1 signal region) to observe nobs events given the
             predicted background nb, error on this background (deltab),
@@ -542,6 +542,8 @@ class LikelihoodComputer:
             :param nobs: number of observed events (float)
             :param nb: predicted background (float)
             :param deltab: uncertainty on background (float)
+            :param bg_error: wheter to use a normal ("normal") or lognormal ("lognormal") distribution to model the bg-signal. Defaults to "normal"
+
 
             :return: likelihood to observe nobs events (float)
 
@@ -568,9 +570,21 @@ class LikelihoodComputer:
             #Define integrand (gaussian_(bg+signal)*poisson(nobs)):
             def prob( x, nsig ):
                 poisson = exp(self.model.observed*log(x) - x - self.lngamma )
-                gaussian = stats.norm.pdf(x,loc=self.model.backgrounds+nsig,scale=self.sigma_tot)
-
-                return poisson*gaussian
+                if bg_error == "normal":
+                    gaussian = stats.norm.pdf(x,loc=self.model.backgrounds+nsig,scale=self.sigma_tot)
+                    return poisson*gaussian
+                elif bg_error == "lognormal":
+                    mu = self.model.backgrounds+nsig
+                    if self.model.backgrounds==0:
+                        #case makes problems, integral diverges
+                        mu = 0.001+nsig
+                    sig = self.sigma_tot
+                    loc = mu**2 / NP.sqrt(mu**2 + sig**2)
+                    stderr = NP.sqrt(NP.log(mu**2 + sig**2) - 2*NP.log(mu))
+                    lognormal = stats.lognorm.pdf(x, s=stderr, scale=loc)
+                    return poisson*lognormal
+                else:
+                    raise Exception("bg_error has to be one of normal and lognormal")
 
             #Compute maximum value for the integrand:
             xm = self.model.backgrounds + nsig - self.sigma2
@@ -605,17 +619,21 @@ class LikelihoodComputer:
                     continue
                 err = abs(like_old-like)/like
 
-            #Renormalize the likelihood to account for the cut at x = 0.
-            #The integral of the gaussian from 0 to infinity gives:
-            #(1/2)*(1 + Erf(mu/sqrt(2*sigma2))), so we need to divide by it
-            #(for mu - sigma >> 0, the normalization gives 1.)
-            norm = (1./2.)*(1. + special.erf((self.model.backgrounds+nsig)/sqrt(2.*self.sigma2)))
-            like = like/norm
+            if bg_error == "normal":
+                #Renormalize the likelihood to account for the cut at x = 0.
+                #The integral of the gaussian from 0 to infinity gives:
+                #(1/2)*(1 + Erf(mu/sqrt(2*sigma2))), so we need to divide by it
+                #(for mu - sigma >> 0, the normalization gives 1.)
+                norm = (1./2.)*(1. + special.erf((self.model.backgrounds+nsig)/sqrt(2.*self.sigma2)))
+                like = like/norm
 
             if nll:
                 like = - log ( like )
 
-            return like[0][0]
+            if bg_error == "normal" : return like[0][0]
+            elif bg_error == "lognormal": return like
+            else:
+                 raise Exception("Could not compute likelihood within required precision")
 
     def marginalizedLikelihood(self, nsig, nll ):
             """ compute the marginalized likelihood of observing nsig signal event"""
@@ -637,7 +655,7 @@ class LikelihoodComputer:
                     lmbda = array([lmbda])
                 for ctr,v in enumerate( lmbda ):
                     if v<=0.: lmbda[ctr]=1e-30
-#                    print ( "lmbda=",lmbda )
+                    #print ( "lmbda=",lmbda )
                 poisson = self.model.observed*NP.log(lmbda) - lmbda - self.gammaln
                 # poisson = NP.exp(self.model.observed*NP.log(lmbda) - lmbda - self.model.backgrounds - self.gammaln)
                 vals.append( NP.exp ( sum(poisson) ) )
