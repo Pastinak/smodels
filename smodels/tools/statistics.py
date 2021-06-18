@@ -58,12 +58,13 @@ def likelihoodFromLimits( upperLimit, expectedUpperLimit, nsig, nll=False, under
     def find_neg_mumax(upperLimit, expectedUpperLimit, xa, xb):
         while root_func(xa)*root_func(xb) > 0:
             xa = 2*xa
+            #logger.error (xa, root_func(xa), xb, root_func(xb))
         mumax = optimize.brentq(root_func, xa, xb, rtol=1e-03, xtol=1e-06 )
         return mumax
     
-    def getLam (ul_exp):
+    def getLam (ul):
         """ get the scale for the exponential destribution that reproduces the upper limit"""
-        return -np.log(0.05)/upperLimit
+        return -np.log(0.05)/ul
 
     def llhdexponential ( nsig, lam, nll ):
         ## exponential distribution
@@ -85,17 +86,17 @@ def likelihoodFromLimits( upperLimit, expectedUpperLimit, nsig, nll=False, under
         ## we are asked to cap likelihoods, so we set observed UL such that dr == drmax
 
     
-    if upperLimit < expectedUpperLimit:
+    if upperLimit <= expectedUpperLimit:
         ## underfluctuation. 
         if underfluct == "norm_0":
             return llhd ( nsig, 0., sigma_exp, nll )
         elif underfluct == "norm_neg":
             xa = -expectedUpperLimit
-            xb = root_func(1)
+            xb = 1
             mumax = find_neg_mumax(upperLimit, expectedUpperLimit, xa, xb)
             return llhd(nsig, mumax, sigma_exp, nll)
         elif underfluct == "exp":
-            lam = getLam(expectedUpperLimit)
+            lam = getLam(upperLimit)
             return llhdexponential(nsig, lam, nll)
         else:
             logger.warn("underfluct not defined, choose one of norm_0, norm_neg and exp")
@@ -197,9 +198,9 @@ def llhdFromLimits_moments ( upperLimit, expectedUpperLimit, nll=False, underflu
         mumax = optimize.brentq(root_func, xa, xb, rtol=1e-03, xtol=1e-06 )
         return mumax
     
-    def getLam (ul_exp):
+    def getLam (ul):
         """ get the scale for the exponential destribution that reproduces the upper limit"""
-        return -np.log(0.05)/upperLimit
+        return -np.log(0.05)/ul
 
     def llhdexponential ( nsig, lam, nll ):
         ## exponential distribution
@@ -244,18 +245,18 @@ def llhdFromLimits_moments ( upperLimit, expectedUpperLimit, nll=False, underflu
         ## we are asked to cap likelihoods, so we set observed UL such that dr == drmax
 
     
-    if upperLimit < expectedUpperLimit:
+    if upperLimit <= expectedUpperLimit:
         ## underfluctuation. 
         if underfluct == "norm_0":
             mumax = 0
             return trunc_norm_moments(mumax, sigma_exp)
         elif underfluct == "norm_neg":
             xa = -expectedUpperLimit
-            xb = root_func(1)
+            xb = 1
             mumax = find_neg_mumax(upperLimit, expectedUpperLimit, xa, xb)
             return trunc_norm_moments(mumax, sigma_exp)
         elif underfluct == "exp":
-            lam = getLam(expectedUpperLimit)
+            lam = getLam(upperLimit)
             return exp_moments(lam)
         else:
             logger.warn("underfluct not defined, choose one of norm_0, norm_neg and exp")
